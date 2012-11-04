@@ -26,7 +26,7 @@ Game.prototype.SetUp = function() {
 };
 
 Game.prototype.Run = function() {
-	mapGen = new MapGenerator(new IVec2(10, 10));
+	// mapGen = new MapGenerator(new IVec2(10, 10));
 	
 	do {
 		mapGen.Render();
