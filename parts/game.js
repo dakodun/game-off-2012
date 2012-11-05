@@ -11,6 +11,8 @@ function Game() {
 Game.prototype.SetUp = function() {
 	this.mCanvas = document.getElementById("canvas"); // get the canvas element handle by id from the html file
 	this.mContext = this.mCanvas.getContext("2d"); // get a 2d context handle from the canvas
+	
+	nmanagers.sceneManager.ChangeScene(new InitScene());
 };
 
 // cleans up the game object
@@ -28,15 +30,15 @@ Game.prototype.Run = function() {
 }
 
 Game.prototype.Input = function() {
-	mCurrScene.Input(); // perform input for the current scene
+	sceneManager.GetCurrentScene().Input(); // perform input for the current scene
 }
 
 Game.prototype.Process = function() {
-	mCurrScene.Process(); // process the current scene
+	sceneManager.GetCurrentScene().Process(); // process the current scene
 }
 
 Game.prototype.Render = function() {
-	mCurrScene.Render(); // render the current scene
+	sceneManager.GetCurrentScene().Render(); // render the current scene
 }
 // ...End
 
