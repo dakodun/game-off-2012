@@ -1,3 +1,30 @@
+/* **************************************************************** **
+**	
+**	Copyright (c) 2012 Iain M. Crawford
+**
+**	This software is provided 'as-is', without any express or
+**	implied warranty. In no event will the authors be held liable
+**	for any damages arising from the use of this software.
+**
+**	Permission is granted to anyone to use this software for any
+**	purpose, including commercial applications, and to alter it
+**	and redistribute it freely, subject to the following
+**	restrictions:
+** 
+**		1. The origin of this software must not be misrepresented;
+**		   you must not claim that you wrote the original
+**		   software. If you use this software in a product, an
+**		   acknowledgment in the product documentation would be
+**		   appreciated but is not required.
+**
+**		2. Altered source versions must be plainly marked as such,
+**		   and must not be misrepresented as being the original
+**		   software.
+**
+**		3. This notice may not be removed or altered from any
+**		   source distribution.
+** **************************************************************** */
+
 // IVec2 Class...
 // a 2d vector of integers
 function IVec2(x, y) {
@@ -30,12 +57,65 @@ Exception.prototype.What = function() {
 // ...End
 
 
+// SceneManager Class...
+function SceneManager() {
+	this.mCurrScene = null;
+	this.mSceneStore = new Array();
+}
+
+SceneManager.prototype.SetUp = function() {
+	
+}
+
+SceneManager.prototype.TearDown = function() {
+	for (var i = 0; i < this.mSceneStore.length; ++i) {
+		this.mSceneStore[i].TearDown();
+	}
+	
+	this.mSceneStore.splice(0, this.mSceneStore.length);
+	this.mCurrScene = NULL;
+}
+
+SceneManager.prototype.ChangeScene = function(newScene) {
+	var found = false;
+	
+	if (this.mCurrScene != null) {
+		if (this.mCurrScene.Persistent() == true) {
+			this.mSceneStore.push(this.mCurrScene);
+		}
+		else {
+			this.mCurrScene.TearDown();
+		}
+	}
+	
+	for (var i = 0; i < this.mSceneStore.length; ++i) {
+		if (this.mSceneStore[i].Type() == newScene.Type()) {
+			this.mCurrScene = this.mSceneStore[i];
+			this.mSceneStore.splice(i, i + 1);
+			found = true;
+			break;
+		}
+	}
+	
+	if (found == false) {
+		this.mCurrScene = newScene;
+		this.mCurrScene.SetUp();
+	}
+}
+
+SceneManager.prototype.GetCurrentScene = function() {
+	return this.mCurrScene;
+}
+// ...End
+
+
 // mapgen Namespace...
 var nmapgen = new function() {
 this.MAPBOUNDMIN = new IVec2(100, 400); // minimum size a map can be
 this.MAPBOUNDMAX = new IVec2(300, 1200); // maximum size a map can be
 };
 // ...End
+
 
 // MapGenerator Class...
 // mapDimensions is an IVec2
@@ -72,8 +152,39 @@ MapGenerator.prototype.Render = function() {
 };
 // ...End
 
-// Scene Class...
-function Scene() {
+
+// InitScene Class...
+function InitScene() {
+	this.persist = false;
+}
+
+// returns the type of this object for validity checking
+IVec2.prototype.Type = function() {
+	return "InitScene";
+};
+
+// 
+IVec2.prototype.Persistent = function() {
+	return persist;
+};
+
+InitScene.prototype.SetUp = function() {
+	alert("setting up scene");
+}
+
+InitScene.prototype.TearDown = function() {
+	alert("tearing down scene");
+}
+
+InitScene.prototype.Input = function() {
+	
+}
+
+InitScene.prototype.Process = function() {
+	
+}
+
+InitScene.prototype.Render = function() {
 	
 }
 // ...End
@@ -92,6 +203,8 @@ function Game() {
 Game.prototype.SetUp = function() {
 	this.mCanvas = document.getElementById("canvas"); // get the canvas element handle by id from the html file
 	this.mContext = this.mCanvas.getContext("2d"); // get a 2d context handle from the canvas
+	
+	nmanagers.sceneManager.ChangeScene(new InitScene());
 };
 
 // cleans up the game object
@@ -109,15 +222,15 @@ Game.prototype.Run = function() {
 }
 
 Game.prototype.Input = function() {
-	mCurrScene.Input(); // perform input for the current scene
+	sceneManager.GetCurrentScene().Input(); // perform input for the current scene
 }
 
 Game.prototype.Process = function() {
-	mCurrScene.Process(); // process the current scene
+	sceneManager.GetCurrentScene().Process(); // process the current scene
 }
 
 Game.prototype.Render = function() {
-	mCurrScene.Render(); // render the current scene
+	sceneManager.GetCurrentScene().Render(); // render the current scene
 }
 // ...End
 
@@ -125,6 +238,13 @@ Game.prototype.Render = function() {
 // main Namespace...
 var nmain = new function() {
 	this.game = new Game(); // our game object
+}
+// ...End
+
+
+// managers Namespace...
+var nmanagers = new function() {
+	this.sceneManager = new SceneManager();
 }
 // ...End
 
