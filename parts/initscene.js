@@ -14,11 +14,11 @@ IVec2.prototype.Persistent = function() {
 };
 
 InitScene.prototype.SetUp = function() {
-	alert("setting up scene");
+	
 }
 
 InitScene.prototype.TearDown = function() {
-	alert("tearing down scene");
+	
 }
 
 InitScene.prototype.Input = function() {
