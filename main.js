@@ -109,6 +109,69 @@ SceneManager.prototype.GetCurrentScene = function() {
 // ...End
 
 
+// ResourceManager Class...
+function ResourceManager() {
+	
+}
+
+// ...End
+
+
+// Texture Class...
+// a texture (wrapper for javascript Image)
+function Texture() {
+	this.img = new Image();
+	this.loaded = false;
+	
+	this.img.onload = function() {
+		this.loaded = true;
+	}
+	
+	this.img.onabort = function() {
+		this.loaded = true;
+	}
+	
+	this.img.onerror = function() {
+		this.loaded = true;
+	}
+};
+
+// returns the type of this object for validity checking
+Texture.prototype.Type = function() {
+	return "Texture";
+};
+
+// loads a texture from a file
+Texture.LoadFromFile = function(source) {
+	this.loaded = false;
+	this.img.src = source;
+}
+// ...End
+
+
+
+// Timer Class...
+// a timer; keeps time
+function Timer() {
+	this.startTime = 0; // the time that this timer was started
+	
+	this.Reset();
+};
+
+// 
+Timer.prototype.Reset = function() {
+	var d = new Date();
+	this.startTime = d.getTime(); // set the start time to the current time
+};
+
+// 
+Timer.prototype.GetElapsedTime = function() {
+	var d = new Date();
+	return d.getTime() - this.startTime; // return how much time has elapsed since last call to reset
+};
+// ...End
+
+
 // mapgen Namespace...
 var nmapgen = new function() {
 this.MAPBOUNDMIN = new IVec2(100, 400); // minimum size a map can be
@@ -169,11 +232,11 @@ IVec2.prototype.Persistent = function() {
 };
 
 InitScene.prototype.SetUp = function() {
-	alert("setting up scene");
+	
 }
 
 InitScene.prototype.TearDown = function() {
-	alert("tearing down scene");
+	
 }
 
 InitScene.prototype.Input = function() {
@@ -181,7 +244,8 @@ InitScene.prototype.Input = function() {
 }
 
 InitScene.prototype.Process = function() {
-	
+	alert("render");
+	nmain.game.Quit();
 }
 
 InitScene.prototype.Render = function() {
@@ -193,10 +257,12 @@ InitScene.prototype.Render = function() {
 // Game Class...
 // a game object contains all the logic and data of our game
 function Game() {
+	this.mGameLoop = null;
+	this.mFrameLimit = 60;
+	this.mAccum = 0.0;
+	
 	this.mCanvas = null;
 	this.mContext = null;
-	
-	this.mQuit = false;
 };
 
 // initialises the game object
@@ -213,24 +279,39 @@ Game.prototype.TearDown = function() {
 };
 
 Game.prototype.Run = function() {
-	// while the app is to run
-	do {
-		this.Input(); // perform input handling
+	var updateDisplay = false;
+	
+	this.Input(); // perform input handling
+	
+	var dt = TIME_SINCE_LAST_CALL; // need timer class
+	this.accum += dt;
+	while (this.accum > (1 / this.frameLimit)) {
 		this.Process(); // process the game
+		this.accum -= (1 / this.frameLimit);
+		
+		// interpolate for smoother running, baby
+	}
+	
+	if (updateDisplay == true) {
 		this.Render(); // render the results
-	} while(!mQuit);
+	}
+}
+
+Game.prototype.Quit = function() {
+	clearInterval(this.mGameLoop);
+	this.TearDown();
 }
 
 Game.prototype.Input = function() {
-	sceneManager.GetCurrentScene().Input(); // perform input for the current scene
+	nmanagers.sceneManager.GetCurrentScene().Input(); // perform input for the current scene
 }
 
 Game.prototype.Process = function() {
-	sceneManager.GetCurrentScene().Process(); // process the current scene
+	nmanagers.sceneManager.GetCurrentScene().Process(); // process the current scene
 }
 
 Game.prototype.Render = function() {
-	sceneManager.GetCurrentScene().Render(); // render the current scene
+	nmanagers.sceneManager.GetCurrentScene().Render(); // render the current scene
 }
 // ...End
 
@@ -251,9 +332,11 @@ var nmanagers = new function() {
 
 function main() {
 	try {
-		nmain.game.SetUp();
-		nmain.game.Run();
-		nmain.game.TearDown();
+		nmain.game.SetUp(); // initialise the game
+		
+		// run the game loop as fast as the browser will allow
+		// note that timing is handled elsewhere (within the Game Run() function)
+		nmain.game.mGameLoop = setInterval(function() {nmain.game.Run()}, 0);
 	} catch(e) {
 		alert(e.What());
 	}
