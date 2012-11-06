@@ -244,8 +244,7 @@ InitScene.prototype.Input = function() {
 }
 
 InitScene.prototype.Process = function() {
-	alert("render");
-	nmain.game.Quit();
+	
 }
 
 InitScene.prototype.Render = function() {
