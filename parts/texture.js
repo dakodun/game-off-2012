@@ -1,19 +1,19 @@
 // Texture Class...
 // a texture (wrapper for javascript Image)
 function Texture() {
-	this.img = new Image();
-	this.loaded = false;
+	this.mImg = new Image();
+	this.mLoaded = "";
 	
-	this.img.onload = function() {
-		this.loaded = true;
+	this.mImg.onload = function() {
+		this.mLoaded = "load";
 	}
 	
-	this.img.onabort = function() {
-		this.loaded = true;
+	this.mImg.onabort = function() {
+		this.mLoaded = "abort";
 	}
 	
-	this.img.onerror = function() {
-		this.loaded = true;
+	this.mImg.onerror = function() {
+		this.mLoaded = "error";
 	}
 };
 
@@ -23,9 +23,9 @@ Texture.prototype.Type = function() {
 };
 
 // loads a texture from a file
-Texture.LoadFromFile = function(source) {
-	this.loaded = false;
-	this.img.src = source;
+Texture.prototype.LoadFromFile = function(source) {
+	this.mLoaded = "";
+	this.mImg.src = source;
 }
 // ...End
 
