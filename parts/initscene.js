@@ -45,6 +45,7 @@ InitScene.prototype.Render = function() {
 	
 	// nmain.game.mContext.fillText("Hello", 50, 50);
 	nmain.game.mContext.drawImage(tex.mImg, 0, 0);
+	
 }
 // ...End
 
