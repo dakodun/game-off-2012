@@ -1,6 +1,7 @@
 // managers Namespace...
-var nmanagers = new function() {
-	this.sceneManager = new SceneManager();
+var nmgrs = new function() {
+	this.sceneMan = new SceneManager();
+	this.resMan = new ResourceManager();
 }
 // ...End
 
@@ -11,6 +12,7 @@ function main() {
 		
 		// run the game loop as fast as the browser will allow
 		// note that timing is handled elsewhere (within the Game Run() function)
+		nmain.game.mTimer.Reset();
 		nmain.game.mGameLoop = setInterval(function() {nmain.game.Run()}, 0);
 	} catch(e) {
 		alert(e.What());
