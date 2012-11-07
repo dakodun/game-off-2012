@@ -109,30 +109,87 @@ SceneManager.prototype.GetCurrentScene = function() {
 // ...End
 
 
+function ResourceSort(first, second) {
+	return second.mResName < first.mResName;
+};
+
+// Resource Class...
+function Resource(resource, resourceName) {
+	this.mRes = resource;
+	this.mResName = resourceName;
+};
+// ...End
+
+
+// ResourceStore Class...
+function ResourceStore() {
+	this.mStore = new Array();
+};
+
+ResourceStore.prototype.AddResource = function(resource, resourceName) {
+	// replace with a binary search
+	
+	for (var i = 0; i < this.mStore.length; ++i) {
+		if (this.mStore[i].mResName == resourceName) {
+			throw Exception("Resource already exists.");
+		}
+	}
+	
+	this.mStore.push(new Resource(resource, resourceName));
+	this.mStore.sort(ResourceSort);
+	
+	return this.GetResource(resourceName);
+};
+
+ResourceStore.prototype.RemoveResource = function(resourceName) {
+	// replace with a binary search
+	
+	for (var i = 0; i < this.mStore.length; ++i) {
+		if (this.mStore[i].mResName == resourceName) {
+			this.mStore.splice(i, i + 1);
+		}
+	}
+	
+	throw Exception("Resource doesn't exist.");
+};
+
+ResourceStore.prototype.GetResource = function(resourceName) {
+	// replace with a binary search
+	
+	for (var i = 0; i < this.mStore.length; ++i) {
+		if (this.mStore[i].mResName == resourceName) {
+			return this.mStore[i];
+		}
+	}
+	
+	throw Exception("Resource not found.");
+};
+// ...End
+
+
 // ResourceManager Class...
 function ResourceManager() {
-	
-}
-
+	this.mTexStore = new ResourceStore();
+};
 // ...End
 
 
 // Texture Class...
 // a texture (wrapper for javascript Image)
 function Texture() {
-	this.img = new Image();
-	this.loaded = false;
+	this.mImg = new Image();
+	this.mLoaded = "";
 	
-	this.img.onload = function() {
-		this.loaded = true;
+	this.mImg.onload = function() {
+		this.mLoaded = "load";
 	}
 	
-	this.img.onabort = function() {
-		this.loaded = true;
+	this.mImg.onabort = function() {
+		this.mLoaded = "abort";
 	}
 	
-	this.img.onerror = function() {
-		this.loaded = true;
+	this.mImg.onerror = function() {
+		this.mLoaded = "error";
 	}
 };
 
@@ -142,9 +199,9 @@ Texture.prototype.Type = function() {
 };
 
 // loads a texture from a file
-Texture.LoadFromFile = function(source) {
-	this.loaded = false;
-	this.img.src = source;
+Texture.prototype.LoadFromFile = function(source) {
+	this.mLoaded = "";
+	this.mImg.src = source;
 }
 // ...End
 
@@ -222,17 +279,25 @@ function InitScene() {
 }
 
 // returns the type of this object for validity checking
-IVec2.prototype.Type = function() {
+InitScene.prototype.Type = function() {
 	return "InitScene";
 };
 
 // 
-IVec2.prototype.Persistent = function() {
+InitScene.prototype.Persistent = function() {
 	return persist;
 };
 
 InitScene.prototype.SetUp = function() {
+	// var tex = new Texture();
+	// tex.LoadFromFile("./res/vis/test.png");
 	
+	try {
+		var t = (nmgrs.resMan.mTexStore.AddResource(new Texture(), "test")).mRes;
+		t.LoadFromFile("./res/vis/test.png");
+	} catch(e) {
+		alert(e.What());
+	}
 }
 
 InitScene.prototype.TearDown = function() {
@@ -248,7 +313,13 @@ InitScene.prototype.Process = function() {
 }
 
 InitScene.prototype.Render = function() {
+	// var tex = new Texture();
+	// tex.LoadFromFile("./res/vis/test.png");
 	
+	var tex = (nmgrs.resMan.mTexStore.GetResource("test")).mRes;
+	
+	// nmain.game.mContext.fillText("Hello", 50, 50);
+	nmain.game.mContext.drawImage(tex.mImg, 0, 0);
 }
 // ...End
 
@@ -259,6 +330,7 @@ function Game() {
 	this.mGameLoop = null;
 	this.mFrameLimit = 60;
 	this.mAccum = 0.0;
+	this.mTimer = new Timer();
 	
 	this.mCanvas = null;
 	this.mContext = null;
@@ -269,7 +341,7 @@ Game.prototype.SetUp = function() {
 	this.mCanvas = document.getElementById("canvas"); // get the canvas element handle by id from the html file
 	this.mContext = this.mCanvas.getContext("2d"); // get a 2d context handle from the canvas
 	
-	nmanagers.sceneManager.ChangeScene(new InitScene());
+	nmgrs.sceneMan.ChangeScene(new InitScene());
 };
 
 // cleans up the game object
@@ -282,13 +354,16 @@ Game.prototype.Run = function() {
 	
 	this.Input(); // perform input handling
 	
-	var dt = TIME_SINCE_LAST_CALL; // need timer class
-	this.accum += dt;
-	while (this.accum > (1 / this.frameLimit)) {
+	var dt = (this.mTimer.GetElapsedTime() / 1000);
+	this.mTimer.Reset();
+	this.mAccum += dt;
+	while (this.mAccum > (1 / this.mFrameLimit)) {
 		this.Process(); // process the game
-		this.accum -= (1 / this.frameLimit);
+		this.mAccum -= (1 / this.mFrameLimit);
 		
 		// interpolate for smoother running, baby
+		
+		updateDisplay = true;
 	}
 	
 	if (updateDisplay == true) {
@@ -302,15 +377,15 @@ Game.prototype.Quit = function() {
 }
 
 Game.prototype.Input = function() {
-	nmanagers.sceneManager.GetCurrentScene().Input(); // perform input for the current scene
+	nmgrs.sceneMan.GetCurrentScene().Input(); // perform input for the current scene
 }
 
 Game.prototype.Process = function() {
-	nmanagers.sceneManager.GetCurrentScene().Process(); // process the current scene
+	nmgrs.sceneMan.GetCurrentScene().Process(); // process the current scene
 }
 
 Game.prototype.Render = function() {
-	nmanagers.sceneManager.GetCurrentScene().Render(); // render the current scene
+	nmgrs.sceneMan.GetCurrentScene().Render(); // render the current scene
 }
 // ...End
 
@@ -323,8 +398,9 @@ var nmain = new function() {
 
 
 // managers Namespace...
-var nmanagers = new function() {
-	this.sceneManager = new SceneManager();
+var nmgrs = new function() {
+	this.sceneMan = new SceneManager();
+	this.resMan = new ResourceManager();
 }
 // ...End
 
@@ -335,6 +411,7 @@ function main() {
 		
 		// run the game loop as fast as the browser will allow
 		// note that timing is handled elsewhere (within the Game Run() function)
+		nmain.game.mTimer.Reset();
 		nmain.game.mGameLoop = setInterval(function() {nmain.game.Run()}, 0);
 	} catch(e) {
 		alert(e.What());
