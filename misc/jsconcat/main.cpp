@@ -97,7 +97,7 @@ int main (int argc, char *argv[]) {
 		std::cout << "Attempting to use the config file: " << confFile << "." << std::endl;
 	}
 	else {
-		std::cout << "No config file passed, attempting to use the default: \"conf\"." << std::endl;
+		std::cout << "No config file passed, attempting to use the default: conf." << std::endl;
 	}
 	
 	std::cout << "Beginning concatenation process..." << std::endl;
@@ -128,7 +128,7 @@ int main (int argc, char *argv[]) {
 				conf.close(); // close file
 			}
 			else {
-				throw std::runtime_error("unable to open the the config file: conf");
+				throw std::runtime_error("unable to open the the config file: " + confFile);
 			}
 		} catch (std::exception& e) {
 			std::cout << e.what() << std::endl;
