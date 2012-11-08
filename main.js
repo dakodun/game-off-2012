@@ -41,6 +41,49 @@ IVec2.prototype.Type = function() {
 IVec2.prototype.Output = function() {
 	return "(" + this.mX + ", " + this.mY + ")";
 };
+
+// 
+IVec2.prototype.Copy = function(other) {
+	this.mX = other.mX;
+	this.mY = other.mY;
+};
+
+// 
+IVec2.prototype.Set = function(x, y) {
+	this.mX = x; // x value of our 2d vector
+	this.mY = y; // y value of our 2d vector
+};
+// ...End
+
+
+// FVec2 Class...
+// a 2d vector of floats
+function FVec2(x, y) {
+	this.mX = x; // x value of our 2d vector
+	this.mY = y; // y value of our 2d vector
+};
+
+// returns the type of this object for validity checking
+FVec2.prototype.Type = function() {
+	return "FVec2";
+};
+
+// returns formatted output for this vector
+FVec2.prototype.Output = function() {
+	return "(" + this.mX + ", " + this.mY + ")";
+};
+
+// 
+FVec2.prototype.Copy = function(other) {
+	this.mX = other.mX;
+	this.mY = other.mY;
+};
+
+// 
+FVec2.prototype.Set = function(x, y) {
+	this.mX = x; // x value of our 2d vector
+	this.mY = y; // y value of our 2d vector
+};
 // ...End
 
 
@@ -319,6 +362,114 @@ Texture.prototype.LoadFromFile = function(source) {
 // ...End
 
 
+// Sprite Class...
+// 
+function Sprite() {
+	this.mTex = null;
+	this.mDepth = 0;
+	
+	this.mPos = new IVec2(0, 0);
+	this.mClipPos = new IVec2(0, 0);
+	this.mClipSize = new IVec2(0, 0);
+	this.mScale = new FVec2(1.0, 1.0);
+}
+
+// returns the type of this object for validity checking
+Sprite.prototype.Type = function() {
+	return "Sprite";
+};
+
+// 
+Sprite.prototype.SetUp = function() {
+	
+}
+
+// 
+Sprite.prototype.TearDown = function() {
+	
+}
+
+//
+Sprite.prototype.Copy = function(other) {
+	this.mTex = other.mTex ;
+	this.mDepth = other.mDepth;
+	
+	this.mPos.Copy(other.mPos);
+	this.mClipPos.Copy(other.mClipPos);
+	this.mClipSize.Copy(other.mClipSize);
+	this.mScale.Copy(other.mScale);
+}
+
+// 
+Sprite.prototype.SetTexture = function(texture) {
+	this.mTex = texture;
+	
+	this.mClipPos.mX = 0;
+	this.mClipPos.mY = 0;
+	
+	this.mClipSize.mX = this.mTex.mImg.width;
+	this.mClipSize.mY = this.mTex.mImg.height;
+	
+	this.mScale.mX = 1.0;
+	this.mScale.mY = 1.0;
+}
+// ...End
+
+
+// DepthSort function
+// sorts renderable resources based on depth
+function DepthSort(first, second) {
+	return second.mDepth < first.mDepth;
+};
+// ...End
+
+// RenderBatch Class...
+// a render batch handles all drawing operations and draws according to depth (z) values
+function RenderBatch() {
+	this.mRenderData = new Array();
+}
+
+// 
+RenderBatch.prototype.SetUp = function() {
+	
+}
+
+// 
+RenderBatch.prototype.TearDown = function() {
+	
+}
+
+// 
+RenderBatch.prototype.AddSprite = function(sprite) {
+	var spr = new Sprite();
+	spr.Copy(sprite);
+	
+	this.mRenderData.push(spr);
+	this.mRenderData.sort(DepthSort); // sort the queue
+}
+
+// 
+RenderBatch.prototype.Clear = function() {
+	this.mRenderData.splice(0, this.mRenderData.length);
+}
+
+// 
+RenderBatch.prototype.Render = function() {
+	for (var i = 0; i < this.mRenderData.length; ++i) {
+		if (this.mRenderData[i].Type() == "Sprite") {
+			var spr = this.mRenderData[i];
+			nmain.game.mCurrContext.drawImage(spr.mTex.mImg, spr.mClipPos.mX, spr.mClipPos.mY,
+					spr.mClipSize.mX, spr.mClipSize.mY, spr.mPos.mX, spr.mPos.mY,
+					spr.mTex.mImg.width * spr.mScale.mX, spr.mTex.mImg.height * spr.mScale.mY);
+		}
+		else if (this.mRenderData[i].Type() == "Text") {
+			// Render Text
+		}
+	}
+}
+
+// ...End
+
 
 // Timer Class...
 // a timer; keeps time
@@ -379,8 +530,8 @@ MapGenerator.prototype.GenerateMap = function() {
 };
 
 MapGenerator.prototype.Render = function() {
-	nmain.game.mContext.fillStyle = "#FF0000";
-	nmain.game.mContext.fillRect(0, 0, 150, 75);
+	// nmain.game.mContext.fillStyle = "#FF0000";
+	// nmain.game.mContext.fillRect(0, 0, 150, 75);
 };
 // ...End
 
@@ -388,8 +539,7 @@ MapGenerator.prototype.Render = function() {
 // InitScene Class...
 // self contained parts of the game such as different screens, levels or game modes
 function InitScene() {
-	this.persist = false;
-	// this.resLoad = new ResourceLoader();
+	this.mPersist = false;
 }
 
 // returns the type of this object for validity checking
@@ -399,23 +549,15 @@ InitScene.prototype.Type = function() {
 
 // returns whether this scene is to persist or not (when changing to a new scene -- preserves state)
 InitScene.prototype.Persistent = function() {
-	return persist;
+	return this.mPersist;
 };
 
 // initialises the scene object
 InitScene.prototype.SetUp = function() {
-	// var tex = new Texture();
-	// tex.LoadFromFile("./res/vis/test.png");
-	
 	try {
-		/* var t = nmgrs.resMan.mTexStore.AddResource(new Texture(), "test");
-		t.LoadFromFile("./res/vis/test.png"); */
-		
-		// resLoad = new ResourceLoader();
 		nmgrs.resLoad.QueueTexture("test", "./res/vis/test.png");
 		nmgrs.resLoad.AcquireResources();
-		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 1000);
-		// nmain.game.mGameLoop = setInterval(function() {nmain.game.Run();}, 0);
+		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
 	} catch(e) {
 		alert(e.What());
 	}
@@ -433,24 +575,63 @@ InitScene.prototype.Input = function() {
 
 // handles game logic
 InitScene.prototype.Process = function() {
-	
+	if (nmgrs.resLoad.mWorking == false) {
+		nmgrs.sceneMan.ChangeScene(new TestScene());
+	}
 }
 
 // handles all drawing tasks
 InitScene.prototype.Render = function() {
-	// var tex = new Texture();
-	// tex.LoadFromFile("./res/vis/test.png");
 	
-	if (nmgrs.resLoad.mWorking == false) {
-		var tex = nmgrs.resMan.mTexStore.GetResource("test");
-		nmain.game.mContext.drawImage(tex.mImg, 0, 0);
-	}
-	else {
-	}
+}
+// ...End
+
+
+// TestScene Class...
+// self contained parts of the game such as different screens, levels or game modes
+function TestScene() {
+	this.mPersist = false;
 	
-	// nmain.game.mContext.fillText("Hello", 50, 50);
-	// nmain.game.mContext.drawImage(tex.mImg, 0, 0);
+	this.mTestBatch = new RenderBatch();
+	this.mTestSprite = new Sprite();
+}
+
+// returns the type of this object for validity checking
+TestScene.prototype.Type = function() {
+	return "TestScene";
+};
+
+// returns whether this scene is to persist or not (when changing to a new scene -- preserves state)
+TestScene.prototype.Persistent = function() {
+	return this.mPersist;
+};
+
+// initialises the scene object
+TestScene.prototype.SetUp = function() {
+	var tex = nmgrs.resMan.mTexStore.GetResource("test");
+	this.mTestSprite.SetTexture(tex);
+}
+
+// cleans up the scene object
+TestScene.prototype.TearDown = function() {
 	
+}
+
+// handles user input
+TestScene.prototype.Input = function() {
+	
+}
+
+// handles game logic
+TestScene.prototype.Process = function() {
+	this.mTestSprite.mPos.Set(this.mTestSprite.mPos.mX + 1, 0);
+}
+
+// handles all drawing tasks
+TestScene.prototype.Render = function() {
+	this.mTestBatch.Clear();
+	this.mTestBatch.AddSprite(this.mTestSprite);
+	this.mTestBatch.Render();
 }
 // ...End
 
@@ -463,14 +644,22 @@ function Game() {
 	this.mAccum = 0.0; // the current frame time accumulator
 	this.mTimer = new Timer(); // the timer that handles our main loop timing
 	
-	this.mCanvas = null; // handle to the canvas object
-	this.mContext = null; // handle to the 2d context returned by the canvas object
+	this.mCanvas = new Array();
+	this.mContext = new Array();
+	this.mBufferIter = 0;
+	
+	this.mCurrContext = null;
 };
 
 // initialises the game object
 Game.prototype.SetUp = function() {
-	this.mCanvas = document.getElementById("canvas"); // get the canvas element handle by id from the html file
-	this.mContext = this.mCanvas.getContext("2d"); // get a 2d context handle from the canvas
+	this.mCanvas.push(document.getElementById("frontbuffer"));
+	this.mContext.push(this.mCanvas[0].getContext("2d"));
+	
+	this.mCanvas.push(document.getElementById("backbuffer"));
+	this.mContext.push(this.mCanvas[1].getContext("2d"));
+	
+	this.mCurrContext = this.mContext[this.mBufferIter];
 	
 	nmgrs.sceneMan.ChangeScene(new InitScene()); // change to our initial scene
 };
@@ -524,7 +713,25 @@ Game.prototype.Process = function() {
 
 // handles all drawing tasks
 Game.prototype.Render = function() {
+	this.Clear();
+	
 	nmgrs.sceneMan.GetCurrentScene().Render(); // render the current scene
+	
+	this.SwapBuffers();
+}
+
+//
+Game.prototype.Clear = function() {
+	this.mCurrContext.clearRect(0, 0, this.mCanvas[this.mBufferIter].width, this.mCanvas[this.mBufferIter].height);
+}
+
+//
+Game.prototype.SwapBuffers = function() {
+	this.mCanvas[this.mBufferIter].style.visibility = 'visible';
+	
+	this.mBufferIter = (this.mBufferIter + 1) % 2;
+	this.mCurrContext = this.mContext[this.mBufferIter];
+	this.mCanvas[this.mBufferIter].style.visibility = 'hidden';
 }
 // ...End
 
