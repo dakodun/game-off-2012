@@ -1,17 +1,27 @@
 <!DOCTYPE html>
 <html>
 <head>
+<link rel="stylesheet" type="text/css" href="style.css">
 <script src="main.js"></script>
 </head>
 
 <body>
-<canvas id="canvas" width="640" height="480" style="border:1px solid #c3c3c3;">
+<table>
+<tr>
+<td>
+<canvas id="frontbuffer" width="640" height="480" style="border:1px solid #c3c3c3; z-index: 0; visibility: hidden; position: absolute;">
 Canvas not supported :(
 </canvas>
+
+<canvas id="backbuffer" width="640" height="480" style="border:1px solid #c3c3c3; z-index: 1; visibility: visible; position: absolute;">
+
+</canvas>
+</td>
+</tr>
+</table>
 
 <script>
 main();
 </script>
-
 </body>
 </html>
