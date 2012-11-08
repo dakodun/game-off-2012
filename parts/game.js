@@ -6,14 +6,22 @@ function Game() {
 	this.mAccum = 0.0; // the current frame time accumulator
 	this.mTimer = new Timer(); // the timer that handles our main loop timing
 	
-	this.mCanvas = null; // handle to the canvas object
-	this.mContext = null; // handle to the 2d context returned by the canvas object
+	this.mCanvas = new Array();
+	this.mContext = new Array();
+	this.mBufferIter = 0;
+	
+	this.mCurrContext = null;
 };
 
 // initialises the game object
 Game.prototype.SetUp = function() {
-	this.mCanvas = document.getElementById("canvas"); // get the canvas element handle by id from the html file
-	this.mContext = this.mCanvas.getContext("2d"); // get a 2d context handle from the canvas
+	this.mCanvas.push(document.getElementById("frontbuffer"));
+	this.mContext.push(this.mCanvas[0].getContext("2d"));
+	
+	this.mCanvas.push(document.getElementById("backbuffer"));
+	this.mContext.push(this.mCanvas[1].getContext("2d"));
+	
+	this.mCurrContext = this.mContext[this.mBufferIter];
 	
 	nmgrs.sceneMan.ChangeScene(new InitScene()); // change to our initial scene
 };
@@ -67,7 +75,25 @@ Game.prototype.Process = function() {
 
 // handles all drawing tasks
 Game.prototype.Render = function() {
+	this.Clear();
+	
 	nmgrs.sceneMan.GetCurrentScene().Render(); // render the current scene
+	
+	this.SwapBuffers();
+}
+
+//
+Game.prototype.Clear = function() {
+	this.mCurrContext.clearRect(0, 0, this.mCanvas[this.mBufferIter].width, this.mCanvas[this.mBufferIter].height);
+}
+
+//
+Game.prototype.SwapBuffers = function() {
+	this.mCanvas[this.mBufferIter].style.visibility = 'visible';
+	
+	this.mBufferIter = (this.mBufferIter + 1) % 2;
+	this.mCurrContext = this.mContext[this.mBufferIter];
+	this.mCanvas[this.mBufferIter].style.visibility = 'hidden';
 }
 // ...End
 
