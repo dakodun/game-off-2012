@@ -35,8 +35,8 @@ MapGenerator.prototype.GenerateMap = function() {
 };
 
 MapGenerator.prototype.Render = function() {
-	nmain.game.mContext.fillStyle = "#FF0000";
-	nmain.game.mContext.fillRect(0, 0, 150, 75);
+	// nmain.game.mContext.fillStyle = "#FF0000";
+	// nmain.game.mContext.fillRect(0, 0, 150, 75);
 };
 // ...End
 
