@@ -35,7 +35,7 @@ ResourceStore.prototype.GetResource = function(resourceName) {
 	
 	for (var i = 0; i < this.mStore.length; ++i) {
 		if (this.mStore[i].mResName == resourceName) {
-			return this.mStore[i];
+			return this.mStore[i].mRes;
 		}
 	}
 	
