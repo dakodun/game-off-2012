@@ -12,7 +12,7 @@ InitScene.prototype.Type = function() {
 
 // returns whether this scene is to persist or not (when changing to a new scene -- preserves state)
 InitScene.prototype.Persistent = function() {
-	return persist;
+	return this.persist;
 };
 
 // initialises the scene object
@@ -27,7 +27,7 @@ InitScene.prototype.SetUp = function() {
 		// resLoad = new ResourceLoader();
 		nmgrs.resLoad.QueueTexture("test", "./res/vis/test.png");
 		nmgrs.resLoad.AcquireResources();
-		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 1000);
+		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
 		// nmain.game.mGameLoop = setInterval(function() {nmain.game.Run();}, 0);
 	} catch(e) {
 		alert(e.What());
