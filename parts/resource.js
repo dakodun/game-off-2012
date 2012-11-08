@@ -9,3 +9,10 @@ function Resource(resource, resourceName) {
 };
 // ...End
 
+// QueuedResource Class...
+function QueuedResource(resourceName, resourceLocation) {
+	this.mResName = resourceName;
+	this.mResLocation = resourceLocation;
+};
+// ...End
+
