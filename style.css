@@ -1,0 +1,9 @@
+body {
+	background-color: #0D0D11;
+	background-image: url('web/back.png');
+	/* background-repeat: repeat-x; */
+}
+
+table {
+	padding: 100px;
+}
