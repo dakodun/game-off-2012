@@ -120,6 +120,13 @@ function Resource(resource, resourceName) {
 };
 // ...End
 
+// QueuedResource Class...
+function QueuedResource(resourceName, resourceLocation) {
+	this.mResName = resourceName;
+	this.mResLocation = resourceLocation;
+};
+// ...End
+
 
 // ResourceStore Class...
 function ResourceStore() {
@@ -158,12 +165,62 @@ ResourceStore.prototype.GetResource = function(resourceName) {
 	
 	for (var i = 0; i < this.mStore.length; ++i) {
 		if (this.mStore[i].mResName == resourceName) {
-			return this.mStore[i];
+			return this.mStore[i].mRes;
 		}
 	}
 	
 	throw Exception("Resource not found.");
 };
+// ...End
+
+
+// ResourceStore Class...
+function ResourceLoader() {
+	this.mTexQueue = new Array();
+	
+	this.mWorking = false;
+	this.mIntervalID = null;
+};
+
+ResourceLoader.prototype.QueueTexture = function(texName, texLocation) {
+	// replace with a binary search
+	
+	if (this.mWorking == true) {
+		throw Exception("Resource loader already working.");
+	}
+	
+	for (var i = 0; i < this.mTexQueue.length; ++i) {
+		if (this.mTexQueue[i].mResName == texName) {
+			throw Exception("Resource already exists.");
+		}
+	}
+	
+	this.mTexQueue.push(new QueuedResource(texName, texLocation));
+	this.mTexQueue.sort(ResourceSort);
+}
+
+ResourceLoader.prototype.AcquireResources = function() {
+	this.mWorking = true;
+	
+	for (var i = 0; i < this.mTexQueue.length; ++i) {
+		var tex = nmgrs.resMan.mTexStore.AddResource(new Texture(), this.mTexQueue[i].mResName);
+		tex.LoadFromFile(this.mTexQueue[i].mResLocation);
+	}
+}
+
+ResourceLoader.prototype.ProgressCheck = function() {
+	for (var i = 0; i < this.mTexQueue.length; ++i) {
+		var tex = nmgrs.resMan.mTexStore.GetResource(this.mTexQueue[i].mResName);
+		if (tex.mImg.mLoaded == "load" || tex.mImg.mLoaded == "abort" || tex.mImg.mLoaded == "error") {
+			this.mTexQueue.splice(i, 1);
+		}
+	}
+	
+	if (this.mTexQueue.length == 0) {
+		this.mWorking = false;
+		clearInterval(this.mIntervalID);
+	}
+}
 // ...End
 
 
@@ -178,7 +235,7 @@ function ResourceManager() {
 // a texture (wrapper for javascript Image)
 function Texture() {
 	this.mImg = new Image();
-	this.mLoaded = "";
+	this.mImg.mLoaded = "";
 	
 	this.mImg.onload = function() {
 		this.mLoaded = "load";
@@ -200,7 +257,7 @@ Texture.prototype.Type = function() {
 
 // loads a texture from a file
 Texture.prototype.LoadFromFile = function(source) {
-	this.mLoaded = "";
+	this.mImg.mLoaded = "";
 	this.mImg.src = source;
 }
 // ...End
@@ -276,6 +333,7 @@ MapGenerator.prototype.Render = function() {
 // InitScene Class...
 function InitScene() {
 	this.persist = false;
+	// this.resLoad = new ResourceLoader();
 }
 
 // returns the type of this object for validity checking
@@ -293,8 +351,14 @@ InitScene.prototype.SetUp = function() {
 	// tex.LoadFromFile("./res/vis/test.png");
 	
 	try {
-		var t = (nmgrs.resMan.mTexStore.AddResource(new Texture(), "test")).mRes;
-		t.LoadFromFile("./res/vis/test.png");
+		/* var t = nmgrs.resMan.mTexStore.AddResource(new Texture(), "test");
+		t.LoadFromFile("./res/vis/test.png"); */
+		
+		// resLoad = new ResourceLoader();
+		nmgrs.resLoad.QueueTexture("test", "./res/vis/test.png");
+		nmgrs.resLoad.AcquireResources();
+		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 1000);
+		// nmain.game.mGameLoop = setInterval(function() {nmain.game.Run();}, 0);
 	} catch(e) {
 		alert(e.What());
 	}
@@ -316,10 +380,16 @@ InitScene.prototype.Render = function() {
 	// var tex = new Texture();
 	// tex.LoadFromFile("./res/vis/test.png");
 	
-	var tex = (nmgrs.resMan.mTexStore.GetResource("test")).mRes;
+	if (nmgrs.resLoad.mWorking == false) {
+		var tex = nmgrs.resMan.mTexStore.GetResource("test");
+		nmain.game.mContext.drawImage(tex.mImg, 0, 0);
+	}
+	else {
+	}
 	
 	// nmain.game.mContext.fillText("Hello", 50, 50);
-	nmain.game.mContext.drawImage(tex.mImg, 0, 0);
+	// nmain.game.mContext.drawImage(tex.mImg, 0, 0);
+	
 }
 // ...End
 
@@ -401,6 +471,7 @@ var nmain = new function() {
 var nmgrs = new function() {
 	this.sceneMan = new SceneManager();
 	this.resMan = new ResourceManager();
+	this.resLoad = new ResourceLoader();
 }
 // ...End
 
@@ -412,7 +483,7 @@ function main() {
 		// run the game loop as fast as the browser will allow
 		// note that timing is handled elsewhere (within the Game Run() function)
 		nmain.game.mTimer.Reset();
-		nmain.game.mGameLoop = setInterval(function() {nmain.game.Run()}, 0);
+		nmain.game.mGameLoop = setInterval(function() {nmain.game.Run();}, 0);
 	} catch(e) {
 		alert(e.What());
 	}
