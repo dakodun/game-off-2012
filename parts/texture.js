@@ -2,7 +2,7 @@
 // a texture (wrapper for javascript Image)
 function Texture() {
 	this.mImg = new Image();
-	this.mLoaded = "";
+	this.mImg.mLoaded = "";
 	
 	this.mImg.onload = function() {
 		this.mLoaded = "load";
@@ -24,7 +24,7 @@ Texture.prototype.Type = function() {
 
 // loads a texture from a file
 Texture.prototype.LoadFromFile = function(source) {
-	this.mLoaded = "";
+	this.mImg.mLoaded = "";
 	this.mImg.src = source;
 }
 // ...End
