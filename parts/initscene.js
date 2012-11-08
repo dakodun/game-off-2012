@@ -1,8 +1,7 @@
 // InitScene Class...
 // self contained parts of the game such as different screens, levels or game modes
 function InitScene() {
-	this.persist = false;
-	// this.resLoad = new ResourceLoader();
+	this.mPersist = false;
 }
 
 // returns the type of this object for validity checking
@@ -12,23 +11,15 @@ InitScene.prototype.Type = function() {
 
 // returns whether this scene is to persist or not (when changing to a new scene -- preserves state)
 InitScene.prototype.Persistent = function() {
-	return this.persist;
+	return this.mPersist;
 };
 
 // initialises the scene object
 InitScene.prototype.SetUp = function() {
-	// var tex = new Texture();
-	// tex.LoadFromFile("./res/vis/test.png");
-	
 	try {
-		/* var t = nmgrs.resMan.mTexStore.AddResource(new Texture(), "test");
-		t.LoadFromFile("./res/vis/test.png"); */
-		
-		// resLoad = new ResourceLoader();
 		nmgrs.resLoad.QueueTexture("test", "./res/vis/test.png");
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
-		// nmain.game.mGameLoop = setInterval(function() {nmain.game.Run();}, 0);
 	} catch(e) {
 		alert(e.What());
 	}
@@ -46,23 +37,13 @@ InitScene.prototype.Input = function() {
 
 // handles game logic
 InitScene.prototype.Process = function() {
-	
+	if (nmgrs.resLoad.mWorking == false) {
+		nmgrs.sceneMan.ChangeScene(new TestScene());
+	}
 }
 
 // handles all drawing tasks
 InitScene.prototype.Render = function() {
-	// var tex = new Texture();
-	// tex.LoadFromFile("./res/vis/test.png");
-	
-	if (nmgrs.resLoad.mWorking == false) {
-		var tex = nmgrs.resMan.mTexStore.GetResource("test");
-		nmain.game.mContext.drawImage(tex.mImg, 0, 0);
-	}
-	else {
-	}
-	
-	// nmain.game.mContext.fillText("Hello", 50, 50);
-	// nmain.game.mContext.drawImage(tex.mImg, 0, 0);
 	
 }
 // ...End
