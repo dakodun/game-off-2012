@@ -7,7 +7,6 @@ this.MAPBOUNDMAX = new IVec2(300, 1200); // maximum size a map can be
 
 
 // MapGenerator Class...
-// mapDimensions is an IVec2
 function MapGenerator(mapDimensions) {
 	if (mapDimensions.Type() == "IVec2") {
         this.mMapDimensions = mapDimensions;

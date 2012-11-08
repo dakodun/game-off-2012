@@ -1,4 +1,5 @@
 // InitScene Class...
+// self contained parts of the game such as different screens, levels or game modes
 function InitScene() {
 	this.persist = false;
 	// this.resLoad = new ResourceLoader();
@@ -9,11 +10,12 @@ InitScene.prototype.Type = function() {
 	return "InitScene";
 };
 
-// 
+// returns whether this scene is to persist or not (when changing to a new scene -- preserves state)
 InitScene.prototype.Persistent = function() {
 	return persist;
 };
 
+// initialises the scene object
 InitScene.prototype.SetUp = function() {
 	// var tex = new Texture();
 	// tex.LoadFromFile("./res/vis/test.png");
@@ -32,18 +34,22 @@ InitScene.prototype.SetUp = function() {
 	}
 }
 
+// cleans up the scene object
 InitScene.prototype.TearDown = function() {
 	
 }
 
+// handles user input
 InitScene.prototype.Input = function() {
 	
 }
 
+// handles game logic
 InitScene.prototype.Process = function() {
 	
 }
 
+// handles all drawing tasks
 InitScene.prototype.Render = function() {
 	// var tex = new Texture();
 	// tex.LoadFromFile("./res/vis/test.png");
