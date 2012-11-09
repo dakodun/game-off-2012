@@ -75,7 +75,7 @@ Game.prototype.Process = function() {
 
 // handles all drawing tasks
 Game.prototype.Render = function() {
-	this.Clear();
+	this.Clear("#000000");
 	
 	nmgrs.sceneMan.GetCurrentScene().Render(); // render the current scene
 	
@@ -83,8 +83,11 @@ Game.prototype.Render = function() {
 }
 
 //
-Game.prototype.Clear = function() {
+Game.prototype.Clear = function(colour) {
+	this.mCurrContext.fillStyle = colour;
+	
 	this.mCurrContext.clearRect(0, 0, this.mCanvas[this.mBufferIter].width, this.mCanvas[this.mBufferIter].height);
+	this.mCurrContext.fillRect(0, 0, this.mCanvas[this.mBufferIter].width, this.mCanvas[this.mBufferIter].height);
 }
 
 //
