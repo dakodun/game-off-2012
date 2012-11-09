@@ -40,9 +40,17 @@ RenderBatch.prototype.Render = function() {
 	for (var i = 0; i < this.mRenderData.length; ++i) {
 		if (this.mRenderData[i].Type() == "Sprite") {
 			var spr = this.mRenderData[i];
+			var w = spr.mTex.mImg.width;
+			var h = spr.mTex.mImg.height;
+			
+			if (spr.mIsAnimated == true) {
+				w = spr.mClipSize.mX;
+				h = spr.mClipSize.mY;
+			}
+			
 			nmain.game.mCurrContext.drawImage(spr.mTex.mImg, spr.mClipPos.mX, spr.mClipPos.mY,
 					spr.mClipSize.mX, spr.mClipSize.mY, spr.mPos.mX, spr.mPos.mY,
-					spr.mTex.mImg.width * spr.mScale.mX, spr.mTex.mImg.height * spr.mScale.mY);
+					w * spr.mScale.mX, h * spr.mScale.mY);
 		}
 		else if (this.mRenderData[i].Type() == "Text") {
 			// Render Text
