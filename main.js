@@ -372,12 +372,21 @@ function Sprite() {
 	this.mClipPos = new IVec2(0, 0);
 	this.mClipSize = new IVec2(0, 0);
 	this.mScale = new FVec2(1.0, 1.0);
-}
+	
+	this.mNumFrames = 0;
+	this.mFramesPerLine = 0;
+	this.mCurrFrame = 0;
+	this.mStartFrame = 0;
+	this.mEndFrame = 0;
+	this.mAnimSpeed = 0;
+	this.mAnimTimer = 0;
+	this.mIsAnimated = false;
+};
 
 // returns the type of this object for validity checking
 Sprite.prototype.Type = function() {
 	return "Sprite";
-};
+}
 
 // 
 Sprite.prototype.SetUp = function() {
@@ -398,20 +407,104 @@ Sprite.prototype.Copy = function(other) {
 	this.mClipPos.Copy(other.mClipPos);
 	this.mClipSize.Copy(other.mClipSize);
 	this.mScale.Copy(other.mScale);
+	
+	this.mNumFrames = other.mNumFrames;
+	this.mFramesPerLine = other.mFramesPerLine;
+	this.mCurrFrame = other.mCurrFrame;
+	this.mStartFrame = other.mStartFrame;
+	this.mEndFrame = other.mEndFrame;
+	this.mAnimSpeed = other.mAnimSpeed;
+	this.mAnimTimer = other.mAnimTimer;
+	this.mIsAnimated = other.mIsAnimated;
+}
+
+//
+Sprite.prototype.Process = function() {
+	if (this.mIsAnimated) {
+		this.mAnimTimer++;
+		if (this.mAnimTimer > this.mAnimSpeed) {
+			this.mAnimTimer = 0;
+			this.mCurrFrame = (this.mCurrFrame + 1) % this.mEndFrame;
+			if (this.mCurrFrame < this.mStartFrame) {
+				this.mCurrFrame = this.mStartFrame;
+			}
+			
+			var rectX = (this.mCurrFrame % this.mFramesPerLine) * this.mClipSize.mX;
+			var rectY = (Math.floor(this.mCurrFrame / this.mFramesPerLine)) * this.mClipSize.mY;
+			var rectW = this.mClipSize.mX;
+			var rectH = this.mClipSize.mY;
+			
+			this.SetClipRect(new IVec2(rectX, rectY), new IVec2(rectW, rectH));
+		}
+	}
 }
 
 // 
 Sprite.prototype.SetTexture = function(texture) {
 	this.mTex = texture;
 	
-	this.mClipPos.mX = 0;
-	this.mClipPos.mY = 0;
+	this.SetClipRect(new IVec2(0, 0), new IVec2(this.mTex.mImg.width, this.mTex.mImg.height));
 	
-	this.mClipSize.mX = this.mTex.mImg.width;
-	this.mClipSize.mY = this.mTex.mImg.height;
+	this.mNumFrames = 1;
+	this.mFramesPerLine = 0;
+	this.mCurrFrame = 0;
+	this.mStartFrame = 0;
+	this.mEndFrame = 1;
+	this.mAnimSpeed = 0;
+	this.mAnimTimer = 0;
+	this.mIsAnimated = false;
 	
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
+}
+
+// 
+Sprite.prototype.SetAnimatedTexture = function(texture, numFrames, framesPerLine, animSpeed) {
+	this.mTex = texture;
+	
+	this.SetClipRect(new IVec2(0, 0), new IVec2(this.mTex.mImg.width / framesPerLine,
+			this.mTex.mImg.height / (Math.ceil(numFrames / framesPerLine))));
+	
+	this.mNumFrames = numFrames;
+	this.mFramesPerLine = framesPerLine;
+	this.mCurrFrame = 0;
+	this.mStartFrame = 0;
+	this.mEndFrame = numFrames;
+	this.mAnimSpeed = animSpeed;
+	this.mAnimTimer = 0;
+	this.mIsAnimated = true;
+	
+	this.mScale.mX = 1.0;
+	this.mScale.mY = 1.0;
+}
+
+// 
+Sprite.prototype.SetAnimatedTextureSegment = function(texture, numFrames, framesPerLine, animSpeed, startFrame, endFrame) {
+	this.mTex = texture;
+	
+	this.SetClipRect(new IVec2(0, 0), new IVec2(this.mTex.mImg.width / framesPerLine,
+			this.mTex.mImg.height / (Math.ceil(numFrames / framesPerLine))));
+	
+	this.mNumFrames = numFrames;
+	this.mFramesPerLine = framesPerLine;
+	this.mCurrFrame = 0;
+	this.mStartFrame = startFrame;
+	this.mEndFrame = endFrame;
+	this.mAnimSpeed = animSpeed;
+	this.mAnimTimer = 0;
+	this.mIsAnimated = true;
+	
+	this.mScale.mX = 1.0;
+	this.mScale.mY = 1.0;
+}
+
+//
+Sprite.prototype.SetClipRect = function(pos, size) {
+	this.mClipPos.mX = pos.mX;
+	this.mClipPos.mY = pos.mY;
+	
+	this.mClipSize.mX = size.mX;
+	this.mClipSize.mY = size.mY;
 }
 // ...End
 
@@ -458,9 +551,17 @@ RenderBatch.prototype.Render = function() {
 	for (var i = 0; i < this.mRenderData.length; ++i) {
 		if (this.mRenderData[i].Type() == "Sprite") {
 			var spr = this.mRenderData[i];
+			var w = spr.mTex.mImg.width;
+			var h = spr.mTex.mImg.height;
+			
+			if (spr.mIsAnimated == true) {
+				w = spr.mClipSize.mX;
+				h = spr.mClipSize.mY;
+			}
+			
 			nmain.game.mCurrContext.drawImage(spr.mTex.mImg, spr.mClipPos.mX, spr.mClipPos.mY,
 					spr.mClipSize.mX, spr.mClipSize.mY, spr.mPos.mX, spr.mPos.mY,
-					spr.mTex.mImg.width * spr.mScale.mX, spr.mTex.mImg.height * spr.mScale.mY);
+					w * spr.mScale.mX, h * spr.mScale.mY);
 		}
 		else if (this.mRenderData[i].Type() == "Text") {
 			// Render Text
@@ -556,6 +657,7 @@ InitScene.prototype.Persistent = function() {
 InitScene.prototype.SetUp = function() {
 	try {
 		nmgrs.resLoad.QueueTexture("test", "./res/vis/test.png");
+		nmgrs.resLoad.QueueTexture("testanim", "./res/vis/testanim.png");
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
 	} catch(e) {
@@ -608,8 +710,9 @@ TestScene.prototype.Persistent = function() {
 
 // initialises the scene object
 TestScene.prototype.SetUp = function() {
-	var tex = nmgrs.resMan.mTexStore.GetResource("test");
-	this.mTestSprite.SetTexture(tex);
+	var tex = nmgrs.resMan.mTexStore.GetResource("testanim");
+	this.mTestSprite.SetAnimatedTexture(tex, 8, 8, 4);
+	this.mTestSprite.mPos.Set(0 - this.mTestSprite.mClipSize.mX, 0);
 }
 
 // cleans up the scene object
@@ -624,7 +727,13 @@ TestScene.prototype.Input = function() {
 
 // handles game logic
 TestScene.prototype.Process = function() {
+	// this.mTestSprite.mPos.Set(this.mTestSprite.mPos.mX + 1, 0);
 	this.mTestSprite.mPos.Set(this.mTestSprite.mPos.mX + 1, 0);
+	if (this.mTestSprite.mPos.mX > nmain.game.mCanvas[0].width) {
+		this.mTestSprite.mPos.Set(0 - this.mTestSprite.mClipSize.mX, 0);
+	}
+	
+	this.mTestSprite.Process();
 }
 
 // handles all drawing tasks
