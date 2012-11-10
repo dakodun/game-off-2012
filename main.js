@@ -362,6 +362,42 @@ Texture.prototype.LoadFromFile = function(source) {
 // ...End
 
 
+// Text Class...
+// 
+function Text() {
+	this.mFont = "12px Arial";
+	this.mString = "";
+	this.mColour = "#FFFFFF";
+	this.mDepth = 0;
+	
+	this.mPos = new IVec2(0, 12);
+	this.mOutline = false;
+}
+
+
+// returns the type of this object for validity checking
+Text.prototype.Type = function() {
+	return "Text";
+}
+
+//
+Text.prototype.Copy = function(other) {
+	this.mFont = other.mFont;
+	this.mString = other.mString;
+	this.mColour = other.mColour;
+	this.mDepth = other.mDepth;
+	
+	this.mPos.Copy(other.mPos);
+	this.mOutline = other.mOutline;
+}
+
+Text.prototype.GetWidth = function() {
+	nmain.game.mCurrContext.font = this.mFont;
+	return nmain.game.mCurrContext.measureText(this.mString).width;
+}
+// ...End
+
+
 // Sprite Class...
 // 
 function Sprite() {
@@ -379,8 +415,10 @@ function Sprite() {
 	this.mStartFrame = 0;
 	this.mEndFrame = 0;
 	this.mAnimSpeed = 0;
-	this.mAnimTimer = 0;
 	this.mIsAnimated = false;
+	
+	this.mAnimTimer = new Timer();
+	this.mAnimTimer.Reset();
 };
 
 // returns the type of this object for validity checking
@@ -414,17 +452,17 @@ Sprite.prototype.Copy = function(other) {
 	this.mStartFrame = other.mStartFrame;
 	this.mEndFrame = other.mEndFrame;
 	this.mAnimSpeed = other.mAnimSpeed;
-	this.mAnimTimer = other.mAnimTimer;
 	this.mIsAnimated = other.mIsAnimated;
+	
+	this.mAnimTimer.Copy(other.mAnimTimer);
 }
 
 //
 Sprite.prototype.Process = function() {
 	if (this.mIsAnimated) {
-		this.mAnimTimer++;
-		if (this.mAnimTimer > this.mAnimSpeed) {
-			this.mAnimTimer = 0;
-			this.mCurrFrame = (this.mCurrFrame + 1) % this.mEndFrame;
+		if (this.mAnimTimer.GetElapsedTime() > this.mAnimSpeed) {
+			this.mAnimTimer.Reset();
+			this.mCurrFrame = (this.mCurrFrame + 1) % (this.mEndFrame + 1);
 			if (this.mCurrFrame < this.mStartFrame) {
 				this.mCurrFrame = this.mStartFrame;
 			}
@@ -449,13 +487,14 @@ Sprite.prototype.SetTexture = function(texture) {
 	this.mFramesPerLine = 0;
 	this.mCurrFrame = 0;
 	this.mStartFrame = 0;
-	this.mEndFrame = 1;
+	this.mEndFrame = 0;
 	this.mAnimSpeed = 0;
-	this.mAnimTimer = 0;
 	this.mIsAnimated = false;
 	
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
+	
+	this.mAnimTimer.Reset();
 }
 
 // 
@@ -469,13 +508,14 @@ Sprite.prototype.SetAnimatedTexture = function(texture, numFrames, framesPerLine
 	this.mFramesPerLine = framesPerLine;
 	this.mCurrFrame = 0;
 	this.mStartFrame = 0;
-	this.mEndFrame = numFrames;
+	this.mEndFrame = numFrames - 1;
 	this.mAnimSpeed = animSpeed;
-	this.mAnimTimer = 0;
 	this.mIsAnimated = true;
 	
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
+	
+	this.mAnimTimer.Reset();
 }
 
 // 
@@ -487,15 +527,23 @@ Sprite.prototype.SetAnimatedTextureSegment = function(texture, numFrames, frames
 	
 	this.mNumFrames = numFrames;
 	this.mFramesPerLine = framesPerLine;
-	this.mCurrFrame = 0;
+	this.mCurrFrame = startFrame;
 	this.mStartFrame = startFrame;
 	this.mEndFrame = endFrame;
 	this.mAnimSpeed = animSpeed;
-	this.mAnimTimer = 0;
 	this.mIsAnimated = true;
 	
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
+	
+	this.mAnimTimer.Reset();
+	
+	var rectX = (this.mCurrFrame % this.mFramesPerLine) * this.mClipSize.mX;
+	var rectY = (Math.floor(this.mCurrFrame / this.mFramesPerLine)) * this.mClipSize.mY;
+	var rectW = this.mClipSize.mX;
+	var rectH = this.mClipSize.mY;
+	
+	this.SetClipRect(new IVec2(rectX, rectY), new IVec2(rectW, rectH));
 }
 
 //
@@ -542,6 +590,15 @@ RenderBatch.prototype.AddSprite = function(sprite) {
 }
 
 // 
+RenderBatch.prototype.AddText = function(text) {
+	var txt = new Text();
+	txt.Copy(text);
+	
+	this.mRenderData.push(txt);
+	this.mRenderData.sort(DepthSort); // sort the queue
+}
+
+// 
 RenderBatch.prototype.Clear = function() {
 	this.mRenderData.splice(0, this.mRenderData.length);
 }
@@ -564,7 +621,17 @@ RenderBatch.prototype.Render = function() {
 					w * spr.mScale.mX, h * spr.mScale.mY);
 		}
 		else if (this.mRenderData[i].Type() == "Text") {
-			// Render Text
+			var txt = this.mRenderData[i];
+			
+			nmain.game.mCurrContext.font = txt.mFont;
+			nmain.game.mCurrContext.fillStyle = txt.mColour;
+			
+			if (txt.mOutline == true) {
+				nmain.game.mCurrContext.strokeText(txt.mString, txt.mPos.mX, txt.mPos.mY);
+			}
+			else {
+				nmain.game.mCurrContext.fillText(txt.mString, txt.mPos.mX, txt.mPos.mY);
+			}
 		}
 	}
 }
@@ -591,6 +658,11 @@ Timer.prototype.GetElapsedTime = function() {
 	var d = new Date();
 	return d.getTime() - this.startTime; // return how much time has elapsed since last call to reset
 };
+
+//
+Timer.prototype.Copy = function(other) {
+	this.startTime = other.startTime;
+}
 // ...End
 
 
@@ -658,6 +730,7 @@ InitScene.prototype.SetUp = function() {
 	try {
 		nmgrs.resLoad.QueueTexture("test", "./res/vis/test.png");
 		nmgrs.resLoad.QueueTexture("testanim", "./res/vis/testanim.png");
+		nmgrs.resLoad.QueueTexture("testm", "./res/vis/testm.png");
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
 	} catch(e) {
@@ -710,9 +783,8 @@ TestScene.prototype.Persistent = function() {
 
 // initialises the scene object
 TestScene.prototype.SetUp = function() {
-	var tex = nmgrs.resMan.mTexStore.GetResource("testanim");
-	this.mTestSprite.SetAnimatedTexture(tex, 8, 8, 4);
-	this.mTestSprite.mPos.Set(0 - this.mTestSprite.mClipSize.mX, 0);
+	var tex = nmgrs.resMan.mTexStore.GetResource("testm");
+	this.mTestSprite.SetAnimatedTexture(tex, 6, 4, 500);
 }
 
 // cleans up the scene object
@@ -727,12 +799,6 @@ TestScene.prototype.Input = function() {
 
 // handles game logic
 TestScene.prototype.Process = function() {
-	// this.mTestSprite.mPos.Set(this.mTestSprite.mPos.mX + 1, 0);
-	this.mTestSprite.mPos.Set(this.mTestSprite.mPos.mX + 1, 0);
-	if (this.mTestSprite.mPos.mX > nmain.game.mCanvas[0].width) {
-		this.mTestSprite.mPos.Set(0 - this.mTestSprite.mClipSize.mX, 0);
-	}
-	
 	this.mTestSprite.Process();
 }
 
@@ -822,7 +888,7 @@ Game.prototype.Process = function() {
 
 // handles all drawing tasks
 Game.prototype.Render = function() {
-	this.Clear();
+	this.Clear("#000000");
 	
 	nmgrs.sceneMan.GetCurrentScene().Render(); // render the current scene
 	
@@ -830,8 +896,11 @@ Game.prototype.Render = function() {
 }
 
 //
-Game.prototype.Clear = function() {
+Game.prototype.Clear = function(colour) {
+	this.mCurrContext.fillStyle = colour;
+	
 	this.mCurrContext.clearRect(0, 0, this.mCanvas[this.mBufferIter].width, this.mCanvas[this.mBufferIter].height);
+	this.mCurrContext.fillRect(0, 0, this.mCanvas[this.mBufferIter].width, this.mCanvas[this.mBufferIter].height);
 }
 
 //
