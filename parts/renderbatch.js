@@ -31,6 +31,15 @@ RenderBatch.prototype.AddSprite = function(sprite) {
 }
 
 // 
+RenderBatch.prototype.AddText = function(text) {
+	var txt = new Text();
+	txt.Copy(text);
+	
+	this.mRenderData.push(txt);
+	this.mRenderData.sort(DepthSort); // sort the queue
+}
+
+// 
 RenderBatch.prototype.Clear = function() {
 	this.mRenderData.splice(0, this.mRenderData.length);
 }
@@ -53,7 +62,17 @@ RenderBatch.prototype.Render = function() {
 					w * spr.mScale.mX, h * spr.mScale.mY);
 		}
 		else if (this.mRenderData[i].Type() == "Text") {
-			// Render Text
+			var txt = this.mRenderData[i];
+			
+			nmain.game.mCurrContext.font = txt.mFont;
+			nmain.game.mCurrContext.fillStyle = txt.mColour;
+			
+			if (txt.mOutline == true) {
+				nmain.game.mCurrContext.strokeText(txt.mString, txt.mPos.mX, txt.mPos.mY);
+			}
+			else {
+				nmain.game.mCurrContext.fillText(txt.mString, txt.mPos.mX, txt.mPos.mY);
+			}
 		}
 	}
 }
