@@ -19,9 +19,8 @@ TestScene.prototype.Persistent = function() {
 
 // initialises the scene object
 TestScene.prototype.SetUp = function() {
-	var tex = nmgrs.resMan.mTexStore.GetResource("testanim");
-	this.mTestSprite.SetAnimatedTexture(tex, 8, 8, 4);
-	this.mTestSprite.mPos.Set(0 - this.mTestSprite.mClipSize.mX, 0);
+	var tex = nmgrs.resMan.mTexStore.GetResource("testm");
+	this.mTestSprite.SetAnimatedTexture(tex, 6, 4, 500);
 }
 
 // cleans up the scene object
@@ -36,12 +35,6 @@ TestScene.prototype.Input = function() {
 
 // handles game logic
 TestScene.prototype.Process = function() {
-	// this.mTestSprite.mPos.Set(this.mTestSprite.mPos.mX + 1, 0);
-	this.mTestSprite.mPos.Set(this.mTestSprite.mPos.mX + 1, 0);
-	if (this.mTestSprite.mPos.mX > nmain.game.mCanvas[0].width) {
-		this.mTestSprite.mPos.Set(0 - this.mTestSprite.mClipSize.mX, 0);
-	}
-	
 	this.mTestSprite.Process();
 }
 
