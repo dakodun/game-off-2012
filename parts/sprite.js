@@ -15,8 +15,10 @@ function Sprite() {
 	this.mStartFrame = 0;
 	this.mEndFrame = 0;
 	this.mAnimSpeed = 0;
-	this.mAnimTimer = 0;
 	this.mIsAnimated = false;
+	
+	this.mAnimTimer = new Timer();
+	this.mAnimTimer.Reset();
 };
 
 // returns the type of this object for validity checking
@@ -50,17 +52,17 @@ Sprite.prototype.Copy = function(other) {
 	this.mStartFrame = other.mStartFrame;
 	this.mEndFrame = other.mEndFrame;
 	this.mAnimSpeed = other.mAnimSpeed;
-	this.mAnimTimer = other.mAnimTimer;
 	this.mIsAnimated = other.mIsAnimated;
+	
+	this.mAnimTimer.Copy(other.mAnimTimer);
 }
 
 //
 Sprite.prototype.Process = function() {
 	if (this.mIsAnimated) {
-		this.mAnimTimer++;
-		if (this.mAnimTimer > this.mAnimSpeed) {
-			this.mAnimTimer = 0;
-			this.mCurrFrame = (this.mCurrFrame + 1) % this.mEndFrame;
+		if (this.mAnimTimer.GetElapsedTime() > this.mAnimSpeed) {
+			this.mAnimTimer.Reset();
+			this.mCurrFrame = (this.mCurrFrame + 1) % (this.mEndFrame + 1);
 			if (this.mCurrFrame < this.mStartFrame) {
 				this.mCurrFrame = this.mStartFrame;
 			}
@@ -85,13 +87,14 @@ Sprite.prototype.SetTexture = function(texture) {
 	this.mFramesPerLine = 0;
 	this.mCurrFrame = 0;
 	this.mStartFrame = 0;
-	this.mEndFrame = 1;
+	this.mEndFrame = 0;
 	this.mAnimSpeed = 0;
-	this.mAnimTimer = 0;
 	this.mIsAnimated = false;
 	
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
+	
+	this.mAnimTimer.Reset();
 }
 
 // 
@@ -105,13 +108,14 @@ Sprite.prototype.SetAnimatedTexture = function(texture, numFrames, framesPerLine
 	this.mFramesPerLine = framesPerLine;
 	this.mCurrFrame = 0;
 	this.mStartFrame = 0;
-	this.mEndFrame = numFrames;
+	this.mEndFrame = numFrames - 1;
 	this.mAnimSpeed = animSpeed;
-	this.mAnimTimer = 0;
 	this.mIsAnimated = true;
 	
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
+	
+	this.mAnimTimer.Reset();
 }
 
 // 
@@ -123,15 +127,23 @@ Sprite.prototype.SetAnimatedTextureSegment = function(texture, numFrames, frames
 	
 	this.mNumFrames = numFrames;
 	this.mFramesPerLine = framesPerLine;
-	this.mCurrFrame = 0;
+	this.mCurrFrame = startFrame;
 	this.mStartFrame = startFrame;
 	this.mEndFrame = endFrame;
 	this.mAnimSpeed = animSpeed;
-	this.mAnimTimer = 0;
 	this.mIsAnimated = true;
 	
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
+	
+	this.mAnimTimer.Reset();
+	
+	var rectX = (this.mCurrFrame % this.mFramesPerLine) * this.mClipSize.mX;
+	var rectY = (Math.floor(this.mCurrFrame / this.mFramesPerLine)) * this.mClipSize.mY;
+	var rectW = this.mClipSize.mX;
+	var rectH = this.mClipSize.mY;
+	
+	this.SetClipRect(new IVec2(rectX, rectY), new IVec2(rectW, rectH));
 }
 
 //
