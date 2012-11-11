@@ -11,6 +11,9 @@ function Game() {
 	this.mBufferIter = 0;
 	
 	this.mCurrContext = null;
+	
+	this.mCanvasPos = new IVec2();
+	this.mCanvasSize = new IVec2();
 };
 
 // initialises the game object
@@ -20,6 +23,21 @@ Game.prototype.SetUp = function() {
 	
 	this.mCanvas.push(document.getElementById("backbuffer"));
 	this.mContext.push(this.mCanvas[1].getContext("2d"));
+	
+	{ // http://www.quirksmode.org/js/findpos.html
+		var currObj = this.mCanvas[0];
+		var currX = 0, currY = 0;
+		if (currObj.offsetParent) {
+			do {
+				currX += currObj.offsetLeft;
+				currY += currObj.offsetTop;
+			} while (currObj = currObj.offsetParent);
+			
+			this.mCanvasPos.Set(currX, currY);
+		}
+	}
+	
+	this.mCanvasSize.Set(this.mCanvas[0].width, this.mCanvas[0].height);
 	
 	this.mCurrContext = this.mContext[this.mBufferIter];
 	
@@ -36,6 +54,7 @@ Game.prototype.Run = function() {
 	var updateDisplay = false; // do we need to redisplay?
 	
 	this.Input(); // perform input handling
+	nmgrs.inputMan.Process(); 
 	
 	var dt = (this.mTimer.GetElapsedTime() / 1000); // get the delta time (since last frame)
 	this.mTimer.Reset(); // reset the timer to time next frame
@@ -86,8 +105,8 @@ Game.prototype.Render = function() {
 Game.prototype.Clear = function(colour) {
 	this.mCurrContext.fillStyle = colour;
 	
-	this.mCurrContext.clearRect(0, 0, this.mCanvas[this.mBufferIter].width, this.mCanvas[this.mBufferIter].height);
-	this.mCurrContext.fillRect(0, 0, this.mCanvas[this.mBufferIter].width, this.mCanvas[this.mBufferIter].height);
+	this.mCurrContext.clearRect(0, 0, this.mCanvasSize.mX, this.mCanvasSize.mY);
+	this.mCurrContext.fillRect(0, 0, this.mCanvasSize.mX, this.mCanvasSize.mY);
 }
 
 //
