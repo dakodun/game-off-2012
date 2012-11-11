@@ -1,9 +1,10 @@
 // managers Namespace...
 var nmgrs = new function() {
+	this.inputMan = new InputManager();
 	this.sceneMan = new SceneManager();
 	this.resMan = new ResourceManager();
 	this.resLoad = new ResourceLoader();
-}
+};
 // ...End
 
 
