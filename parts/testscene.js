@@ -30,7 +30,9 @@ TestScene.prototype.TearDown = function() {
 
 // handles user input
 TestScene.prototype.Input = function() {
-	
+	if (nmgrs.inputMan.GetMousePressed(0)) {
+		this.mTestSprite.mPos.Set(this.mTestSprite.mPos.mX + 1, this.mTestSprite.mPos.mY);
+	}
 }
 
 // handles game logic
