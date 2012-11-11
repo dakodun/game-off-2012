@@ -100,6 +100,126 @@ Exception.prototype.What = function() {
 // ...End
 
 
+// input callbacks...
+//
+document.onmousemove = function(e) {
+	nmgrs.inputMan.HandleMouseMove(e);
+}
+
+//
+document.onmousedown = function(e) {
+	nmgrs.inputMan.HandleMouseDown(e);
+}
+
+//
+document.onmouseup = function(e) {
+	nmgrs.inputMan.HandleMouseUp(e);
+}
+// ...End
+
+// InputManager Class...
+// 
+function InputManager() {
+	this.mButtonStates = new Array();
+	this.mButtonStates[0] = 0;
+	this.mButtonStates[1] = 0;
+	this.mButtonStates[2] = 0;
+	
+	this.mLocalMouseCoords = new IVec2(0, 0);
+	this.mGlobalMouseCoords = new IVec2(0, 0);
+}
+
+InputManager.prototype.Process = function() {
+	for (var i = 0; i < 3; ++i) {
+		if (this.mButtonStates[i] == 2) {
+			this.mButtonStates[i] = 1;
+		}
+		else if (this.mButtonStates[i] == 3) {
+			this.mButtonStates[i] = 0;
+		}
+	}
+}
+
+InputManager.prototype.HandleMouseMove = function(e) {
+	{
+		this.mLocalMouseCoords.mX = e.pageX - nmain.game.mCanvasPos.mX;
+		this.mLocalMouseCoords.mY = e.pageY - nmain.game.mCanvasPos.mY;
+		
+		if (this.mLocalMouseCoords.mX < 0) {
+			this.mLocalMouseCoords.mX = 0;
+		}
+		else if (this.mLocalMouseCoords.mX > nmain.game.mCanvasSize.mX) {
+			this.mLocalMouseCoords.mX = nmain.game.mCanvasSize.mX;
+		}
+		
+		if (this.mLocalMouseCoords.mY < 0) {
+			this.mLocalMouseCoords.mY = 0;
+		}
+		else if (this.mLocalMouseCoords.mY > nmain.game.mCanvasSize.mY) {
+			this.mLocalMouseCoords.mY = nmain.game.mCanvasSize.mY;
+		}
+	}
+	
+	this.mGlobalMouseCoords.mX = e.pageX;
+	this.mGlobalMouseCoords.mY = e.pageY;
+}
+
+InputManager.prototype.HandleMouseDown = function(e) {
+	if (this.mButtonStates[e.button] == 0) {
+		this.mButtonStates[e.button] = 2;
+	}
+}
+
+InputManager.prototype.HandleMouseUp = function(e) {
+	if (this.mButtonStates[e.button] == 1) {
+		this.mButtonStates[e.button] = 3;
+	}
+}
+
+InputManager.prototype.GetLocalMouseCoords = function() {
+	var ret = new IVec2();
+	ret.Copy(this.mLocalMouseCoords);
+	return ret;
+}
+
+InputManager.prototype.GetGlobalMouseCoords = function() {
+	var ret = new IVec2();
+	ret.Copy(this.mGlobalMouseCoords);
+	return ret;
+}
+
+InputManager.prototype.GetMouseDown = function(button) {
+	if (button >= 0 && button <= 2) {
+		if (this.mButtonStates[button] == 1 || this.mButtonStates[button] == 2) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+InputManager.prototype.GetMousePressed = function(button) {
+	if (button >= 0 && button <= 2) {
+		if (this.mButtonStates[button] == 2) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+InputManager.prototype.GetMouseReleased = function(button) {
+	if (button >= 0 && button <= 2) {
+		if (this.mButtonStates[button] == 3) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+// ...End
+
+
 // SceneManager Class...
 // handles the creation and destruction of scenes, changing between scenes and storing and restoring persistent scenes
 function SceneManager() {
@@ -794,7 +914,9 @@ TestScene.prototype.TearDown = function() {
 
 // handles user input
 TestScene.prototype.Input = function() {
-	
+	if (nmgrs.inputMan.GetMousePressed(0)) {
+		this.mTestSprite.mPos.Set(this.mTestSprite.mPos.mX + 1, this.mTestSprite.mPos.mY);
+	}
 }
 
 // handles game logic
@@ -824,6 +946,9 @@ function Game() {
 	this.mBufferIter = 0;
 	
 	this.mCurrContext = null;
+	
+	this.mCanvasPos = new IVec2();
+	this.mCanvasSize = new IVec2();
 };
 
 // initialises the game object
@@ -833,6 +958,21 @@ Game.prototype.SetUp = function() {
 	
 	this.mCanvas.push(document.getElementById("backbuffer"));
 	this.mContext.push(this.mCanvas[1].getContext("2d"));
+	
+	{ // http://www.quirksmode.org/js/findpos.html
+		var currObj = this.mCanvas[0];
+		var currX = 0, currY = 0;
+		if (currObj.offsetParent) {
+			do {
+				currX += currObj.offsetLeft;
+				currY += currObj.offsetTop;
+			} while (currObj = currObj.offsetParent);
+			
+			this.mCanvasPos.Set(currX, currY);
+		}
+	}
+	
+	this.mCanvasSize.Set(this.mCanvas[0].width, this.mCanvas[0].height);
 	
 	this.mCurrContext = this.mContext[this.mBufferIter];
 	
@@ -849,6 +989,7 @@ Game.prototype.Run = function() {
 	var updateDisplay = false; // do we need to redisplay?
 	
 	this.Input(); // perform input handling
+	nmgrs.inputMan.Process(); 
 	
 	var dt = (this.mTimer.GetElapsedTime() / 1000); // get the delta time (since last frame)
 	this.mTimer.Reset(); // reset the timer to time next frame
@@ -899,8 +1040,8 @@ Game.prototype.Render = function() {
 Game.prototype.Clear = function(colour) {
 	this.mCurrContext.fillStyle = colour;
 	
-	this.mCurrContext.clearRect(0, 0, this.mCanvas[this.mBufferIter].width, this.mCanvas[this.mBufferIter].height);
-	this.mCurrContext.fillRect(0, 0, this.mCanvas[this.mBufferIter].width, this.mCanvas[this.mBufferIter].height);
+	this.mCurrContext.clearRect(0, 0, this.mCanvasSize.mX, this.mCanvasSize.mY);
+	this.mCurrContext.fillRect(0, 0, this.mCanvasSize.mX, this.mCanvasSize.mY);
 }
 
 //
@@ -923,10 +1064,11 @@ var nmain = new function() {
 
 // managers Namespace...
 var nmgrs = new function() {
+	this.inputMan = new InputManager();
 	this.sceneMan = new SceneManager();
 	this.resMan = new ResourceManager();
 	this.resLoad = new ResourceLoader();
-}
+};
 // ...End
 
 
