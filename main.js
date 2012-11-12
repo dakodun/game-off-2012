@@ -759,6 +759,37 @@ RenderBatch.prototype.Render = function() {
 // ...End
 
 
+// RNG Class...
+// 
+function RNG(seed) {
+	this.mMers = new MersenneTwister(seed);
+	this.mSeed = seed;
+};
+
+RNG.prototype.SetSeed = function(seed) {
+	this.mSeed = seed;
+	this.mMers.init_genrand(seed);
+};
+
+RNG.prototype.GetSeed = function() {
+	return this.mSeed;
+};
+
+RNG.prototype.GetRandInt = function(lower, higher) {
+	return (this.mMers.genrand_int32() % ((higher + 1) - lower)) + lower;
+};
+
+RNG.prototype.GetRandFloat = function(lower, higher, precision) {
+	var l = lower * Math.pow(10, precision);
+	var h = higher * Math.pow(10, precision);
+	
+	var f = this.GetRandInt(l, h);
+	f /=  Math.pow(10.0, precision);
+	return f;
+};
+// ...End
+
+
 // Timer Class...
 // a timer; keeps time
 function Timer() {
@@ -783,49 +814,6 @@ Timer.prototype.GetElapsedTime = function() {
 Timer.prototype.Copy = function(other) {
 	this.startTime = other.startTime;
 }
-// ...End
-
-
-// mapgen Namespace...
-var nmapgen = new function() {
-this.MAPBOUNDMIN = new IVec2(100, 400); // minimum size a map can be
-this.MAPBOUNDMAX = new IVec2(300, 1200); // maximum size a map can be
-};
-// ...End
-
-
-// MapGenerator Class...
-function MapGenerator(mapDimensions) {
-	if (mapDimensions.Type() == "IVec2") {
-        this.mMapDimensions = mapDimensions;
-		
-		if (this.mMapDimensions.mX < nmapgen.MAPBOUNDMIN.mX) {
-			this.mMapDimensions.mX = nmapgen.MAPBOUNDMIN.mX;
-		}
-		else if (this.mMapDimensions.mX > nmapgen.MAPBOUNDMAX.mX) {
-			this.mMapDimensions.mX = nmapgen.MAPBOUNDMAX.mX;
-		}
-		
-		if (this.mMapDimensions.mY < nmapgen.MAPBOUNDMIN.mY) {
-			this.mMapDimensions.mY = nmapgen.MAPBOUNDMIN.mY;
-		}
-		else if (this.mMapDimensions.mY > nmapgen.MAPBOUNDMAX.mY) {
-			this.mMapDimensions.mY = nmapgen.MAPBOUNDMAX.mY;
-		}
-    }
-	else {
-		throw new Exception("Invalid IVec2 passed to MapGenerator.");
-	}
-};
-
-MapGenerator.prototype.GenerateMap = function() {
-	// 
-};
-
-MapGenerator.prototype.Render = function() {
-	// nmain.game.mContext.fillStyle = "#FF0000";
-	// nmain.game.mContext.fillRect(0, 0, 150, 75);
-};
 // ...End
 
 
