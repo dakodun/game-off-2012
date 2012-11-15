@@ -49,6 +49,10 @@ ResourceLoader.prototype.ProgressCheck = function() {
 			// check if the texture has finished loading, whether or not it was successful
 			var tex = nmgrs.resMan.mTexStore.GetResource(this.mTexQueue[i].mResName);
 			if (tex.mImg.mLoaded == "load" || tex.mImg.mLoaded == "abort" || tex.mImg.mLoaded == "error") {
+				if (tex.mImg.mLoaded == "abort" || tex.mImg.mLoaded == "error") {
+					alert("Texture failed to load: " + tex.mImg.mLoaded);
+				}
+				
 				this.mTexQueue.splice(i, 1); // remove the texture from the unprocessed queue
 			}
 		}
