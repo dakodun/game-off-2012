@@ -42,13 +42,14 @@ IVec2.prototype.Output = function() {
 	return "(" + this.mX + ", " + this.mY + ")";
 };
 
-// 
+// make a copy of another (other) ivec2 (copy constructor)
 IVec2.prototype.Copy = function(other) {
+	// copy x and y
 	this.mX = other.mX;
 	this.mY = other.mY;
 };
 
-// 
+// set the x and y components of the vector
 IVec2.prototype.Set = function(x, y) {
 	this.mX = x; // x value of our 2d vector
 	this.mY = y; // y value of our 2d vector
@@ -73,13 +74,14 @@ FVec2.prototype.Output = function() {
 	return "(" + this.mX + ", " + this.mY + ")";
 };
 
-// 
+// make a copy of another (other) fvec2 (copy constructor)
 FVec2.prototype.Copy = function(other) {
+	// copy x and y
 	this.mX = other.mX;
 	this.mY = other.mY;
 };
 
-// 
+// set the x and y components of the vector
 FVec2.prototype.Set = function(x, y) {
 	this.mX = x; // x value of our 2d vector
 	this.mY = y; // y value of our 2d vector
@@ -101,50 +103,98 @@ Exception.prototype.What = function() {
 
 
 // input callbacks...
-//
+// register our call back to handle key down (and pressed)
+document.onkeydown = function(e) {
+	nmgrs.inputMan.HandleKeyDown(e);
+}
+
+// register our call back to handle key up (and released)
+document.onkeyup = function(e) {
+	nmgrs.inputMan.HandleKeyUp(e);
+}
+
+// register our call back to handle mouse movement
 document.onmousemove = function(e) {
 	nmgrs.inputMan.HandleMouseMove(e);
 }
 
-//
+// register our call back to handle button down (and pressed)
 document.onmousedown = function(e) {
 	nmgrs.inputMan.HandleMouseDown(e);
 }
 
-//
+// register our call back to handle button up (and released)
 document.onmouseup = function(e) {
 	nmgrs.inputMan.HandleMouseUp(e);
 }
 // ...End
 
 // InputManager Class...
-// 
+// handles user input (kayboard and mouse)
 function InputManager() {
-	this.mButtonStates = new Array();
-	this.mButtonStates[0] = 0;
-	this.mButtonStates[1] = 0;
-	this.mButtonStates[2] = 0;
+	// the state of each key (up to 255)
+	this.mKeyStates = new Array();
+	for (var i = 0; i < 255; ++i) {
+		this.mKeyStates[i] = 0;
+	}
 	
-	this.mLocalMouseCoords = new IVec2(0, 0);
-	this.mGlobalMouseCoords = new IVec2(0, 0);
+	// the state of each mouse button (left, right and middle)
+	this.mButtonStates = new Array();
+	for (var i = 0; i < 3; ++i) {
+		this.mButtonStates[i] = 0;
+	}
+	
+	this.mLocalMouseCoords = new IVec2(0, 0); // coordinates of the mouse in the canvas
+	this.mGlobalMouseCoords = new IVec2(0, 0); // coordinates of the mouse in the page
 }
 
+// process the input manager (update key and button states)
 InputManager.prototype.Process = function() {
-	for (var i = 0; i < 3; ++i) {
-		if (this.mButtonStates[i] == 2) {
-			this.mButtonStates[i] = 1;
+	// update all key states
+	for (var i = 0; i < 255; ++i) {
+		if (this.mKeyStates[i] == 2) { // if key was pressed last frame
+			this.mKeyStates[i] = 1; // it is now down
 		}
-		else if (this.mButtonStates[i] == 3) {
-			this.mButtonStates[i] = 0;
+		else if (this.mKeyStates[i] == 3) { // if key was released last frame
+			this.mKeyStates[i] = 0; // it is now up
+		}
+	}
+	
+	// update all button states
+	for (var i = 0; i < 3; ++i) {
+		if (this.mButtonStates[i] == 2) { // if button was pressed last frame
+			this.mButtonStates[i] = 1; // it is now down
+		}
+		else if (this.mButtonStates[i] == 3) { // if button was released last frame
+			this.mButtonStates[i] = 0; // it is now up
 		}
 	}
 }
 
+// handle key down
+InputManager.prototype.HandleKeyDown = function(e) {
+	// if key was previously up
+	if (this.mKeyStates[e.keyCode] == 0) {
+		this.mKeyStates[e.keyCode] = 2; // key is now pressed (note: not down)
+	}
+}
+
+// handle key up
+InputManager.prototype.HandleKeyUp = function(e) {
+	// if key was previously down
+	if (this.mKeyStates[e.keyCode] == 1) {
+		this.mKeyStates[e.keyCode] = 3; // key is now released (note: not up)
+	}
+}
+
+// handle mouse movement
 InputManager.prototype.HandleMouseMove = function(e) {
 	{
+		// get the local coordinates using the canvases position on the page
 		this.mLocalMouseCoords.mX = e.pageX - nmain.game.mCanvasPos.mX;
 		this.mLocalMouseCoords.mY = e.pageY - nmain.game.mCanvasPos.mY;
 		
+		// if mouse x is off the canvas then set it to the bounds
 		if (this.mLocalMouseCoords.mX < 0) {
 			this.mLocalMouseCoords.mX = 0;
 		}
@@ -152,6 +202,8 @@ InputManager.prototype.HandleMouseMove = function(e) {
 			this.mLocalMouseCoords.mX = nmain.game.mCanvasSize.mX;
 		}
 		
+		
+		// if mouse y is off the canvas then set it to the bounds
 		if (this.mLocalMouseCoords.mY < 0) {
 			this.mLocalMouseCoords.mY = 0;
 		}
@@ -160,36 +212,85 @@ InputManager.prototype.HandleMouseMove = function(e) {
 		}
 	}
 	
+	// set the global coordinates to mouses position on the page
 	this.mGlobalMouseCoords.mX = e.pageX;
 	this.mGlobalMouseCoords.mY = e.pageY;
 }
 
+// handle button down
 InputManager.prototype.HandleMouseDown = function(e) {
+	// if key was previously up
 	if (this.mButtonStates[e.button] == 0) {
-		this.mButtonStates[e.button] = 2;
+		this.mButtonStates[e.button] = 2; // key is now pressed (note: not down)
 	}
 }
 
+// handle button up
 InputManager.prototype.HandleMouseUp = function(e) {
+	// if key was previously down
 	if (this.mButtonStates[e.button] == 1) {
-		this.mButtonStates[e.button] = 3;
+		this.mButtonStates[e.button] = 3; // key is now released (note: not up)
 	}
 }
 
+// returns true if key is down (including pressed); if returning false then you can assume up or released (not down)
+InputManager.prototype.GetKeyboardDown = function(key) {
+	// if key is valid
+	if (key >= 0 && key <= 255) {
+		// if key state is down or pressed
+		if (this.mKeyStates[key] == 1 || this.mKeyStates[key] == 2) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+// returns true if a key was pressed since last frame (for 1 frame only)
+InputManager.prototype.GetKeyboardPressed = function(key) {
+	// if key is valid
+	if (key >= 0 && key <= 255) {
+		// if key state is pressed
+		if (this.mKeyStates[key] == 2) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+// returns true if a key was released since last frame (for 1 frame only)
+InputManager.prototype.GetKeyboardReleased = function(key) {
+	// if key is valid
+	if (key >= 0 && key <= 255) {
+		// if key state is released
+		if (this.mKeyStates[key] == 3) {
+			return true;
+		}
+	}
+	
+	return false;
+}
+
+// returns the coordinates of the mouse on the canvas
 InputManager.prototype.GetLocalMouseCoords = function() {
 	var ret = new IVec2();
-	ret.Copy(this.mLocalMouseCoords);
+	ret.Copy(this.mLocalMouseCoords); // get a copy of the local coordinates (copy constructor)
 	return ret;
 }
 
+// returns the coordinates of the mouse on the page
 InputManager.prototype.GetGlobalMouseCoords = function() {
 	var ret = new IVec2();
-	ret.Copy(this.mGlobalMouseCoords);
+	ret.Copy(this.mGlobalMouseCoords); // get a copy of the global coordinates (copy constructor)
 	return ret;
 }
 
+// returns true if button is down (including pressed); if returning false then you can assume up or released (not down)
 InputManager.prototype.GetMouseDown = function(button) {
+	// if button is valid
 	if (button >= 0 && button <= 2) {
+		// if button state is down or pressed
 		if (this.mButtonStates[button] == 1 || this.mButtonStates[button] == 2) {
 			return true;
 		}
@@ -198,8 +299,11 @@ InputManager.prototype.GetMouseDown = function(button) {
 	return false;
 }
 
+// returns true if a button was pressed since last frame (for 1 frame only)
 InputManager.prototype.GetMousePressed = function(button) {
+	// if button is valid
 	if (button >= 0 && button <= 2) {
+		// if button state is pressed
 		if (this.mButtonStates[button] == 2) {
 			return true;
 		}
@@ -208,8 +312,11 @@ InputManager.prototype.GetMousePressed = function(button) {
 	return false;
 }
 
+// returns true if a button was released since last frame (for 1 frame only)
 InputManager.prototype.GetMouseReleased = function(button) {
+	// if button is valid
 	if (button >= 0 && button <= 2) {
+		// if button state is released
 		if (this.mButtonStates[button] == 3) {
 			return true;
 		}
@@ -417,6 +524,10 @@ ResourceLoader.prototype.ProgressCheck = function() {
 			// check if the texture has finished loading, whether or not it was successful
 			var tex = nmgrs.resMan.mTexStore.GetResource(this.mTexQueue[i].mResName);
 			if (tex.mImg.mLoaded == "load" || tex.mImg.mLoaded == "abort" || tex.mImg.mLoaded == "error") {
+				if (tex.mImg.mLoaded == "abort" || tex.mImg.mLoaded == "error") {
+					alert("Texture failed to load: " + tex.mImg.mLoaded);
+				}
+				
 				this.mTexQueue.splice(i, 1); // remove the texture from the unprocessed queue
 			}
 		}
@@ -483,7 +594,7 @@ Texture.prototype.LoadFromFile = function(source) {
 
 
 // Text Class...
-// 
+// renderable text
 function Text() {
 	this.mFont = "12px Arial";
 	this.mString = "";
@@ -492,15 +603,16 @@ function Text() {
 	
 	this.mPos = new IVec2(0, 12);
 	this.mOutline = false;
+	this.mRotation = 0;
+	this.mHeight = 12;
 }
-
 
 // returns the type of this object for validity checking
 Text.prototype.Type = function() {
 	return "Text";
 }
 
-//
+// make a copy of another (other) text (copy constructor)
 Text.prototype.Copy = function(other) {
 	this.mFont = other.mFont;
 	this.mString = other.mString;
@@ -509,17 +621,25 @@ Text.prototype.Copy = function(other) {
 	
 	this.mPos.Copy(other.mPos);
 	this.mOutline = other.mOutline;
+	this.mRotation = other.mRotation;
+	this.mHeight = other.mHeight;
 }
 
+// return the width of the text
 Text.prototype.GetWidth = function() {
 	nmain.game.mCurrContext.font = this.mFont;
 	return nmain.game.mCurrContext.measureText(this.mString).width;
+}
+
+// return the height of the text
+Text.prototype.GetHeight = function() {
+	return this.mHeight;
 }
 // ...End
 
 
 // Sprite Class...
-// 
+// a sprite (representation of an image)
 function Sprite() {
 	this.mTex = null;
 	this.mDepth = 0;
@@ -528,6 +648,8 @@ function Sprite() {
 	this.mClipPos = new IVec2(0, 0);
 	this.mClipSize = new IVec2(0, 0);
 	this.mScale = new FVec2(1.0, 1.0);
+	this.mOrigin = new IVec2(0, 0);
+	this.mRotation = 0;
 	
 	this.mNumFrames = 0;
 	this.mFramesPerLine = 0;
@@ -546,17 +668,17 @@ Sprite.prototype.Type = function() {
 	return "Sprite";
 }
 
-// 
+// initialises the sprite
 Sprite.prototype.SetUp = function() {
 	
 }
 
-// 
+// cleans up the sprite
 Sprite.prototype.TearDown = function() {
 	
 }
 
-//
+// make a copy of another (other) sprite (copy constructor)
 Sprite.prototype.Copy = function(other) {
 	this.mTex = other.mTex ;
 	this.mDepth = other.mDepth;
@@ -565,6 +687,8 @@ Sprite.prototype.Copy = function(other) {
 	this.mClipPos.Copy(other.mClipPos);
 	this.mClipSize.Copy(other.mClipSize);
 	this.mScale.Copy(other.mScale);
+	this.mOrigin.Copy(other.mOrigin);
+	this.mRotation = other.mRotation;
 	
 	this.mNumFrames = other.mNumFrames;
 	this.mFramesPerLine = other.mFramesPerLine;
@@ -577,27 +701,29 @@ Sprite.prototype.Copy = function(other) {
 	this.mAnimTimer.Copy(other.mAnimTimer);
 }
 
-//
+// process the sprite (for animation)
 Sprite.prototype.Process = function() {
 	if (this.mIsAnimated) {
-		if (this.mAnimTimer.GetElapsedTime() > this.mAnimSpeed) {
-			this.mAnimTimer.Reset();
-			this.mCurrFrame = (this.mCurrFrame + 1) % (this.mEndFrame + 1);
-			if (this.mCurrFrame < this.mStartFrame) {
-				this.mCurrFrame = this.mStartFrame;
+		if (this.mAnimSpeed >= 0) {
+			if (this.mAnimTimer.GetElapsedTime() > this.mAnimSpeed) {
+				this.mAnimTimer.Reset();
+				this.mCurrFrame = (this.mCurrFrame + 1) % (this.mEndFrame + 1);
+				if (this.mCurrFrame < this.mStartFrame) {
+					this.mCurrFrame = this.mStartFrame;
+				}
+				
+				var rectX = (this.mCurrFrame % this.mFramesPerLine) * this.mClipSize.mX;
+				var rectY = (Math.floor(this.mCurrFrame / this.mFramesPerLine)) * this.mClipSize.mY;
+				var rectW = this.mClipSize.mX;
+				var rectH = this.mClipSize.mY;
+				
+				this.SetClipRect(new IVec2(rectX, rectY), new IVec2(rectW, rectH));
 			}
-			
-			var rectX = (this.mCurrFrame % this.mFramesPerLine) * this.mClipSize.mX;
-			var rectY = (Math.floor(this.mCurrFrame / this.mFramesPerLine)) * this.mClipSize.mY;
-			var rectW = this.mClipSize.mX;
-			var rectH = this.mClipSize.mY;
-			
-			this.SetClipRect(new IVec2(rectX, rectY), new IVec2(rectW, rectH));
 		}
 	}
 }
 
-// 
+// set the static texture
 Sprite.prototype.SetTexture = function(texture) {
 	this.mTex = texture;
 	
@@ -617,7 +743,7 @@ Sprite.prototype.SetTexture = function(texture) {
 	this.mAnimTimer.Reset();
 }
 
-// 
+// set the animated texture
 Sprite.prototype.SetAnimatedTexture = function(texture, numFrames, framesPerLine, animSpeed) {
 	this.mTex = texture;
 	
@@ -638,7 +764,7 @@ Sprite.prototype.SetAnimatedTexture = function(texture, numFrames, framesPerLine
 	this.mAnimTimer.Reset();
 }
 
-// 
+// set the animated texture segment (start and end frames capped)
 Sprite.prototype.SetAnimatedTextureSegment = function(texture, numFrames, framesPerLine, animSpeed, startFrame, endFrame) {
 	this.mTex = texture;
 	
@@ -666,7 +792,7 @@ Sprite.prototype.SetAnimatedTextureSegment = function(texture, numFrames, frames
 	this.SetClipRect(new IVec2(rectX, rectY), new IVec2(rectW, rectH));
 }
 
-//
+// set the clipping rectangle
 Sprite.prototype.SetClipRect = function(pos, size) {
 	this.mClipPos.mX = pos.mX;
 	this.mClipPos.mY = pos.mY;
@@ -674,13 +800,39 @@ Sprite.prototype.SetClipRect = function(pos, size) {
 	this.mClipSize.mX = size.mX;
 	this.mClipSize.mY = size.mY;
 }
+
+// set the current frame
+Sprite.prototype.SetCurrentFrame = function(frame) {
+	if (this.mIsAnimated) {
+		this.mAnimTimer.Reset();
+		this.mCurrFrame = frame % (this.mEndFrame + 1);
+		if (this.mCurrFrame < this.mStartFrame) {
+			this.mCurrFrame = this.mStartFrame;
+		}
+		
+		var rectX = (this.mCurrFrame % this.mFramesPerLine) * this.mClipSize.mX;
+		var rectY = (Math.floor(this.mCurrFrame / this.mFramesPerLine)) * this.mClipSize.mY;
+		var rectW = this.mClipSize.mX;
+		var rectH = this.mClipSize.mY;
+		
+		this.SetClipRect(new IVec2(rectX, rectY), new IVec2(rectW, rectH));
+	}
+}
+
+// set the position of sprite
+Sprite.prototype.GetPosition = function() {
+	var iv = new IVec2(0, 0);
+	iv.mX = this.mPos.mX - this.mOrigin.mX; iv.mY = this.mPos.mY - this.mOrigin.mY;
+	
+	return iv;
+}
 // ...End
 
 
 // DepthSort function
 // sorts renderable resources based on depth
 function DepthSort(first, second) {
-	return second.mDepth < first.mDepth;
+	return first.mDepth < second.mDepth;
 };
 // ...End
 
@@ -688,44 +840,60 @@ function DepthSort(first, second) {
 // a render batch handles all drawing operations and draws according to depth (z) values
 function RenderBatch() {
 	this.mRenderData = new Array();
+	
+	this.mNeedSort = false;
 }
 
-// 
+// initialise the render batch
 RenderBatch.prototype.SetUp = function() {
 	
 }
 
-// 
+// clean up the render batch
 RenderBatch.prototype.TearDown = function() {
 	
 }
 
-// 
+// add a sprite to the render batch
 RenderBatch.prototype.AddSprite = function(sprite) {
+	this.mNeedSort = true;
 	var spr = new Sprite();
 	spr.Copy(sprite);
 	
 	this.mRenderData.push(spr);
-	this.mRenderData.sort(DepthSort); // sort the queue
+	// this.mRenderData.sort(DepthSort); // sort the queue
 }
 
-// 
+// add renderable text to the sprite batch
 RenderBatch.prototype.AddText = function(text) {
+	this.mNeedSort = true;
 	var txt = new Text();
 	txt.Copy(text);
 	
 	this.mRenderData.push(txt);
-	this.mRenderData.sort(DepthSort); // sort the queue
+	// this.mRenderData.sort(DepthSort); // sort the queue
 }
 
-// 
+// clear the render batch
 RenderBatch.prototype.Clear = function() {
 	this.mRenderData.splice(0, this.mRenderData.length);
 }
 
-// 
-RenderBatch.prototype.Render = function() {
+// render the render batch to the context
+RenderBatch.prototype.Render = function(camera) {
+	var cam = new Camera();
+	if (camera) {
+		cam.Copy(camera);
+	}
+	
+	if	(this.mNeedSort == true) {
+		this.mRenderData.sort(DepthSort); // sort the queue
+		this.mNeedSort = false;
+	}
+	
 	for (var i = 0; i < this.mRenderData.length; ++i) {
+		nmain.game.mCurrContext.save();
+		
 		if (this.mRenderData[i].Type() == "Sprite") {
 			var spr = this.mRenderData[i];
 			var w = spr.mTex.mImg.width;
@@ -736,9 +904,22 @@ RenderBatch.prototype.Render = function() {
 				h = spr.mClipSize.mY;
 			}
 			
-			nmain.game.mCurrContext.drawImage(spr.mTex.mImg, spr.mClipPos.mX, spr.mClipPos.mY,
-					spr.mClipSize.mX, spr.mClipSize.mY, spr.mPos.mX, spr.mPos.mY,
-					w * spr.mScale.mX, h * spr.mScale.mY);
+			var scrTL = new IVec2(0 + cam.mTranslate.mX, 0 + cam.mTranslate.mY);
+			var scrBR = new IVec2(nmain.game.mCanvasSize.mX + cam.mTranslate.mX,
+					nmain.game.mCanvasSize.mY + cam.mTranslate.mY);
+			
+			
+			if ((spr.mPos.mX < scrBR.mX && (spr.mPos.mX + w) > scrTL.mX) &&
+					(spr.mPos.mY < scrBR.mY && (spr.mPos.mY + h) > scrTL.mY)) {
+				
+				
+				nmain.game.mCurrContext.translate(spr.GetPosition().mX, spr.GetPosition().mY);
+				nmain.game.mCurrContext.rotate(spr.mRotation * (Math.PI / 180));
+				
+				nmain.game.mCurrContext.drawImage(spr.mTex.mImg, spr.mClipPos.mX, spr.mClipPos.mY,
+						spr.mClipSize.mX, spr.mClipSize.mY, 0, 0,
+						w * spr.mScale.mX, h * spr.mScale.mY);
+			}
 		}
 		else if (this.mRenderData[i].Type() == "Text") {
 			var txt = this.mRenderData[i];
@@ -746,13 +927,30 @@ RenderBatch.prototype.Render = function() {
 			nmain.game.mCurrContext.font = txt.mFont;
 			nmain.game.mCurrContext.fillStyle = txt.mColour;
 			
-			if (txt.mOutline == true) {
-				nmain.game.mCurrContext.strokeText(txt.mString, txt.mPos.mX, txt.mPos.mY);
-			}
-			else {
-				nmain.game.mCurrContext.fillText(txt.mString, txt.mPos.mX, txt.mPos.mY);
+			var w = txt.GetWidth();
+			var h = txt.GetHeight();
+			
+			var scrTL = new IVec2(0 + cam.mTranslate.mX, 0 + cam.mTranslate.mY);
+			var scrBR = new IVec2(nmain.game.mCanvasSize.mX + cam.mTranslate.mX,
+					nmain.game.mCanvasSize.mY + cam.mTranslate.mY);
+			
+			
+			if ((txt.mPos.mX < scrBR.mX && (txt.mPos.mX + w) > scrTL.mX) &&
+					(txt.mPos.mY < scrBR.mY && (txt.mPos.mY + h) > scrTL.mY)) {
+				
+				nmain.game.mCurrContext.translate(txt.GetPosition().mX, txt.GetPosition().mY);
+				nmain.game.mCurrContext.rotate(txt.mRotation * (Math.PI / 180));
+				
+				if (txt.mOutline == true) {
+					nmain.game.mCurrContext.strokeText(txt.mString, 0, 0);
+				}
+				else {
+					nmain.game.mCurrContext.fillText(txt.mString, 0, 0);
+				}
 			}
 		}
+		
+		nmain.game.mCurrContext.restore();
 	}
 }
 
@@ -760,25 +958,29 @@ RenderBatch.prototype.Render = function() {
 
 
 // RNG Class...
-// 
+// a pseudo-random number generator
 function RNG(seed) {
-	this.mMers = new MersenneTwister(seed);
-	this.mSeed = seed;
+	this.mMers = new MersenneTwister(seed); // a reference to a mersenne twister (see mersenne-twister.js)
+	this.mSeed = seed; // the current seed
 };
 
+// set the seed and seed the rng with it
 RNG.prototype.SetSeed = function(seed) {
 	this.mSeed = seed;
 	this.mMers.init_genrand(seed);
 };
 
+// return the current seed
 RNG.prototype.GetSeed = function() {
 	return this.mSeed;
 };
 
+// get a random integer between lower and higher (inclusive)
 RNG.prototype.GetRandInt = function(lower, higher) {
 	return (this.mMers.genrand_int32() % ((higher + 1) - lower)) + lower;
 };
 
+// get a random float between lower and higher (inclusive) with precision (number of decimal places)
 RNG.prototype.GetRandFloat = function(lower, higher, precision) {
 	var l = lower * Math.pow(10, precision);
 	var h = higher * Math.pow(10, precision);
@@ -810,9 +1012,28 @@ Timer.prototype.GetElapsedTime = function() {
 	return d.getTime() - this.startTime; // return how much time has elapsed since last call to reset
 };
 
-//
+// make a copy of another (other) timer (copy constructor)
 Timer.prototype.Copy = function(other) {
 	this.startTime = other.startTime;
+}
+// ...End
+
+
+// Camera Class...
+// a 2d camera (or a view) is a self contained affine transform
+// todo: maintain a transform matrix for translation as well as rotation and scaling
+function Camera() {
+	this.mTranslate = new IVec2(0, 0); // current translation
+}
+
+// make a copy of another (other) camera (copy constructor)
+Camera.prototype.Copy = function(other) {
+	this.mTranslate.Copy(other.mTranslate); // call ivec2 copy (copy constructor)
+}
+
+// apply the camera's transform to the canvas
+Camera.prototype.Apply = function() {
+	nmain.game.mCurrContext.translate(-this.mTranslate.mX, -this.mTranslate.mY); // apply translation
 }
 // ...End
 
@@ -836,9 +1057,8 @@ InitScene.prototype.Persistent = function() {
 // initialises the scene object
 InitScene.prototype.SetUp = function() {
 	try {
-		nmgrs.resLoad.QueueTexture("test", "./res/vis/test.png");
-		nmgrs.resLoad.QueueTexture("testanim", "./res/vis/testanim.png");
-		nmgrs.resLoad.QueueTexture("testm", "./res/vis/testm.png");
+		// load the textures we need
+		nmgrs.resLoad.QueueTexture("tile_set_default", "./res/vis/tile_set_default.png");
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
 	} catch(e) {
@@ -875,8 +1095,13 @@ InitScene.prototype.Render = function() {
 function TestScene() {
 	this.mPersist = false;
 	
-	this.mTestBatch = new RenderBatch();
-	this.mTestSprite = new Sprite();
+	this.mMapBatch = new RenderBatch();
+	this.mMap = new GFMap();
+	this.mSprite = new Sprite();
+	
+	this.mCam = new Camera();
+	
+	this.mCanScroll = false;
 }
 
 // returns the type of this object for validity checking
@@ -891,8 +1116,31 @@ TestScene.prototype.Persistent = function() {
 
 // initialises the scene object
 TestScene.prototype.SetUp = function() {
-	var tex = nmgrs.resMan.mTexStore.GetResource("testm");
-	this.mTestSprite.SetAnimatedTexture(tex, 6, 4, 500);
+	nmain.game.mClearColour = "#604039";
+	
+	var d = new Date();
+	
+	var mapGen = new GFMapGen();
+	this.mMap = mapGen.GenerateMap(d.getTime(), "b", "b");// .SetUp(new IVec2(40, 30));
+	
+	var tex = nmgrs.resMan.mTexStore.GetResource("tile_set_default");
+	this.mSprite.SetAnimatedTexture(tex, 25, 5, -1);
+	this.mSprite.SetCurrentFrame(1);
+	this.mSprite.mOrigin.Set(8, 8);
+	
+	for (var x = 0; x < this.mMap.mMapSize.mX; ++x) {
+		for (var y = 0; y < this.mMap.mMapSize.mY; ++y) {
+			var ind = x + (this.mMap.mMapSize.mX * y);
+			this.mMapBatch.AddSprite(this.mMap.mMapTiles[ind].mSprite);
+		}
+	}
+	
+	this.mCam.mTranslate.Set(0 - ((nmain.game.mCanvasSize.mX - (this.mMap.mMapSize.mX * 32)) / 2),
+			0 - ((nmain.game.mCanvasSize.mY - (this.mMap.mMapSize.mY * 32)) / 2));
+	
+	if (nmain.game.mCanvasSize.mY < this.mMap.mMapSize.mY * 32) {
+		this.mCanScroll = true;
+	}
 }
 
 // cleans up the scene object
@@ -902,21 +1150,43 @@ TestScene.prototype.TearDown = function() {
 
 // handles user input
 TestScene.prototype.Input = function() {
-	if (nmgrs.inputMan.GetMousePressed(0)) {
-		this.mTestSprite.mPos.Set(this.mTestSprite.mPos.mX + 1, this.mTestSprite.mPos.mY);
+	/* if (nmgrs.inputMan.GetKeyboardDown(37)) {
+		this.mCam.mTranslate.Set(this.mCam.mTranslate.mX - 1, this.mCam.mTranslate.mY);
+	} */
+	
+	if (this.mCanScroll == true) {
+		if (this.mCam.mTranslate.mY > -24) {
+			if (nmgrs.inputMan.GetKeyboardDown(38)) {
+				this.mCam.mTranslate.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY - 1);
+			}
+		}
+		
+		if (this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY < (this.mMap.mMapSize.mY * 32) + 24) {
+			if (nmgrs.inputMan.GetKeyboardDown(40)) {
+				this.mCam.mTranslate.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY + 1);
+			}
+		}
 	}
+	
+	/* if (nmgrs.inputMan.GetKeyboardDown(39)) {
+		this.mCam.mTranslate.Set(this.mCam.mTranslate.mX + 1, this.mCam.mTranslate.mY);
+	} */
 }
 
 // handles game logic
 TestScene.prototype.Process = function() {
-	this.mTestSprite.Process();
+	
 }
 
 // handles all drawing tasks
 TestScene.prototype.Render = function() {
-	this.mTestBatch.Clear();
-	this.mTestBatch.AddSprite(this.mTestSprite);
-	this.mTestBatch.Render();
+	nmain.game.SetIdentity();
+	this.mCam.Apply();
+	
+	// this.mMapBatch.Clear();
+	
+	// this.mMapBatch.AddSprite(this.mSprite);
+	this.mMapBatch.Render(this.mCam);
 }
 // ...End
 
@@ -928,22 +1198,25 @@ function Game() {
 	this.mFrameLimit = 60; // the maximum frames per second
 	this.mAccum = 0.0; // the current frame time accumulator
 	this.mTimer = new Timer(); // the timer that handles our main loop timing
+	this.mClearColour = "#000000"; // the clear colour i.e., background colour of the canvas
 	
-	this.mCanvas = new Array();
-	this.mContext = new Array();
-	this.mBufferIter = 0;
+	this.mCanvas = new Array(); // an array of our canvases 
+	this.mContext = new Array(); // an array of contexts (buffers)
+	this.mBufferIter = 0; // our current buffer (context)
 	
-	this.mCurrContext = null;
+	this.mCurrContext = null; // reference to current buffer (context)
 	
-	this.mCanvasPos = new IVec2();
-	this.mCanvasSize = new IVec2();
+	this.mCanvasPos = new IVec2(); // position of the canvas on the page
+	this.mCanvasSize = new IVec2(); // dimensions of the canvas
 };
 
 // initialises the game object
 Game.prototype.SetUp = function() {
+	// add front buffer context
 	this.mCanvas.push(document.getElementById("frontbuffer"));
 	this.mContext.push(this.mCanvas[0].getContext("2d"));
 	
+	// add back buffer context
 	this.mCanvas.push(document.getElementById("backbuffer"));
 	this.mContext.push(this.mCanvas[1].getContext("2d"));
 	
@@ -960,9 +1233,8 @@ Game.prototype.SetUp = function() {
 		}
 	}
 	
-	this.mCanvasSize.Set(this.mCanvas[0].width, this.mCanvas[0].height);
-	
-	this.mCurrContext = this.mContext[this.mBufferIter];
+	this.mCanvasSize.Set(this.mCanvas[0].width, this.mCanvas[0].height); // set dimensions of the canvas
+	this.mCurrContext = this.mContext[this.mBufferIter]; // set reference to current buffer
 	
 	nmgrs.sceneMan.ChangeScene(new InitScene()); // change to our initial scene
 };
@@ -1017,28 +1289,39 @@ Game.prototype.Process = function() {
 
 // handles all drawing tasks
 Game.prototype.Render = function() {
-	this.Clear("#000000");
+	this.Clear(this.mClearColour); // clear the canvas
 	
 	nmgrs.sceneMan.GetCurrentScene().Render(); // render the current scene
 	
-	this.SwapBuffers();
+	this.SwapBuffers(); // swap the buffers (display)
 }
 
-//
+// clear the context
 Game.prototype.Clear = function(colour) {
-	this.mCurrContext.fillStyle = colour;
+	this.mCurrContext.save(); // save current transform
+	this.mCurrContext.setTransform(1, 0, 0, 1, 0, 0); // set to identity transform to make sure we clear entire context
 	
+	this.mCurrContext.fillStyle = colour; // set fill to clear colour
+	
+	// clear the canvas and then draw a filled rect
 	this.mCurrContext.clearRect(0, 0, this.mCanvasSize.mX, this.mCanvasSize.mY);
 	this.mCurrContext.fillRect(0, 0, this.mCanvasSize.mX, this.mCanvasSize.mY);
+	
+	this.mCurrContext.restore(); // restore previously save transform
 }
 
-//
+// swap the buffers (contexts)
 Game.prototype.SwapBuffers = function() {
-	this.mCanvas[this.mBufferIter].style.visibility = 'visible';
+	this.mCanvas[this.mBufferIter].style.visibility = 'visible'; // set current buffer to visible (display)
 	
-	this.mBufferIter = (this.mBufferIter + 1) % 2;
-	this.mCurrContext = this.mContext[this.mBufferIter];
-	this.mCanvas[this.mBufferIter].style.visibility = 'hidden';
+	this.mBufferIter = (this.mBufferIter + 1) % 2; // increment the buffer iterator
+	this.mCurrContext = this.mContext[this.mBufferIter]; // set the current buffer
+	this.mCanvas[this.mBufferIter].style.visibility = 'hidden'; // hide the current buffer (we are now drawing to it)
+}
+
+// set the current transform to the identity matrix
+Game.prototype.SetIdentity = function() {
+	this.mCurrContext.setTransform(1, 0, 0, 1, 0, 0); // identity matrix
 }
 // ...End
 
@@ -1072,4 +1355,117 @@ function main() {
 		alert(e.What());
 	}
 };
+
+// GFMap Class...
+// 
+function GFMap() {
+	this.mMapSize = new IVec2(0, 0);
+	
+	this.mMapTiles = new Array();
+};
+
+GFMap.prototype.SetUp = function(size) {
+	this.mMapSize.Copy(size);
+	
+	var iv = new IVec2(0, 0);
+	var tex = nmgrs.resMan.mTexStore.GetResource("tile_set_default");
+	
+	for (var x = 0; x < this.mMapSize.mX; ++x) {
+		for (var y = 0; y < this.mMapSize.mY; ++y) {
+			iv.Set(x, y);
+			var ind = x + (this.mMapSize.mX * y);
+			this.mMapTiles[ind] = new GFMapTile(iv);
+			this.mMapTiles[ind].mSprite.SetAnimatedTexture(tex, 25, 5, -1);
+			this.mMapTiles[ind].mSprite.mOrigin.Set(8, 8);
+			this.mMapTiles[ind].mSprite.SetCurrentFrame(0);
+			this.mMapTiles[ind].mSprite.mPos.Set(32 * x, 32 * y);
+			this.mMapTiles[ind].mSprite.mDepth = 1000 + (this.mMapSize.mX * this.mMapSize.mY) - ind;
+			// this.mMapTiles[ind].mSprite.mRotation = 45;
+		}
+	}
+}
+// ...End
+
+
+// GFMapTile Class...
+// 
+function GFMapTile(pos) {
+	this.mPos = new IVec2(0, 0);
+	this.mPos.Copy(pos);
+	
+	this.mSprite = new Sprite();
+};
+
+
+// ...End
+
+
+// GFMapGen Class...
+function GFMapGen() {
+	
+};
+
+GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
+	var rand = new RNG(seed);
+	var map = new GFMap();
+	
+	var dimX = 0; var dimY = 0;
+	{
+		if (size == "s") {
+			dimX = 6;
+			dimY = 10;
+		}
+		else if (size == "m") {
+			dimX = 8;
+			dimY = 14;
+		}
+		else {
+			dimX = 10;
+			dimY = 18;
+		}
+		
+		map.SetUp(new IVec2(dimX, dimY));
+	}
+	
+	var rowNum = 0;
+	{
+		if (baseSize == "s") {
+			rowNum = rand.GetRandInt(1, 2);
+		}
+		else if (baseSize == "m") {
+			rowNum = rand.GetRandInt(2, 4);
+		}
+		else {
+			rowNum = rand.GetRandInt(4, 6);
+		}
+	}
+	
+	var idLow = 0;
+	var idHigh = (dimX * rowNum) - 1;
+	var base1 = rand.GetRandInt(idLow, idHigh);
+	map.mMapTiles[base1].mSprite.SetCurrentFrame(2);
+	
+	idLow = dimX * (dimY - rowNum);
+	idHigh = (dimX * dimY) - 1;
+	var base2 = rand.GetRandInt(idLow, idHigh);
+	map.mMapTiles[base2].mSprite.SetCurrentFrame(3);
+	
+	return map;
+	// 46 - hypoteneuse
+	
+	
+	/* if () {
+		
+	} */
+}
+
+/*
+create map with bounds (small, medium and large)
+define base size(s)
+  create bases at top and bottom of map via circle intersection method
+  change base frame to corresponding colour
+*/
+
+// ...End
+
 
