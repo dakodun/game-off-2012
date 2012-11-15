@@ -18,7 +18,7 @@ Timer.prototype.GetElapsedTime = function() {
 	return d.getTime() - this.startTime; // return how much time has elapsed since last call to reset
 };
 
-//
+// make a copy of another (other) timer (copy constructor)
 Timer.prototype.Copy = function(other) {
 	this.startTime = other.startTime;
 }
