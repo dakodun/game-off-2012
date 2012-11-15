@@ -5,22 +5,25 @@ function Game() {
 	this.mFrameLimit = 60; // the maximum frames per second
 	this.mAccum = 0.0; // the current frame time accumulator
 	this.mTimer = new Timer(); // the timer that handles our main loop timing
+	this.mClearColour = "#000000"; // the clear colour i.e., background colour of the canvas
 	
-	this.mCanvas = new Array();
-	this.mContext = new Array();
-	this.mBufferIter = 0;
+	this.mCanvas = new Array(); // an array of our canvases 
+	this.mContext = new Array(); // an array of contexts (buffers)
+	this.mBufferIter = 0; // our current buffer (context)
 	
-	this.mCurrContext = null;
+	this.mCurrContext = null; // reference to current buffer (context)
 	
-	this.mCanvasPos = new IVec2();
-	this.mCanvasSize = new IVec2();
+	this.mCanvasPos = new IVec2(); // position of the canvas on the page
+	this.mCanvasSize = new IVec2(); // dimensions of the canvas
 };
 
 // initialises the game object
 Game.prototype.SetUp = function() {
+	// add front buffer context
 	this.mCanvas.push(document.getElementById("frontbuffer"));
 	this.mContext.push(this.mCanvas[0].getContext("2d"));
 	
+	// add back buffer context
 	this.mCanvas.push(document.getElementById("backbuffer"));
 	this.mContext.push(this.mCanvas[1].getContext("2d"));
 	
@@ -37,9 +40,8 @@ Game.prototype.SetUp = function() {
 		}
 	}
 	
-	this.mCanvasSize.Set(this.mCanvas[0].width, this.mCanvas[0].height);
-	
-	this.mCurrContext = this.mContext[this.mBufferIter];
+	this.mCanvasSize.Set(this.mCanvas[0].width, this.mCanvas[0].height); // set dimensions of the canvas
+	this.mCurrContext = this.mContext[this.mBufferIter]; // set reference to current buffer
 	
 	nmgrs.sceneMan.ChangeScene(new InitScene()); // change to our initial scene
 };
@@ -94,28 +96,39 @@ Game.prototype.Process = function() {
 
 // handles all drawing tasks
 Game.prototype.Render = function() {
-	this.Clear("#000000");
+	this.Clear(this.mClearColour); // clear the canvas
 	
 	nmgrs.sceneMan.GetCurrentScene().Render(); // render the current scene
 	
-	this.SwapBuffers();
+	this.SwapBuffers(); // swap the buffers (display)
 }
 
-//
+// clear the context
 Game.prototype.Clear = function(colour) {
-	this.mCurrContext.fillStyle = colour;
+	this.mCurrContext.save(); // save current transform
+	this.mCurrContext.setTransform(1, 0, 0, 1, 0, 0); // set to identity transform to make sure we clear entire context
 	
+	this.mCurrContext.fillStyle = colour; // set fill to clear colour
+	
+	// clear the canvas and then draw a filled rect
 	this.mCurrContext.clearRect(0, 0, this.mCanvasSize.mX, this.mCanvasSize.mY);
 	this.mCurrContext.fillRect(0, 0, this.mCanvasSize.mX, this.mCanvasSize.mY);
+	
+	this.mCurrContext.restore(); // restore previously save transform
 }
 
-//
+// swap the buffers (contexts)
 Game.prototype.SwapBuffers = function() {
-	this.mCanvas[this.mBufferIter].style.visibility = 'visible';
+	this.mCanvas[this.mBufferIter].style.visibility = 'visible'; // set current buffer to visible (display)
 	
-	this.mBufferIter = (this.mBufferIter + 1) % 2;
-	this.mCurrContext = this.mContext[this.mBufferIter];
-	this.mCanvas[this.mBufferIter].style.visibility = 'hidden';
+	this.mBufferIter = (this.mBufferIter + 1) % 2; // increment the buffer iterator
+	this.mCurrContext = this.mContext[this.mBufferIter]; // set the current buffer
+	this.mCanvas[this.mBufferIter].style.visibility = 'hidden'; // hide the current buffer (we are now drawing to it)
+}
+
+// set the current transform to the identity matrix
+Game.prototype.SetIdentity = function() {
+	this.mCurrContext.setTransform(1, 0, 0, 1, 0, 0); // identity matrix
 }
 // ...End
 

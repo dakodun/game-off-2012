@@ -17,9 +17,8 @@ InitScene.prototype.Persistent = function() {
 // initialises the scene object
 InitScene.prototype.SetUp = function() {
 	try {
-		nmgrs.resLoad.QueueTexture("test", "./res/vis/test.png");
-		nmgrs.resLoad.QueueTexture("testanim", "./res/vis/testanim.png");
-		nmgrs.resLoad.QueueTexture("testm", "./res/vis/testm.png");
+		// load the textures we need
+		nmgrs.resLoad.QueueTexture("tile_set_default", "./res/vis/tile_set_default.png");
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
 	} catch(e) {
