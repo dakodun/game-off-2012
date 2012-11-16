@@ -5,8 +5,7 @@ function GFMapTile(pos) {
 	this.mPos.Copy(pos);
 	
 	this.mSprite = new Sprite();
+	this.mType = "";
 };
-
-
 // ...End
 
