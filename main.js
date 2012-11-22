@@ -1759,7 +1759,7 @@ GFMap.prototype.SetUp = function(size) {
 			this.mMapTiles[ind].mSprite.mOrigin.Set(8, 8);
 			this.mMapTiles[ind].mSprite.mPos.Set(32 * x, 32 * y);
 			this.mMapTiles[ind].mSprite.mDepth = 1000 + (this.mMapSize.mX * this.mMapSize.mY) - ind;
-			this.mMapTiles[ind].mSprite.SetCurrentFrame(this.mRand.GetRandInt(0, 4));
+			this.mMapTiles[ind].mSprite.SetCurrentFrame(0);
 		}
 	}
 }
