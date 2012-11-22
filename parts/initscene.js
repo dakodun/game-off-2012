@@ -19,6 +19,10 @@ InitScene.prototype.SetUp = function() {
 	try {
 		// load the textures we need
 		nmgrs.resLoad.QueueTexture("tile_set_default", "./res/vis/tile_set_default.png");
+		nmgrs.resLoad.QueueTexture("turn_1", "./res/vis/turn_1.png");
+		nmgrs.resLoad.QueueTexture("turn_2", "./res/vis/turn_2.png");
+		nmgrs.resLoad.QueueTexture("gui_arrow_up", "./res/vis/gui_arrow_up.png");
+		nmgrs.resLoad.QueueTexture("gui_arrow_down", "./res/vis/gui_arrow_down.png");
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
 	} catch(e) {
