@@ -685,7 +685,7 @@ Texture.prototype.LoadFromFile = function(source) {
 // renderable text
 function Text() {
 	this.mFont = "12px Arial";
-	this.mFontSize = "12px";
+	this.mFontSize = "12";
 	this.mFontName = "Arial";
 	
 	this.mString = "";
