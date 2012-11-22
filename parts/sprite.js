@@ -18,6 +18,7 @@ function Sprite() {
 	this.mEndFrame = 0;
 	this.mAnimSpeed = 0;
 	this.mIsAnimated = false;
+	this.mNumLoops = 0;
 	
 	this.mAnimTimer = new Timer();
 	this.mAnimTimer.Reset();
@@ -57,6 +58,7 @@ Sprite.prototype.Copy = function(other) {
 	this.mEndFrame = other.mEndFrame;
 	this.mAnimSpeed = other.mAnimSpeed;
 	this.mIsAnimated = other.mIsAnimated;
+	this.mNumLoops = other.mNumLoops;
 	
 	this.mAnimTimer.Copy(other.mAnimTimer);
 }
@@ -70,6 +72,15 @@ Sprite.prototype.Process = function() {
 				this.mCurrFrame = (this.mCurrFrame + 1) % (this.mEndFrame + 1);
 				if (this.mCurrFrame < this.mStartFrame) {
 					this.mCurrFrame = this.mStartFrame;
+				}
+				
+				if (this.mCurrFrame == this.mStartFrame && this.mNumLoops > 0) {
+					this.mNumLoops -= 1;
+				}
+				
+				if (this.mNumLoops == 0) {
+					this.mAnimSpeed = -1;
+					this.mCurrFrame = this.mEndFrame;
 				}
 				
 				var rectX = (this.mCurrFrame % this.mFramesPerLine) * this.mClipSize.mX;
@@ -96,6 +107,7 @@ Sprite.prototype.SetTexture = function(texture) {
 	this.mEndFrame = 0;
 	this.mAnimSpeed = 0;
 	this.mIsAnimated = false;
+	this.mNumLoops = -1;
 	
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
@@ -104,7 +116,7 @@ Sprite.prototype.SetTexture = function(texture) {
 }
 
 // set the animated texture
-Sprite.prototype.SetAnimatedTexture = function(texture, numFrames, framesPerLine, animSpeed) {
+Sprite.prototype.SetAnimatedTexture = function(texture, numFrames, framesPerLine, animSpeed, loops) {
 	this.mTex = texture;
 	
 	this.SetClipRect(new IVec2(0, 0), new IVec2(this.mTex.mImg.width / framesPerLine,
@@ -117,6 +129,11 @@ Sprite.prototype.SetAnimatedTexture = function(texture, numFrames, framesPerLine
 	this.mEndFrame = numFrames - 1;
 	this.mAnimSpeed = animSpeed;
 	this.mIsAnimated = true;
+	this.mNumLoops = -1;
+	
+	if (loops) {
+		this.mNumLoops = loops;
+	}
 	
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
@@ -125,7 +142,7 @@ Sprite.prototype.SetAnimatedTexture = function(texture, numFrames, framesPerLine
 }
 
 // set the animated texture segment (start and end frames capped)
-Sprite.prototype.SetAnimatedTextureSegment = function(texture, numFrames, framesPerLine, animSpeed, startFrame, endFrame) {
+Sprite.prototype.SetAnimatedTextureSegment = function(texture, numFrames, framesPerLine, animSpeed, startFrame, endFrame, loops) {
 	this.mTex = texture;
 	
 	this.SetClipRect(new IVec2(0, 0), new IVec2(this.mTex.mImg.width / framesPerLine,
@@ -138,6 +155,11 @@ Sprite.prototype.SetAnimatedTextureSegment = function(texture, numFrames, frames
 	this.mEndFrame = endFrame;
 	this.mAnimSpeed = animSpeed;
 	this.mIsAnimated = true;
+	this.mNumLoops = -1;
+	
+	if (loops) {
+		this.mNumLoops = loops;
+	}
 	
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
