@@ -33,13 +33,23 @@ RenderBatch.prototype.AddSprite = function(sprite) {
 	// this.mRenderData.sort(DepthSort); // sort the queue
 }
 
-// add renderable text to the sprite batch
+// add renderable text to the render batch
 RenderBatch.prototype.AddText = function(text) {
 	this.mNeedSort = true;
 	var txt = new Text();
 	txt.Copy(text);
 	
 	this.mRenderData.push(txt);
+	// this.mRenderData.sort(DepthSort); // sort the queue
+}
+
+// add renderable shape to the render batch
+RenderBatch.prototype.AddShape = function(shape) {
+	this.mNeedSort = true;
+	var shp = new Shape();
+	shp.Copy(shape);
+	
+	this.mRenderData.push(shp);
 	// this.mRenderData.sort(DepthSort); // sort the queue
 }
 
@@ -92,6 +102,7 @@ RenderBatch.prototype.Render = function(camera) {
 		}
 		else if (this.mRenderData[i].Type() == "Text") {
 			var txt = this.mRenderData[i];
+			var txtArr = txt.mString.split("\n");
 			
 			nmain.game.mCurrContext.font = txt.mFont;
 			nmain.game.mCurrContext.fillStyle = txt.mColour;
@@ -107,16 +118,42 @@ RenderBatch.prototype.Render = function(camera) {
 			if ((txt.mPos.mX < scrBR.mX && (txt.mPos.mX + w) > scrTL.mX) &&
 					(txt.mPos.mY < scrBR.mY && (txt.mPos.mY + h) > scrTL.mY)) {
 				
-				nmain.game.mCurrContext.translate(txt.GetPosition().mX, txt.GetPosition().mY);
+				nmain.game.mCurrContext.translate(txt.mPos.mX, txt.mPos.mY);
 				nmain.game.mCurrContext.rotate(txt.mRotation * (Math.PI / 180));
 				
 				if (txt.mOutline == true) {
-					nmain.game.mCurrContext.strokeText(txt.mString, 0, 0);
+					for (var j = 0; j < txtArr.length; ++j) {
+						nmain.game.mCurrContext.strokeText(txtArr[j], 0, txt.mHeight * j);
+					}
 				}
 				else {
-					nmain.game.mCurrContext.fillText(txt.mString, 0, 0);
+					for (var j = 0; j < txtArr.length; ++j) {
+						nmain.game.mCurrContext.fillText(txtArr[j], 0, txt.mHeight * j);
+					}
 				}
 			}
+		}
+		else if (this.mRenderData[i].Type() == "Shape") {
+			var shp = this.mRenderData[i];
+			var pos = shp.GetPosition();
+			
+			nmain.game.mCurrContext.fillStyle = shp.mColour;
+			var oldAlpha = nmain.game.mCurrContext.globalAlpha;
+			nmain.game.mCurrContext.globalAlpha = shp.mAlpha;
+			
+			nmain.game.mCurrContext.beginPath();
+			nmain.game.mCurrContext.moveTo(pos.mX, pos.mY);
+			
+			for (var j = 0; j < shp.mPoints.length; ++j) {
+				var pt = new IVec2();
+				pt.Copy(shp.mPoints[j]);
+				nmain.game.mCurrContext.lineTo(pos.mX + pt.mX, pos.mY + pt.mY);
+			}
+			
+			nmain.game.mCurrContext.closePath();
+			nmain.game.mCurrContext.fill();
+			
+			nmain.game.mCurrContext.globalAlpha = oldAlpha;
 		}
 		
 		nmain.game.mCurrContext.restore();
