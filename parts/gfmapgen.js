@@ -17,7 +17,7 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 			lzLeft = -2;
 			lzRight = 2;
 			
-			numAnts = map.mRand.GetRandInt(2, 4);
+			numAnts = map.mRand.GetRandInt(2, 3);
 		}
 		else if (size == "m") {
 			dimX = 14;
@@ -60,6 +60,10 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 	}
 	
 	for (var i = 0; i < (dimX * enemyBaseSize); ++i) {
+		var pos = new IVec2();
+		pos.Copy(map.mMapTiles[i].mPos);
+		map.mRedTiles.push(pos);
+		
 		map.mMapTiles[i].mSprite.SetCurrentFrame(map.mRand.GetRandInt(10, 14));
 		map.mMapTiles[i].mType = "red";
 	}
@@ -74,6 +78,11 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 		for (var i = 2; i <= 4; ++i) {
 			for (var j = lzLeft; j <= lzRight; ++j) {
 				var tileID = (dimX * (dimY - i)) + midPoint + j;
+				
+				var pos = new IVec2();
+				pos.Copy(map.mMapTiles[tileID].mPos);
+				map.mBlueTiles.push(pos);
+				
 				map.mMapTiles[tileID].mSprite.SetCurrentFrame(map.mRand.GetRandInt(15, 19));
 				map.mMapTiles[tileID].mType = "blue";
 			}
@@ -92,6 +101,13 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 					map.mMapTiles[id].mSprite.SetCurrentFrame(map.mRand.GetRandInt(5, 9));
 				}
 			}
+		}
+	}
+	
+	for (var x = 0; x < map.mMapSize.mX; ++x) {
+		for (var y = 0; y < map.mMapSize.mY; ++y) {
+			var ind = x + (map.mMapSize.mX * y);
+			map.mMapBatch.AddSprite(map.mMapTiles[ind].mSprite);
 		}
 	}
 	
