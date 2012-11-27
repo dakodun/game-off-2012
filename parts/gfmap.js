@@ -4,7 +4,11 @@ function GFMap() {
 	this.mMapSize = new IVec2(0, 0);
 	
 	this.mMapTiles = new Array();
+	this.mBlueTiles = new Array();
+	this.mRedTiles = new Array();
 	this.mRand = new RNG(0);
+	
+	this.mMapBatch = new RenderBatch();
 };
 
 GFMap.prototype.SetUp = function(size) {
@@ -25,6 +29,19 @@ GFMap.prototype.SetUp = function(size) {
 			this.mMapTiles[ind].mSprite.SetCurrentFrame(0);
 		}
 	}
+}
+
+GFMap.prototype.IDToPos = function(id) {
+	var pos = new IVec2(0, 0);
+	pos.mY = Math.floor(id / this.mMapSize.mX);
+	pos.mX = id - (this.mMapSize.mX * pos.mY);
+	
+	return pos;
+}
+
+GFMap.prototype.PosToID = function(pos) {
+	var id = pos.mX + (this.mMapSize.mX * pos.mY);
+	return id;
 }
 // ...End
 
