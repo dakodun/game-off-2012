@@ -156,7 +156,10 @@ GameScene.prototype.Input = function() {
 					uiClick = this.mGameEntities[this.mSelectID].ProcessUI(this.mCam);
 				}
 				
-				this.OnEntityClick(uiClick);
+				// ui clicks take precedence over unit clicks - this handles any overlap between the elements
+				if (uiClick == false) {
+					this.OnEntityClick(uiClick);
+				}
 			}
 		}
 		else if (nmgrs.inputMan.GetMousePressed(nmouse.button.code.middle)) {
@@ -297,13 +300,10 @@ GameScene.prototype.OnEntityClick = function(uiClick) {
 	
 	// if we reach here, then an unoccupied part of the map was clicked
 	
-	// if we didn't click on a ui element
-	if (uiClick == false) {
-		// if we have a selected entity, unselect it
-		if (this.mSelectID >= 0) {
-			this.mGameEntities[this.mSelectID].mSelected = false;
-			this.mSelectID = -1;
-		}
+	// if we have a selected entity, unselect it
+	if (this.mSelectID >= 0) {
+		this.mGameEntities[this.mSelectID].mSelected = false;
+		this.mSelectID = -1;
 	}
 	
 	return false;
