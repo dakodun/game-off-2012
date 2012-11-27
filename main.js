@@ -102,6 +102,21 @@ Exception.prototype.What = function() {
 // ...End
 
 
+// 
+var util = new function() {
+	this.PointInRectangle = function(point, topLeft, bottomRight) {
+		if ((point.mX > topLeft.mX) && (point.mX < bottomRight.mX) &&
+				(point.mY > topLeft.mY) && (point.mY < bottomRight.mY)) {
+			
+			return true;
+		}
+		
+		return false;
+	};
+};
+// ...End
+
+
 // enums...
 var nkeyboard = {
 	key : {
@@ -690,10 +705,12 @@ function Text() {
 	
 	this.mString = "";
 	this.mColour = "#FFFFFF";
+	this.mShadowColour = "#000000";
 	this.mDepth = 0;
 	
 	this.mPos = new IVec2(0, 12);
 	this.mOutline = false;
+	this.mShadow = false;
 	this.mRotation = 0;
 	this.mHeight = 12;
 }
@@ -711,10 +728,12 @@ Text.prototype.Copy = function(other) {
 	
 	this.mString = other.mString;
 	this.mColour = other.mColour;
+	this.mShadowColour = other.mShadowColour;
 	this.mDepth = other.mDepth;
 	
 	this.mPos.Copy(other.mPos);
 	this.mOutline = other.mOutline;
+	this.mShadow = other.mShadow;
 	this.mRotation = other.mRotation;
 	this.mHeight = other.mHeight;
 }
@@ -737,7 +756,8 @@ Text.prototype.GetWidth = function() {
 
 // return the height of the text
 Text.prototype.GetHeight = function() {
-	return this.mHeight;
+	var txtArr = this.mString.split("\n");
+	return this.mHeight * (txtArr.length - 1);
 }
 
 // 
@@ -764,9 +784,16 @@ function Shape() {
 	this.mAlpha = 1.0;
 	
 	this.mPos = new IVec2(0, 0);
+	this.mSize = new IVec2(0, 0);
+	this.mOutline = false;
 	this.mOrigin = new IVec2(0, 0);
 	
 	this.mPoints = new Array();
+	this.mBounds = new Array();
+	this.mBounds[0] = 0;
+	this.mBounds[1] = 0;
+	this.mBounds[2] = 0;
+	this.mBounds[3] = 0;
 };
 
 // returns the type of this object for validity checking
@@ -782,6 +809,8 @@ Shape.prototype.Copy = function(other) {
 	this.mAlpha = other.mAlpha;
 	
 	this.mPos.Copy(other.mPos);
+	this.mSize.Copy(other.mSize);
+	this.mOutline = other.mOutline;
 	this.mOrigin.Copy(other.mOrigin);
 	
 	this.mPoints = other.mPoints;
@@ -797,6 +826,24 @@ Shape.prototype.AddPoint = function(point) {
 	var pt = new IVec2();
 	pt.Copy(point);
 	this.mPoints.push(pt);
+	
+	// check left bound
+	if (pt.mX < this.mBounds[0]) {
+		this.mBounds[0] = pt.mX;
+	}
+	else if (pt.mX > this.mBounds[2]) { // right
+		this.mBounds[2] = pt.mX;
+	}
+	
+	// check top bound
+	if (pt.mY < this.mBounds[1]) {
+		this.mBounds[1] = pt.mY;
+	}
+	else if (pt.mY > this.mBounds[3]) { // bottom
+		this.mBounds[3] = pt.mY;
+	}
+	
+	this.mSize.Set(this.mBounds[2] - this.mBounds[0], this.mBounds[3] - this.mBounds[1]);
 }
 
 // 
@@ -804,6 +851,16 @@ Shape.prototype.GetPosition = function() {
 	var pos = new IVec2();
 	pos.Set(this.mPos.mX - this.mOrigin.mX, this.mPos.mY - this.mOrigin.mY);
 	return pos;
+}
+
+//
+Shape.prototype.GetWidth = function() {
+	return this.mSize.mX;
+}
+
+//
+Shape.prototype.GetHeight = function() {
+	return this.mSize.mY;
 }
 // ...End
 
@@ -830,8 +887,10 @@ function Sprite() {
 	this.mIsAnimated = false;
 	this.mNumLoops = 0;
 	
-	this.mAnimTimer = new Timer();
-	this.mAnimTimer.Reset();
+	// this.mAnimTimer = new Timer();
+	// this.mAnimTimer.Reset();
+	
+	this.mAnimIter = 0;
 };
 
 // returns the type of this object for validity checking
@@ -870,15 +929,19 @@ Sprite.prototype.Copy = function(other) {
 	this.mIsAnimated = other.mIsAnimated;
 	this.mNumLoops = other.mNumLoops;
 	
-	this.mAnimTimer.Copy(other.mAnimTimer);
+	// this.mAnimTimer.Copy(other.mAnimTimer);
+	
+	this.mAnimIter = other.mAnimIter;
 }
 
 // process the sprite (for animation)
 Sprite.prototype.Process = function() {
 	if (this.mIsAnimated) {
 		if (this.mAnimSpeed >= 0) {
-			if (this.mAnimTimer.GetElapsedTime() > this.mAnimSpeed) {
-				this.mAnimTimer.Reset();
+			// if (this.mAnimTimer.GetElapsedTime() > this.mAnimSpeed) {
+			// 	this.mAnimTimer.Reset();
+			if (this.mAnimIter > this.mAnimSpeed) {
+				this.mAnimIter = 0;
 				this.mCurrFrame = (this.mCurrFrame + 1) % (this.mEndFrame + 1);
 				if (this.mCurrFrame < this.mStartFrame) {
 					this.mCurrFrame = this.mStartFrame;
@@ -900,6 +963,8 @@ Sprite.prototype.Process = function() {
 				
 				this.SetClipRect(new IVec2(rectX, rectY), new IVec2(rectW, rectH));
 			}
+			
+			this.mAnimIter += (1 / nmain.game.mFrameLimit);
 		}
 	}
 }
@@ -922,7 +987,9 @@ Sprite.prototype.SetTexture = function(texture) {
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
 	
-	this.mAnimTimer.Reset();
+	// this.mAnimTimer.Reset();
+	
+	this.mAnimIter = 0;
 }
 
 // set the animated texture
@@ -948,7 +1015,9 @@ Sprite.prototype.SetAnimatedTexture = function(texture, numFrames, framesPerLine
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
 	
-	this.mAnimTimer.Reset();
+	// this.mAnimTimer.Reset();
+	
+	this.mAnimIter = 0;
 }
 
 // set the animated texture segment (start and end frames capped)
@@ -974,7 +1043,9 @@ Sprite.prototype.SetAnimatedTextureSegment = function(texture, numFrames, frames
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
 	
-	this.mAnimTimer.Reset();
+	// this.mAnimTimer.Reset();
+	
+	this.mAnimIter = 0;
 	
 	var rectX = (this.mCurrFrame % this.mFramesPerLine) * this.mClipSize.mX;
 	var rectY = (Math.floor(this.mCurrFrame / this.mFramesPerLine)) * this.mClipSize.mY;
@@ -996,7 +1067,9 @@ Sprite.prototype.SetClipRect = function(pos, size) {
 // set the current frame
 Sprite.prototype.SetCurrentFrame = function(frame) {
 	if (this.mIsAnimated) {
-		this.mAnimTimer.Reset();
+		// this.mAnimTimer.Reset();
+		this.mAnimIter = 0;
+		
 		this.mCurrFrame = frame % (this.mEndFrame + 1);
 		if (this.mCurrFrame < this.mStartFrame) {
 			this.mCurrFrame = this.mStartFrame;
@@ -1017,6 +1090,28 @@ Sprite.prototype.GetPosition = function() {
 	iv.mX = this.mPos.mX - this.mOrigin.mX; iv.mY = this.mPos.mY - this.mOrigin.mY;
 	
 	return iv;
+}
+
+//
+Sprite.prototype.GetWidth = function() {
+	var w = this.mTex.mImg.width;
+	
+	if (this.mIsAnimated == true) {
+		w = this.mClipSize.mX;
+	}
+	
+	return w;
+}
+
+//
+Sprite.prototype.GetHeight = function() {
+	var h = this.mTex.mImg.height;
+	
+	if (this.mIsAnimated == true) {
+		h = this.mClipSize.mY;
+	}
+	
+	return h;
 }
 // ...End
 
@@ -1052,7 +1147,9 @@ RenderBatch.prototype.AddSprite = function(sprite) {
 	var spr = new Sprite();
 	spr.Copy(sprite);
 	
-	this.mRenderData.push(spr);
+	if (spr.mTex != null) {
+		this.mRenderData.push(spr);
+	}
 	// this.mRenderData.sort(DepthSort); // sort the queue
 }
 
@@ -1128,7 +1225,7 @@ RenderBatch.prototype.Render = function(camera) {
 			var txtArr = txt.mString.split("\n");
 			
 			nmain.game.mCurrContext.font = txt.mFont;
-			nmain.game.mCurrContext.fillStyle = txt.mColour;
+			nmain.game.mCurrContext.strokeStyle = txt.mColour;
 			
 			var w = txt.GetWidth();
 			var h = txt.GetHeight();
@@ -1151,6 +1248,12 @@ RenderBatch.prototype.Render = function(camera) {
 				}
 				else {
 					for (var j = 0; j < txtArr.length; ++j) {
+						if (txt.mShadow == true) {
+							nmain.game.mCurrContext.fillStyle = txt.mShadowColour;
+							nmain.game.mCurrContext.fillText(txtArr[j], 2, (txt.mHeight * j) + 2);
+						}
+						
+						nmain.game.mCurrContext.fillStyle = txt.mColour;
 						nmain.game.mCurrContext.fillText(txtArr[j], 0, txt.mHeight * j);
 					}
 				}
@@ -1161,6 +1264,7 @@ RenderBatch.prototype.Render = function(camera) {
 			var pos = shp.GetPosition();
 			
 			nmain.game.mCurrContext.fillStyle = shp.mColour;
+			nmain.game.mCurrContext.strokeStyle = shp.mColour;
 			var oldAlpha = nmain.game.mCurrContext.globalAlpha;
 			nmain.game.mCurrContext.globalAlpha = shp.mAlpha;
 			
@@ -1174,7 +1278,13 @@ RenderBatch.prototype.Render = function(camera) {
 			}
 			
 			nmain.game.mCurrContext.closePath();
-			nmain.game.mCurrContext.fill();
+			
+			if (shp.mOutline == false) {
+				nmain.game.mCurrContext.fill();
+			}
+			else {
+				nmain.game.mCurrContext.stroke();
+			}
 			
 			nmain.game.mCurrContext.globalAlpha = oldAlpha;
 		}
@@ -1288,10 +1398,21 @@ InitScene.prototype.SetUp = function() {
 	try {
 		// load the textures we need
 		nmgrs.resLoad.QueueTexture("tile_set_default", "./res/vis/tile_set_default.png");
+		nmgrs.resLoad.QueueTexture("tile_hilite", "./res/vis/tile_hilite.png");
+		
 		nmgrs.resLoad.QueueTexture("turn_1", "./res/vis/turn_1.png");
 		nmgrs.resLoad.QueueTexture("turn_2", "./res/vis/turn_2.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_up", "./res/vis/gui_arrow_up.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_down", "./res/vis/gui_arrow_down.png");
+		
+		nmgrs.resLoad.QueueTexture("unit_b_workerprod", "./res/vis/unit_b_workerprod.png");
+		nmgrs.resLoad.QueueTexture("gui_workerprod", "./res/vis/gui_workerprod.png");
+		
+		nmgrs.resLoad.QueueTexture("unit_u_pusher", "./res/vis/unit_u_pusher.png");
+		nmgrs.resLoad.QueueTexture("gui_pusher", "./res/vis/gui_pusher.png");
+		nmgrs.resLoad.QueueTexture("unit_u_puller", "./res/vis/unit_u_puller.png");
+		nmgrs.resLoad.QueueTexture("gui_puller", "./res/vis/gui_puller.png");
+		
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
 	} catch(e) {
@@ -1312,7 +1433,7 @@ InitScene.prototype.Input = function() {
 // handles game logic
 InitScene.prototype.Process = function() {
 	if (nmgrs.resLoad.mWorking == false) {
-		nmgrs.sceneMan.ChangeScene(new TestScene());
+		nmgrs.sceneMan.ChangeScene(new GameScene());
 	}
 }
 
@@ -1323,57 +1444,52 @@ InitScene.prototype.Render = function() {
 // ...End
 
 
-// TestScene Class...
+// GameScene Class...
 // self contained parts of the game such as different screens, levels or game modes
-function TestScene() {
+function GameScene() {
 	this.mPersist = false;
 	
-	this.mMapBatch = new RenderBatch();
+	this.mCam = new Camera();
 	this.mMap = new GFMap();
 	
-	this.mCam = new Camera();
-	
 	this.mCanScroll = false;
-	this.mArrowUpSprite = new Sprite();
-	this.mArrowDownSprite = new Sprite();
 	
 	this.mTurn = 0;
-	this.mTurnSprite = new Sprite();
-	this.mDynamicUIBatch = new RenderBatch();
 	this.mEndPlayerTurn = 0;
 	this.mEndPlayerTurnTimer = new Timer();
 	
-	this.mControlsText = new Text();
-	this.mControlsBack = new Shape();
-	this.mEndTurnTapText = new Text();
-	this.mEndTurnTapBack = new Shape();
+	this.mGameUI = new GFGameUI();
+	
+	this.mUnitBatch = new RenderBatch();
+	this.mGameEntities = new Array();
+	
+	this.mSelectID = -1;
+	this.mPusherCount = 0;
+	this.mPullerCount = 0;
+	
+	this.mPlacementMode = false;
+	this.mPlacementBounds = new Array();
+	this.mPlacementHighlight = new Array();
 }
 
 // returns the type of this object for validity checking
-TestScene.prototype.Type = function() {
-	return "TestScene";
+GameScene.prototype.Type = function() {
+	return "GameScene";
 };
 
 // returns whether this scene is to persist or not (when changing to a new scene -- preserves state)
-TestScene.prototype.Persistent = function() {
+GameScene.prototype.Persistent = function() {
 	return this.mPersist;
 };
 
 // initialises the scene object
-TestScene.prototype.SetUp = function() {
+GameScene.prototype.SetUp = function() {
 	nmain.game.mClearColour = "#604039";
 	
 	var d = new Date();
 	
 	var mapGen = new GFMapGen();
-	this.mMap = mapGen.GenerateMap(d.getTime(), "b", "b");
-	
-	for (var x = 0; x < this.mMap.mMapSize.mX; ++x) {
-		for (var y = 0; y < this.mMap.mMapSize.mY; ++y) {
-			var ind = x + (this.mMap.mMapSize.mX * y);
-			this.mMapBatch.AddSprite(this.mMap.mMapTiles[ind].mSprite);
-		}
-	}
+	this.mMap = mapGen.GenerateMap(d.getTime(), "s", "s");
 	
 	this.mCam.mTranslate.Set(0 - ((nmain.game.mCanvasSize.mX - (this.mMap.mMapSize.mX * 32)) / 2),
 			0 - ((nmain.game.mCanvasSize.mY - (this.mMap.mMapSize.mY * 32)) / 2));
@@ -1382,86 +1498,52 @@ TestScene.prototype.SetUp = function() {
 		this.mCanScroll = true;
 	}
 	
-	{
-		var tex = nmgrs.resMan.mTexStore.GetResource("turn_2");
-		this.mTurnSprite.SetAnimatedTexture(tex, 20, 5, 30, 1);
-		this.mTurnSprite.mPos.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY);
-		this.mTurnSprite.mDepth = -1000;
-		this.mTurn = 3;
-	}
+	this.mTurn = 3;
 	
 	{
-		var tex = nmgrs.resMan.mTexStore.GetResource("gui_arrow_up");
-		this.mArrowUpSprite.SetAnimatedTexture(tex, 16, 5, 30, -1);
-		this.mArrowUpSprite.mPos.Set(this.mCam.mTranslate.mX + nmain.game.mCanvasSize.mX - 46, this.mCam.mTranslate.mY);
-		this.mArrowUpSprite.mDepth = -1000;
+		var workerProd = new GFBuildingWP();
+		
+		var id = (this.mMap.mBlueTiles.length / 3) * this.mMap.mRand.GetRandInt(1, 2);
+		id = this.mMap.mRand.GetRandInt(0, (this.mMap.mBlueTiles.length / 3) - 2) + id;
+		
+		var pos = new IVec2(0, 0);
+		pos.Copy(this.mMap.mBlueTiles[id]);
+		
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_b_workerprod");
+		workerProd.SetUp(this.mCam, tex, pos);
+		workerProd.mShowBound = true;
+		this.mGameEntities.push(workerProd);
+		
+		{
+			var notFreeID = this.mMap.PosToID(pos);
+			this.mMap.mMapTiles[notFreeID].mFree = false;
+			this.mMap.mMapTiles[notFreeID + 1].mFree = false;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mFree = false;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mFree = false;
+		}
 	}
 	
-	{
-		var tex = nmgrs.resMan.mTexStore.GetResource("gui_arrow_down");
-		this.mArrowDownSprite.SetAnimatedTexture(tex, 16, 5, 30, -1);
-		this.mArrowDownSprite.mPos.Set(this.mCam.mTranslate.mX + nmain.game.mCanvasSize.mX - 46, this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mArrowDownSprite.mDepth = -1000;
-	}
-	
-	{
-		this.mControlsText.mString = "Up and Down Arrow to scroll.\nDouble-tap E to end your turn.";
-		this.mControlsText.mDepth = -1000;
-		this.mControlsText.mPos.Set(this.mCam.mTranslate.mX + 4, this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.mHeight - 5);
-		
-		this.mControlsBack.mColour = "#000000";
-		this.mControlsBack.mDepth = -999;
-		this.mControlsBack.mAlpha = 0.75;
-		this.mControlsBack.mPos.Set(this.mCam.mTranslate.mX + 2, this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY - (this.mControlsText.mHeight * 2) - 4);
-		
-		var textWidth = this.mControlsText.GetWidth();
-		var textHeight = this.mControlsText.GetHeight() * 2;
-		this.mControlsBack.AddPoint(new IVec2(textWidth + 4, 0));
-		this.mControlsBack.AddPoint(new IVec2(textWidth + 4, textHeight + 2));
-		this.mControlsBack.AddPoint(new IVec2(0, textHeight + 2));
-	}
-	
-	{
-		this.mEndTurnTapText.SetFontSize(36);
-		
-		this.mEndTurnTapText.mString = "Press E again to confirm!";
-		this.mEndTurnTapText.mDepth = -2000;
-		this.mEndTurnTapText.mPos.Set(this.mCam.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapText.GetWidth() / 2), this.mCam.mTranslate.mY + this.mEndTurnTapText.GetHeight() + 10);
-		
-		this.mEndTurnTapBack.mColour = "#000000";
-		this.mEndTurnTapBack.mDepth = -1999;
-		this.mEndTurnTapBack.mAlpha = 0.75;
-		this.mEndTurnTapBack.mPos.Set(this.mCam.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapText.GetWidth() / 2), this.mCam.mTranslate.mY + 17);
-		
-		var textWidth = this.mEndTurnTapText.GetWidth();
-		var textHeight = this.mEndTurnTapText.GetHeight();
-		this.mEndTurnTapBack.AddPoint(new IVec2(textWidth, 0));
-		this.mEndTurnTapBack.AddPoint(new IVec2(textWidth, textHeight + 2));
-		this.mEndTurnTapBack.AddPoint(new IVec2(0, textHeight + 2));
-	}
+	this.mGameUI.SetUp(this.mCam);
 }
 
 // cleans up the scene object
-TestScene.prototype.TearDown = function() {
+GameScene.prototype.TearDown = function() {
 	
 }
 
 // handles user input
-TestScene.prototype.Input = function() {
-	if (this.mTurn == 1) {
+GameScene.prototype.Input = function() {
+	if (this.mTurn == 1) { // if it is the player's turn
 		if (this.mCanScroll == true) {
 			if (this.mCam.mTranslate.mY > -24) {
 				if (nmgrs.inputMan.GetKeyboardDown(nkeyboard.key.code.up)) {
 					this.mCam.mTranslate.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY - 1);
 					
-					this.mTurnSprite.mPos.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY);
-					this.mArrowUpSprite.mPos.Set(this.mCam.mTranslate.mX + nmain.game.mCanvasSize.mX - 46, this.mCam.mTranslate.mY);
-					this.mArrowDownSprite.mPos.Set(this.mCam.mTranslate.mX + nmain.game.mCanvasSize.mX - 46, this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+					this.mGameUI.Input(this.mCam);
 					
-					this.mControlsText.mPos.Set(this.mCam.mTranslate.mX + 4, this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.mHeight - 5);
-					this.mControlsBack.mPos.Set(this.mCam.mTranslate.mX + 2, this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY - (this.mControlsText.mHeight * 2) - 4);
-					this.mEndTurnTapText.mPos.Set(this.mCam.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapText.GetWidth() / 2), this.mCam.mTranslate.mY + this.mEndTurnTapText.GetHeight() + 10);
-					this.mEndTurnTapBack.mPos.Set(this.mCam.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapText.GetWidth() / 2), this.mCam.mTranslate.mY + 17);
+					if (this.mSelectID >= 0) {
+						this.mGameEntities[this.mSelectID].UpdateUI(this.mCam);
+					}
 				}
 			}
 			
@@ -1469,14 +1551,11 @@ TestScene.prototype.Input = function() {
 				if (nmgrs.inputMan.GetKeyboardDown(nkeyboard.key.code.down)) {
 					this.mCam.mTranslate.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY + 1);
 					
-					this.mTurnSprite.mPos.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY);
-					this.mArrowUpSprite.mPos.Set(this.mCam.mTranslate.mX + nmain.game.mCanvasSize.mX - 46, this.mCam.mTranslate.mY);
-					this.mArrowDownSprite.mPos.Set(this.mCam.mTranslate.mX + nmain.game.mCanvasSize.mX - 46, this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+					this.mGameUI.Input(this.mCam);
 					
-					this.mControlsText.mPos.Set(this.mCam.mTranslate.mX + 4, this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.mHeight - 5);
-					this.mControlsBack.mPos.Set(this.mCam.mTranslate.mX + 2, this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY - (this.mControlsText.mHeight * 2) - 4);
-					this.mEndTurnTapText.mPos.Set(this.mCam.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapText.GetWidth() / 2), this.mCam.mTranslate.mY + this.mEndTurnTapText.GetHeight() + 10);
-					this.mEndTurnTapBack.mPos.Set(this.mCam.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapText.GetWidth() / 2), this.mCam.mTranslate.mY + 17);
+					if (this.mSelectID >= 0) {
+						this.mGameEntities[this.mSelectID].UpdateUI(this.mCam);
+					}
 				}
 			}
 		}
@@ -1490,81 +1569,199 @@ TestScene.prototype.Input = function() {
 				this.mEndPlayerTurn = 0;
 				this.mTurn = 2;
 				
-				var tex = nmgrs.resMan.mTexStore.GetResource("turn_1");
-				this.mTurnSprite.SetAnimatedTexture(tex, 20, 5, 30, 1);
+				this.mGameUI.SwitchTurn(1);
+			}
+		}
+		
+		if (nmgrs.inputMan.GetMousePressed(nmouse.button.code.left)) {
+			// check if we are in placement mode or not
+			if (this.mPlacementMode == true) {
+				// the mouse cursor position offset by the current camera (view)
+				var pt = new IVec2(0, 0);
+				pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
+				pt.mX += this.mCam.mTranslate.mX; pt.mY += this.mCam.mTranslate.mY;
+				
+				for (var i = 0; i < this.mPlacementBounds.length; i += 2) {
+					if (util.PointInRectangle(pt, this.mPlacementBounds[i], this.mPlacementBounds[i + 1]) == true) {
+						var pos = new IVec2();
+						pos.Set(this.mPlacementBounds[i].mX / 32, this.mPlacementBounds[i].mY / 32);
+						this.mGameEntities[this.mSelectID].PlacementCallback(this.mGameEntities[this.mSelectID].mPlacementInfo, this.mMap.PosToID(pos));
+						
+						if (this.mSelectID >= 0) {
+							this.mGameEntities[this.mSelectID].SetActive(false);
+							this.mGameEntities[this.mSelectID].mSelected = false;
+							this.mSelectID = -1;
+						}
+					}
+				}
+			}
+			else {
+				var uiClick = false;
+				
+				if (this.mSelectID >= 0) {
+					uiClick = this.mGameEntities[this.mSelectID].ProcessUI(this.mCam);
+				}
+				
+				this.OnEntityClick(uiClick);
+			}
+		}
+		else if (nmgrs.inputMan.GetMousePressed(nmouse.button.code.middle)) {
+			this.TogglePlacementMode(false);
+			
+			if (this.mSelectID >= 0) {
+				this.mGameEntities[this.mSelectID].mSelected = false;
+				this.mSelectID = -1;
 			}
 		}
 	}
 }
 
 // handles game logic
-TestScene.prototype.Process = function() {
+GameScene.prototype.Process = function() {
+	this.HandleTurns();
+	this.mGameUI.Process();
+	
+	for (var i = 0; i < this.mGameEntities.length; ++i) {
+		this.mGameEntities[i].Process();
+	}
+	
+	for (var i = 0; i < this.mPlacementHighlight.length; ++i) {
+		this.mPlacementHighlight[i].Process();
+	}
+}
+
+// handles all drawing tasks
+GameScene.prototype.Render = function() {
+	nmain.game.SetIdentity();
+	this.mCam.Apply();
+	
+	this.mMap.mMapBatch.Render(this.mCam);
+	
+	{
+		var arr = new Array();
+		for (var i = 0; i < this.mGameEntities.length; ++i) {
+			arr = arr.concat(this.mGameEntities[i].GetRender());
+		}
+		
+		arr = arr.concat(this.mPlacementHighlight);
+		
+		this.mUnitBatch.Clear();
+		
+		for (var i = 0; i < arr.length; ++i) {
+			if (arr[i].Type() == "Sprite") {
+				this.mUnitBatch.AddSprite(arr[i]);
+			}
+			else if (arr[i].Type() == "Text") {
+				this.mUnitBatch.AddText(arr[i]);
+			}
+			else if (arr[i].Type() == "Shape") {
+				this.mUnitBatch.AddShape(arr[i]);
+			}
+		}
+		
+		this.mUnitBatch.Render(this.mCam);
+	}
+	
+	{
+		this.mGameUI.Render(this.mCam, this.mTurn, this.mMap.mMapSize.mY, this.mEndPlayerTurn);
+	}
+}
+
+// handles turn logic
+GameScene.prototype.HandleTurns = function() {
+	// process ai turn
 	if (this.mTurn == 0) {
-		// alert("process ai turn");
 		this.mTurn = 3;
 		
-		var tex = nmgrs.resMan.mTexStore.GetResource("turn_2");
-		this.mTurnSprite.SetAnimatedTexture(tex, 20, 5, 30, 1);
+		this.mGameUI.SwitchTurn(2);
 	}
-	else if (this.mTurn == 1) {
+	else if (this.mTurn == 1) { // process player turn
 		if (this.mEndPlayerTurn == 1) {
 			if (this.mEndPlayerTurnTimer.GetElapsedTime() >= 1000) {
 				this.mEndPlayerTurn = 0;
 			}
 		}
 	}
-	else if (this.mTurn == 2) {
-		this.mTurnSprite.Process();
-		if (this.mTurnSprite.mNumLoops == 0) {
-			this.mTurnSprite.mAnimSpeed = -1;
-			this.mTurnSprite.SetCurrentFrame(0);
+	else if (this.mTurn == 2) { // intermediate between player -> ai (for setup)
+		if (this.mGameUI.OnTurnStart()) {
 			this.mTurn = 0;
 		}
 	}
-	else if (this.mTurn == 3) {
-		this.mTurnSprite.Process();
-		if (this.mTurnSprite.mNumLoops == 0) {
-			this.mTurnSprite.mAnimSpeed = -1;
-			this.mTurnSprite.SetCurrentFrame(0);
+	else if (this.mTurn == 3) { // intermediate between ai -> player (for setup)
+		if (this.mGameUI.OnTurnStart()) {
 			this.mTurn = 1;
+			
+			// reset the status of all entities
+			for (var i = 0; i < this.mGameEntities.length; ++i) {
+				this.mGameEntities[i].mSelected = false;
+				this.mGameEntities[i].SetActive(true);
+			}
+		}
+	}
+}
+
+// handles clicking units and buildings
+GameScene.prototype.OnEntityClick = function(uiClick) {
+	for (var i = 0; i < this.mGameEntities.length; ++i) {
+		if (this.mGameEntities[i].mActive == true) {
+			// the mouse cursor position offset by the current camera (view)
+			var pt = new IVec2(0, 0);
+			pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
+			pt.mX += this.mCam.mTranslate.mX; pt.mY += this.mCam.mTranslate.mY;
+			
+			// top left of the buildings boundbox
+			var tl = new IVec2(0, 0);
+			tl.Set(this.mGameEntities[i].mPos.mX * 32, this.mGameEntities[i].mPos.mY * 32);
+			
+			// bottom right of the buildings boundbox
+			var br = new IVec2(0, 0);
+			br.Set((this.mGameEntities[i].mPos.mX * 32) + this.mGameEntities[i].mBound.mSize.mX, (this.mGameEntities[i].mPos.mY * 32) + this.mGameEntities[i].mBound.mSize.mY);
+			
+			if (util.PointInRectangle(pt, tl, br) == true) {
+				// check if this is already selected
+				if (i != this.mSelectID) {
+					// check if something is already selected
+					if (this.mSelectID >= 0) {
+						this.mGameEntities[mSelectID].mSelected = false; // deselect it
+					}
+					
+					this.mGameEntities[i].mSelected = true; // select this
+					this.mGameEntities[i].UpdateUI(this.mCam);
+					this.mSelectID = i;
+				}
+				
+				return true;
+			}
 		}
 	}
 	
-	this.mArrowUpSprite.Process();
-	this.mArrowDownSprite.Process();
+	// if we reach here, then an unoccupied part of the map was clicked
+	
+	// if we didn't click on a ui element
+	if (uiClick == false) {
+		// if we have a selected entity, unselect it
+		if (this.mSelectID >= 0) {
+			this.mGameEntities[this.mSelectID].mSelected = false;
+			this.mSelectID = -1;
+		}
+	}
+	
+	return false;
 }
 
-// handles all drawing tasks
-TestScene.prototype.Render = function() {
-	nmain.game.SetIdentity();
-	this.mCam.Apply();
-	
-	this.mMapBatch.Render(this.mCam);
-	
-	{
-		this.mDynamicUIBatch.Clear();
-		this.mDynamicUIBatch.AddSprite(this.mTurnSprite);
+// 
+GameScene.prototype.TogglePlacementMode = function(mode, bounds, hilite) {
+	if (this.mPlacementMode != mode) {
+		this.mPlacementMode = mode;
 		
-		if (this.mTurn == 1) {
-			if (this.mCam.mTranslate.mY > -24) {
-				this.mDynamicUIBatch.AddSprite(this.mArrowUpSprite);
-			}
-			
-			if (this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY < (this.mMap.mMapSize.mY * 32) + 24) {
-				this.mDynamicUIBatch.AddSprite(this.mArrowDownSprite);
-			}
+		if (this.mPlacementMode == true) {
+			this.mPlacementBounds = this.mPlacementBounds.concat(bounds);
+			this.mPlacementHighlight = this.mPlacementHighlight.concat(hilite);
 		}
-		
-		
-		this.mDynamicUIBatch.AddShape(this.mControlsBack);
-		this.mDynamicUIBatch.AddText(this.mControlsText);
-		
-		if (this.mEndPlayerTurn == 1) {
-			this.mDynamicUIBatch.AddShape(this.mEndTurnTapBack);
-			this.mDynamicUIBatch.AddText(this.mEndTurnTapText);
+		else {
+			this.mPlacementBounds.splice(0, this.mPlacementBounds.length);
+			this.mPlacementHighlight.splice(0, this.mPlacementHighlight.length);
 		}
-		
-		this.mDynamicUIBatch.Render(this.mCam);
 	}
 }
 // ...End
@@ -1741,7 +1938,11 @@ function GFMap() {
 	this.mMapSize = new IVec2(0, 0);
 	
 	this.mMapTiles = new Array();
+	this.mBlueTiles = new Array();
+	this.mRedTiles = new Array();
 	this.mRand = new RNG(0);
+	
+	this.mMapBatch = new RenderBatch();
 };
 
 GFMap.prototype.SetUp = function(size) {
@@ -1763,6 +1964,19 @@ GFMap.prototype.SetUp = function(size) {
 		}
 	}
 }
+
+GFMap.prototype.IDToPos = function(id) {
+	var pos = new IVec2(0, 0);
+	pos.mY = Math.floor(id / this.mMapSize.mX);
+	pos.mX = id - (this.mMapSize.mX * pos.mY);
+	
+	return pos;
+}
+
+GFMap.prototype.PosToID = function(pos) {
+	var id = pos.mX + (this.mMapSize.mX * pos.mY);
+	return id;
+}
 // ...End
 
 
@@ -1774,6 +1988,7 @@ function GFMapTile(pos) {
 	
 	this.mSprite = new Sprite();
 	this.mType = "";
+	this.mFree = true;
 };
 // ...End
 
@@ -1797,7 +2012,7 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 			lzLeft = -2;
 			lzRight = 2;
 			
-			numAnts = map.mRand.GetRandInt(2, 4);
+			numAnts = map.mRand.GetRandInt(2, 3);
 		}
 		else if (size == "m") {
 			dimX = 14;
@@ -1840,6 +2055,10 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 	}
 	
 	for (var i = 0; i < (dimX * enemyBaseSize); ++i) {
+		var pos = new IVec2();
+		pos.Copy(map.mMapTiles[i].mPos);
+		map.mRedTiles.push(pos);
+		
 		map.mMapTiles[i].mSprite.SetCurrentFrame(map.mRand.GetRandInt(10, 14));
 		map.mMapTiles[i].mType = "red";
 	}
@@ -1854,6 +2073,11 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 		for (var i = 2; i <= 4; ++i) {
 			for (var j = lzLeft; j <= lzRight; ++j) {
 				var tileID = (dimX * (dimY - i)) + midPoint + j;
+				
+				var pos = new IVec2();
+				pos.Copy(map.mMapTiles[tileID].mPos);
+				map.mBlueTiles.push(pos);
+				
 				map.mMapTiles[tileID].mSprite.SetCurrentFrame(map.mRand.GetRandInt(15, 19));
 				map.mMapTiles[tileID].mType = "blue";
 			}
@@ -1872,6 +2096,13 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 					map.mMapTiles[id].mSprite.SetCurrentFrame(map.mRand.GetRandInt(5, 9));
 				}
 			}
+		}
+	}
+	
+	for (var x = 0; x < map.mMapSize.mX; ++x) {
+		for (var y = 0; y < map.mMapSize.mY; ++y) {
+			var ind = x + (map.mMapSize.mX * y);
+			map.mMapBatch.AddSprite(map.mMapTiles[ind].mSprite);
 		}
 	}
 	
@@ -1935,6 +2166,778 @@ GFMapAnt.prototype.Dig = function(mapRef, xMax) {
 	}
 	
 	return idArr;
+}
+// ...End
+
+
+// GFUnitPusher Class...
+// 
+function GFUnitPusher() {
+	this.mPos = new IVec2(0, 0);
+	
+	this.mSprite = new Sprite();
+	this.mBound = new Shape();
+	this.mShowBound = true;
+	
+	this.mSelected = false;
+	this.mActive = true;
+	
+	this.mUI = new GFUnitUI();
+	this.mPlacementInfo = "";
+}
+
+GFUnitPusher.prototype.SetUp = function(camera, tex, pos) {
+	this.mPos.Copy(pos);
+	
+	this.mSprite.SetAnimatedTexture(tex, 4, 4, 14 / nmain.game.mFrameLimit, -1);
+	this.mSprite.mOrigin.Set(0, 0);
+	this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
+	this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	
+	this.mBound.mOutline = true;
+	this.mBound.mColour = "#FF1111";
+	this.mBound.mDepth = -9999;
+	this.mBound.mAlpha = 1;
+	this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+	
+	this.mBound.AddPoint(new IVec2(32, 0));
+	this.mBound.AddPoint(new IVec2(32, 32));
+	this.mBound.AddPoint(new IVec2(0, 32));
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("gui_pusher");
+		this.mUI.mSlotSprites[0].SetAnimatedTexture(tex, 3, 3, -1, -1);
+		this.mUI.mSlotSprites[0].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 264, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+		this.mUI.mSlotSprites[0].mDepth = -1000;
+		this.mUI.mSlotStatus[0] = true;
+		
+		var wOffset = (this.mUI.mSlotSprites[0].GetWidth() / 2) - (this.mUI.mSlotText[0].GetWidth() / 2);
+		this.mUI.mSlotText[0].mPos.Set(this.mUI.mSlotSprites[0].mPos.mX + wOffset, this.mUI.mSlotSprites[0].mPos.mY);
+		
+		this.mUI.mSlotSprites[1].SetAnimatedTexture(tex, 3, 3, -1, -1);
+		this.mUI.mSlotSprites[1].SetCurrentFrame(1);
+		this.mUI.mSlotSprites[1].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 192, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+		this.mUI.mSlotSprites[1].mDepth = -1000;
+		this.mUI.mSlotStatus[1] = true;
+		
+		wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
+		this.mUI.mSlotText[1].mPos.Set(this.mUI.mSlotSprites[1].mPos.mX + wOffset, this.mUI.mSlotSprites[1].mPos.mY);
+		
+		this.mUI.mSlotSprites[2].SetAnimatedTexture(tex, 3, 3, -1, -1);
+		this.mUI.mSlotSprites[2].SetCurrentFrame(2);
+		this.mUI.mSlotSprites[2].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 120, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+		this.mUI.mSlotSprites[2].mDepth = -1000;
+		this.mUI.mSlotStatus[2] = true;
+		
+		wOffset = (this.mUI.mSlotSprites[2].GetWidth() / 2) - (this.mUI.mSlotText[2].GetWidth() / 2);
+		this.mUI.mSlotText[2].mPos.Set(this.mUI.mSlotSprites[2].mPos.mX + wOffset, this.mUI.mSlotSprites[2].mPos.mY);
+	}
+}
+
+GFUnitPusher.prototype.Process = function() {
+	this.mSprite.Process();
+}
+
+GFUnitPusher.prototype.UpdateUI = function(camera) {
+	this.mUI.mSlotSprites[0].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 264, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+	var wOffset = (this.mUI.mSlotSprites[0].GetWidth() / 2) - (this.mUI.mSlotText[0].GetWidth() / 2);
+	this.mUI.mSlotText[0].mPos.Set(this.mUI.mSlotSprites[0].mPos.mX + wOffset, this.mUI.mSlotSprites[0].mPos.mY);
+	
+	this.mUI.mSlotSprites[1].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 192, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+	wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
+	this.mUI.mSlotText[1].mPos.Set(this.mUI.mSlotSprites[1].mPos.mX + wOffset, this.mUI.mSlotSprites[1].mPos.mY);
+	
+	this.mUI.mSlotSprites[2].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 120, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+	wOffset = (this.mUI.mSlotSprites[2].GetWidth() / 2) - (this.mUI.mSlotText[2].GetWidth() / 2);
+	this.mUI.mSlotText[2].mPos.Set(this.mUI.mSlotSprites[2].mPos.mX + wOffset, this.mUI.mSlotSprites[2].mPos.mY);
+}
+
+GFUnitPusher.prototype.ProcessUI = function(camera) {
+	if (this.mSelected == true) {
+		// the mouse cursor position offset by the current camera (view)
+		var pt = new IVec2(0, 0);
+		pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
+		pt.mX += camera.mTranslate.mX; pt.mY += camera.mTranslate.mY;
+		
+		for (var i = 0; i < 4; ++i) {
+			if (this.mUI.mSlotStatus[i] == true) {
+				// top left of the buttons boundbox
+				var tl = new IVec2(0, 0);
+				tl.Set(this.mUI.mSlotSprites[i].mPos.mX, this.mUI.mSlotSprites[i].mPos.mY);
+				
+				// bottom right of the buttons boundbox
+				var w = this.mUI.mSlotSprites[i].mTex.mImg.width;
+				var h = this.mUI.mSlotSprites[i].mTex.mImg.height;
+				
+				if (this.mUI.mSlotSprites[i].mIsAnimated == true) {
+					w = this.mUI.mSlotSprites[i].mClipSize.mX;
+					h = this.mUI.mSlotSprites[i].mClipSize.mY;
+				}
+				
+				var br = new IVec2(0, 0);
+				br.Set(this.mUI.mSlotSprites[i].mPos.mX + w, this.mUI.mSlotSprites[i].mPos.mY + h);
+				
+				if (util.PointInRectangle(pt, tl, br) == true) {
+					if (i == 0) {
+						// button 1
+					}
+					else if (i == 1) {
+						// button 2
+					}
+					else if (i == 2) {
+						// button 3
+					}
+					else if (i == 3) {
+						// button 4
+					}
+					
+					return true;
+				}
+			}
+		}
+	}
+	
+	return false;
+}
+
+GFUnitPusher.prototype.SetActive = function(active) {
+	if (this.mActive != active) {
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_pusher");
+		this.mActive = active;
+		
+		if (this.mActive == true) {
+			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
+		}
+		else {
+			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, -1, 4, 4, -1);
+		}
+	}
+}
+
+GFUnitPusher.prototype.GetRender = function() {
+	var arr = new Array();
+	arr.push(this.mSprite);
+	if (this.mShowBound == true) {
+		arr.push(this.mBound);
+	}
+	
+	if (this.mSelected == true) {
+		arr = arr.concat(this.mUI.GetRender());
+	}
+	
+	return arr;
+}
+
+GFUnitPusher.prototype.PlacementCallback = function(info, id) {
+	
+}
+// ...End
+
+
+// GFUnitPuller Class...
+// 
+function GFUnitPuller() {
+	this.mPos = new IVec2(0, 0);
+	
+	this.mSprite = new Sprite();
+	this.mBound = new Shape();
+	this.mShowBound = true;
+	
+	this.mSelected = false;
+	this.mActive = true;
+	
+	this.mUI = new GFUnitUI();
+	this.mPlacementInfo = "";
+}
+
+GFUnitPuller.prototype.SetUp = function(camera, tex, pos) {
+	this.mPos.Copy(pos);
+	
+	this.mSprite.SetAnimatedTexture(tex, 4, 4, 14 / nmain.game.mFrameLimit, -1);
+	this.mSprite.mOrigin.Set(0, 0);
+	this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
+	this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	
+	this.mBound.mOutline = true;
+	this.mBound.mColour = "#FF1111";
+	this.mBound.mDepth = -9999;
+	this.mBound.mAlpha = 1;
+	this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+	
+	this.mBound.AddPoint(new IVec2(32, 0));
+	this.mBound.AddPoint(new IVec2(32, 32));
+	this.mBound.AddPoint(new IVec2(0, 32));
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("gui_puller");
+		this.mUI.mSlotSprites[0].SetAnimatedTexture(tex, 3, 3, -1, -1);
+		this.mUI.mSlotSprites[0].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 264, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+		this.mUI.mSlotSprites[0].mDepth = -1000;
+		this.mUI.mSlotStatus[0] = true;
+		
+		var wOffset = (this.mUI.mSlotSprites[0].GetWidth() / 2) - (this.mUI.mSlotText[0].GetWidth() / 2);
+		this.mUI.mSlotText[0].mPos.Set(this.mUI.mSlotSprites[0].mPos.mX + wOffset, this.mUI.mSlotSprites[0].mPos.mY);
+		
+		this.mUI.mSlotSprites[1].SetAnimatedTexture(tex, 3, 3, -1, -1);
+		this.mUI.mSlotSprites[1].SetCurrentFrame(1);
+		this.mUI.mSlotSprites[1].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 192, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+		this.mUI.mSlotSprites[1].mDepth = -1000;
+		this.mUI.mSlotStatus[1] = true;
+		
+		wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
+		this.mUI.mSlotText[1].mPos.Set(this.mUI.mSlotSprites[1].mPos.mX + wOffset, this.mUI.mSlotSprites[1].mPos.mY);
+		
+		this.mUI.mSlotSprites[2].SetAnimatedTexture(tex, 3, 3, -1, -1);
+		this.mUI.mSlotSprites[2].SetCurrentFrame(2);
+		this.mUI.mSlotSprites[2].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 120, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+		this.mUI.mSlotSprites[2].mDepth = -1000;
+		this.mUI.mSlotStatus[2] = true;
+		
+		wOffset = (this.mUI.mSlotSprites[2].GetWidth() / 2) - (this.mUI.mSlotText[2].GetWidth() / 2);
+		this.mUI.mSlotText[2].mPos.Set(this.mUI.mSlotSprites[2].mPos.mX + wOffset, this.mUI.mSlotSprites[2].mPos.mY);
+	}
+}
+
+GFUnitPuller.prototype.Process = function() {
+	this.mSprite.Process();
+}
+
+GFUnitPuller.prototype.UpdateUI = function(camera) {
+	this.mUI.mSlotSprites[0].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 264, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+	var wOffset = (this.mUI.mSlotSprites[0].GetWidth() / 2) - (this.mUI.mSlotText[0].GetWidth() / 2);
+	this.mUI.mSlotText[0].mPos.Set(this.mUI.mSlotSprites[0].mPos.mX + wOffset, this.mUI.mSlotSprites[0].mPos.mY);
+	
+	this.mUI.mSlotSprites[1].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 192, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+	wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
+	this.mUI.mSlotText[1].mPos.Set(this.mUI.mSlotSprites[1].mPos.mX + wOffset, this.mUI.mSlotSprites[1].mPos.mY);
+	
+	this.mUI.mSlotSprites[2].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 120, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+	wOffset = (this.mUI.mSlotSprites[2].GetWidth() / 2) - (this.mUI.mSlotText[2].GetWidth() / 2);
+	this.mUI.mSlotText[2].mPos.Set(this.mUI.mSlotSprites[2].mPos.mX + wOffset, this.mUI.mSlotSprites[2].mPos.mY);
+}
+
+GFUnitPuller.prototype.ProcessUI = function(camera) {
+	if (this.mSelected == true) {
+		// the mouse cursor position offset by the current camera (view)
+		var pt = new IVec2(0, 0);
+		pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
+		pt.mX += camera.mTranslate.mX; pt.mY += camera.mTranslate.mY;
+		
+		for (var i = 0; i < 4; ++i) {
+			if (this.mUI.mSlotStatus[i] == true) {
+				// top left of the buttons boundbox
+				var tl = new IVec2(0, 0);
+				tl.Set(this.mUI.mSlotSprites[i].mPos.mX, this.mUI.mSlotSprites[i].mPos.mY);
+				
+				// bottom right of the buttons boundbox
+				var w = this.mUI.mSlotSprites[i].mTex.mImg.width;
+				var h = this.mUI.mSlotSprites[i].mTex.mImg.height;
+				
+				if (this.mUI.mSlotSprites[i].mIsAnimated == true) {
+					w = this.mUI.mSlotSprites[i].mClipSize.mX;
+					h = this.mUI.mSlotSprites[i].mClipSize.mY;
+				}
+				
+				var br = new IVec2(0, 0);
+				br.Set(this.mUI.mSlotSprites[i].mPos.mX + w, this.mUI.mSlotSprites[i].mPos.mY + h);
+				
+				if (util.PointInRectangle(pt, tl, br) == true) {
+					if (i == 0) {
+						// button 1
+					}
+					else if (i == 1) {
+						// button 2
+					}
+					else if (i == 2) {
+						// button 3
+					}
+					else if (i == 3) {
+						// button 4
+					}
+					
+					return true;
+				}
+			}
+		}
+	}
+	
+	return false;
+}
+
+GFUnitPuller.prototype.SetActive = function(active) {
+	if (this.mActive != active) {
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_puller");
+		this.mActive = active;
+		
+		if (this.mActive == true) {
+			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
+		}
+		else {
+			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, -1, 4, 4, -1);
+		}
+	}
+}
+
+GFUnitPuller.prototype.GetRender = function() {
+	var arr = new Array();
+	arr.push(this.mSprite);
+	if (this.mShowBound == true) {
+		arr.push(this.mBound);
+	}
+	
+	if (this.mSelected == true) {
+		arr = arr.concat(this.mUI.GetRender());
+	}
+	
+	return arr;
+}
+
+GFUnitPuller.prototype.PlacementCallback = function(info, id) {
+	
+}
+// ...End
+
+
+// GFBuildingWP Class...
+// 
+function GFBuildingWP() {
+	this.mPos = new IVec2(0, 0);
+	
+	this.mSprite = new Sprite();
+	this.mBound = new Shape();
+	this.mShowBound = true;
+	
+	this.mSelected = false;
+	this.mActive = true;
+	
+	this.mUI = new GFUnitUI();
+	this.mPlacementInfo = "";
+}
+
+GFBuildingWP.prototype.SetUp = function(camera, tex, pos) {
+	this.mPos.Copy(pos);
+
+	this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
+	this.mSprite.mOrigin.Set(16, 20);
+	this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
+	this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	
+	this.mBound.mOutline = true;
+	this.mBound.mColour = "#FF1111";
+	this.mBound.mDepth = -9999;
+	this.mBound.mAlpha = 1;
+	this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+	
+	this.mBound.AddPoint(new IVec2(64, 0));
+	this.mBound.AddPoint(new IVec2(64, 64));
+	this.mBound.AddPoint(new IVec2(0, 64));
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("gui_workerprod");
+		this.mUI.mSlotSprites[0].SetAnimatedTexture(tex, 2, 2, -1, -1);
+		this.mUI.mSlotSprites[0].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 192, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+		this.mUI.mSlotSprites[0].mDepth = -1000;
+		this.mUI.mSlotStatus[0] = true;
+		this.mUI.mSlotText[0].mString = "0 / 2";
+		this.mUI.mSlotText[0].mShadow = true;
+		
+		var wOffset = (this.mUI.mSlotSprites[0].GetWidth() / 2) - (this.mUI.mSlotText[0].GetWidth() / 2);
+		this.mUI.mSlotText[0].mPos.Set(this.mUI.mSlotSprites[0].mPos.mX + wOffset, this.mUI.mSlotSprites[0].mPos.mY);
+		
+		this.mUI.mSlotSprites[1].SetAnimatedTexture(tex, 2, 2, -1, -1);
+		this.mUI.mSlotSprites[1].SetCurrentFrame(1);
+		this.mUI.mSlotSprites[1].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 120, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+		this.mUI.mSlotSprites[1].mDepth = -1000;
+		this.mUI.mSlotStatus[1] = true;
+		this.mUI.mSlotText[1].mString = "0 / 2";
+		this.mUI.mSlotText[1].mShadow = true;
+		
+		wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
+		this.mUI.mSlotText[1].mPos.Set(this.mUI.mSlotSprites[1].mPos.mX + wOffset, this.mUI.mSlotSprites[1].mPos.mY);
+	}
+}
+
+GFBuildingWP.prototype.Process = function() {
+	this.mSprite.Process();
+}
+
+GFBuildingWP.prototype.UpdateUI = function(camera) {
+	this.mUI.mSlotSprites[0].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 192, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+	var wOffset = (this.mUI.mSlotSprites[0].GetWidth() / 2) - (this.mUI.mSlotText[0].GetWidth() / 2);
+	this.mUI.mSlotText[0].mPos.Set(this.mUI.mSlotSprites[0].mPos.mX + wOffset, this.mUI.mSlotSprites[0].mPos.mY);
+	
+	this.mUI.mSlotSprites[1].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 120, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+	wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
+	this.mUI.mSlotText[1].mPos.Set(this.mUI.mSlotSprites[1].mPos.mX + wOffset, this.mUI.mSlotSprites[1].mPos.mY);
+}
+
+GFBuildingWP.prototype.ProcessUI = function(camera) {
+	if (this.mSelected == true) {
+		// the mouse cursor position offset by the current camera (view)
+		var pt = new IVec2(0, 0);
+		pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
+		pt.mX += camera.mTranslate.mX; pt.mY += camera.mTranslate.mY;
+		
+		for (var i = 0; i < 4; ++i) {
+			if (this.mUI.mSlotStatus[i] == true) {
+				// top left of the buttons boundbox
+				var tl = new IVec2(0, 0);
+				tl.Set(this.mUI.mSlotSprites[i].mPos.mX, this.mUI.mSlotSprites[i].mPos.mY);
+				
+				// bottom right of the buttons boundbox
+				var w = this.mUI.mSlotSprites[i].mTex.mImg.width;
+				var h = this.mUI.mSlotSprites[i].mTex.mImg.height;
+				
+				if (this.mUI.mSlotSprites[i].mIsAnimated == true) {
+					w = this.mUI.mSlotSprites[i].mClipSize.mX;
+					h = this.mUI.mSlotSprites[i].mClipSize.mY;
+				}
+				
+				var br = new IVec2(0, 0);
+				br.Set(this.mUI.mSlotSprites[i].mPos.mX + w, this.mUI.mSlotSprites[i].mPos.mY + h);
+				
+				if (util.PointInRectangle(pt, tl, br) == true) {
+					if (i == 0) {
+						if (nmgrs.sceneMan.mCurrScene.mPusherCount < 2) {
+							var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
+							var boundsArr = new Array();
+							var hiliteArr = new Array();
+							
+							for (var j = 0; j < nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles.length; ++j) {
+								var pos = nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j];
+								var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+								if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == true) {
+									var tl = new IVec2();
+									tl.Set(nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mX * 32, nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mY * 32);
+									boundsArr.push(tl);
+									
+									var br = new IVec2();
+									br.Set((nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mX * 32) + 32, (nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mY * 32) + 32);
+									boundsArr.push(br);
+									
+									var spr = new Sprite();
+									spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
+									spr.mOrigin.Set(8, 8);
+									spr.mPos.Set(nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mX * 32, nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mY * 32);
+									spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id;
+									
+									hiliteArr.push(spr);
+								}
+							}
+							
+							this.mPlacementInfo = "create_pusher";
+							nmgrs.sceneMan.mCurrScene.TogglePlacementMode(true, boundsArr, hiliteArr);
+						}
+					}
+					else if (i == 1) {
+						if (nmgrs.sceneMan.mCurrScene.mPullerCount < 2) {
+							var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
+							var boundsArr = new Array();
+							var hiliteArr = new Array();
+							
+							for (var j = 0; j < nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles.length; ++j) {
+								var pos = nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j];
+								var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+								if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == true) {
+									var tl = new IVec2();
+									tl.Set(nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mX * 32, nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mY * 32);
+									boundsArr.push(tl);
+									
+									var br = new IVec2();
+									br.Set((nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mX * 32) + 32, (nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mY * 32) + 32);
+									boundsArr.push(br);
+									
+									var spr = new Sprite();
+									spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
+									spr.mOrigin.Set(8, 8);
+									spr.mPos.Set(nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mX * 32, nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mY * 32);
+									spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id;
+									
+									hiliteArr.push(spr);
+								}
+							}
+							
+							this.mPlacementInfo = "create_puller";
+							nmgrs.sceneMan.mCurrScene.TogglePlacementMode(true, boundsArr, hiliteArr);
+						}
+					}
+					
+					return true;
+				}
+			}
+		}
+	}
+	
+	return false;
+}
+
+GFBuildingWP.prototype.SetActive = function(active) {
+	if (this.mActive != active) {
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_b_workerprod");
+		this.mActive = active;
+		
+		if (this.mActive == true) {
+			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
+		}
+		else {
+			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, -1, 4, 4, -1);
+		}
+	}
+}
+
+GFBuildingWP.prototype.GetRender = function() {
+	var arr = new Array();
+	arr.push(this.mSprite);
+	if (this.mShowBound == true) {
+		arr.push(this.mBound);
+	}
+	
+	if (this.mSelected == true) {
+		this.mUI.mSlotText[0].mString = nmgrs.sceneMan.mCurrScene.mPusherCount + " / 2";
+		this.mUI.mSlotText[1].mString = nmgrs.sceneMan.mCurrScene.mPullerCount + " / 2";
+		
+		arr = arr.concat(this.mUI.GetRender());
+	}
+	
+	return arr;
+}
+
+GFBuildingWP.prototype.PlacementCallback = function(info, id) {
+	if (info == "create_pusher") {
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_pusher");
+		
+		var pusher = new GFUnitPusher();
+		pusher.SetUp(nmgrs.sceneMan.mCurrScene.mCam, tex, nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+		pusher.SetActive(false);
+		nmgrs.sceneMan.mCurrScene.mGameEntities.push(pusher);
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+		
+		nmgrs.sceneMan.mCurrScene.mPusherCount++;
+		this.mPlacementInfo = "";
+		nmgrs.sceneMan.mCurrScene.TogglePlacementMode(false, null, null);
+	}
+	else if (info == "create_puller") {
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_puller");
+		
+		var puller = new GFUnitPuller();
+		puller.SetUp(nmgrs.sceneMan.mCurrScene.mCam, tex, nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+		puller.SetActive(false);
+		nmgrs.sceneMan.mCurrScene.mGameEntities.push(puller);
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+		
+		nmgrs.sceneMan.mCurrScene.mPullerCount++;
+		this.mPlacementInfo = "";
+		nmgrs.sceneMan.mCurrScene.TogglePlacementMode(false, null, null);
+	}
+}
+// ...End
+
+
+// GFGameUI Class...
+// 
+function GFGameUI() {
+	this.mDynamicUIBatch = new RenderBatch();
+	
+	this.mArrowUpSprite = new Sprite();
+	this.mArrowDownSprite = new Sprite();
+	this.mTurnSprite = new Sprite();
+	
+	this.mControlsText = new Text();
+	// this.mControlsTextHi = new Text();
+	// this.mControlsBack = new Shape();
+	
+	this.mEndTurnTapTextA = new Text();
+	// this.mEndTurnTapTextAHi = new Text();
+	this.mEndTurnTapTextB = new Text();
+	// this.mEndTurnTapTextBHi = new Text();
+}
+
+GFGameUI.prototype.SetUp = function(camera) {
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("turn_2");
+		this.mTurnSprite.SetAnimatedTexture(tex, 20, 5, 1 / nmain.game.mFrameLimit, 1);
+		this.mTurnSprite.mPos.Set(camera.mTranslate.mX, camera.mTranslate.mY);
+		this.mTurnSprite.mDepth = -1000;
+	}
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("gui_arrow_up");
+		this.mArrowUpSprite.SetAnimatedTexture(tex, 16, 5, 1 / nmain.game.mFrameLimit, -1);
+		this.mArrowUpSprite.mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 46, camera.mTranslate.mY);
+		this.mArrowUpSprite.mDepth = -1000;
+	}
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("gui_arrow_down");
+		this.mArrowDownSprite.SetAnimatedTexture(tex, 16, 5, 1 / nmain.game.mFrameLimit, -1);
+		this.mArrowDownSprite.mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 46, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+		this.mArrowDownSprite.mDepth = -1000;
+	}
+	
+	{
+		this.mControlsText.mColour = "#EBEBEB";
+		this.mControlsText.mString = "Up and Down Arrows to scroll.\nDouble-tap E to end your turn.\nLeft Mouse Button to select a unit or UI option.\nMiddle Mouse Button to cancel.";
+		this.mControlsText.mDepth = -1000;
+		this.mControlsText.mShadow = true;
+		this.mControlsText.mPos.Set(camera.mTranslate.mX + 4, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.GetHeight() - 5);
+		
+		/* this.mControlsTextHi.mColour = "#000000";
+		this.mControlsTextHi.mString = "Up and Down Arrow to scroll.\nDouble-tap E to end your turn.";
+		this.mControlsTextHi.mDepth = -999;
+		this.mControlsTextHi.mPos.Set(camera.mTranslate.mX + 5, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.mHeight - 6); */
+		
+		/* this.mControlsBack.mColour = "#000000";
+		this.mControlsBack.mDepth = -998;
+		this.mControlsBack.mAlpha = 0.9;
+		this.mControlsBack.mPos.Set(camera.mTranslate.mX + 2, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - (this.mControlsText.mHeight * 2) - 4);
+		
+		var textWidth = this.mControlsText.GetWidth();
+		var textHeight = this.mControlsText.GetHeight() * 2;
+		this.mControlsBack.AddPoint(new IVec2(textWidth + 4, 0));
+		this.mControlsBack.AddPoint(new IVec2(textWidth + 4, textHeight + 2));
+		this.mControlsBack.AddPoint(new IVec2(0, textHeight + 2)); */
+	}
+	
+	{
+		this.mEndTurnTapTextA.SetFontName("sans-serif");
+		this.mEndTurnTapTextA.SetFontSize(12);
+		this.mEndTurnTapTextA.mString = "Press E Again To";
+		this.mEndTurnTapTextA.mDepth = -2000;
+		this.mEndTurnTapTextA.mShadow = true;
+		this.mEndTurnTapTextA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 12);
+		
+		/* this.mEndTurnTapTextAHi.mColour = "#000000";
+		this.mEndTurnTapTextAHi.SetFontName("sans-serif");
+		this.mEndTurnTapTextAHi.SetFontSize(12);
+		this.mEndTurnTapTextAHi.mString = "Press E Again To";
+		this.mEndTurnTapTextAHi.mDepth = -1999;
+		this.mEndTurnTapTextAHi.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2) + 1, camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 13); */
+		
+		this.mEndTurnTapTextB.SetFontName("sans-serif");
+		this.mEndTurnTapTextB.SetFontSize(32);
+		this.mEndTurnTapTextB.mString = "CONFIRM";
+		this.mEndTurnTapTextB.mDepth = -2000;
+		this.mEndTurnTapTextB.mShadow = true;
+		this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 12);
+		
+		/* this.mEndTurnTapTextBHi.mColour = "#000000";
+		this.mEndTurnTapTextBHi.SetFontName("sans-serif");
+		this.mEndTurnTapTextBHi.SetFontSize(32);
+		this.mEndTurnTapTextBHi.mString = "CONFIRM";
+		this.mEndTurnTapTextBHi.mDepth = -1999;
+		this.mEndTurnTapTextBHi.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2) + 1, camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 13); */
+	}
+}
+
+GFGameUI.prototype.Input = function(camera) {
+	this.mTurnSprite.mPos.Set(camera.mTranslate.mX, camera.mTranslate.mY);
+	this.mArrowUpSprite.mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 46, camera.mTranslate.mY);
+	this.mArrowDownSprite.mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 46, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
+	
+	this.mControlsText.mPos.Set(camera.mTranslate.mX + 4, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.GetHeight() - 5);
+	// this.mControlsTextHi.mPos.Set(camera.mTranslate.mX + 5, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.mHeight - 6);
+	// this.mControlsBack.mPos.Set(camera.mTranslate.mX + 2, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - (this.mControlsText.mHeight * 2) - 4);
+	
+	this.mEndTurnTapTextA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 12);
+	// this.mEndTurnTapTextAHi.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2) + 1, camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 13);
+	this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 12);
+	// this.mEndTurnTapTextBHi.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2) + 1, camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 13);
+}
+
+GFGameUI.prototype.Process = function() {
+	this.mArrowUpSprite.Process();
+	this.mArrowDownSprite.Process();
+}
+
+GFGameUI.prototype.Render = function(camera, turn, mapSize, endTurn) {
+	this.mDynamicUIBatch.Clear();
+	this.mDynamicUIBatch.AddSprite(this.mTurnSprite);
+	
+	if (turn == 1) {
+		if (camera.mTranslate.mY > -24) {
+			this.mDynamicUIBatch.AddSprite(this.mArrowUpSprite);
+		}
+		
+		if (camera.mTranslate.mY + nmain.game.mCanvasSize.mY < (mapSize * 32) + 24) {
+			this.mDynamicUIBatch.AddSprite(this.mArrowDownSprite);
+		}
+	}
+	
+	// this.mDynamicUIBatch.AddShape(this.mControlsBack);
+	this.mDynamicUIBatch.AddText(this.mControlsText);
+	// this.mDynamicUIBatch.AddText(this.mControlsTextHi);
+	
+	if (endTurn == 1) {
+		this.mDynamicUIBatch.AddText(this.mEndTurnTapTextA);
+		// this.mDynamicUIBatch.AddText(this.mEndTurnTapTextAHi);
+		this.mDynamicUIBatch.AddText(this.mEndTurnTapTextB);
+		// this.mDynamicUIBatch.AddText(this.mEndTurnTapTextBHi);
+	}
+	
+	this.mDynamicUIBatch.Render(camera);
+}
+
+GFGameUI.prototype.SwitchTurn = function(player) {
+	if (player == 1) {
+		var tex = nmgrs.resMan.mTexStore.GetResource("turn_1");
+		this.mTurnSprite.SetAnimatedTexture(tex, 20, 5, 1 / nmain.game.mFrameLimit, 1);
+	}
+	else if (player == 2) {
+		var tex = nmgrs.resMan.mTexStore.GetResource("turn_2");
+		this.mTurnSprite.SetAnimatedTexture(tex, 20, 5, 1 / nmain.game.mFrameLimit, 1);
+	}
+}
+
+GFGameUI.prototype.OnTurnStart = function() {
+	this.mTurnSprite.Process();
+	if (this.mTurnSprite.mNumLoops == 0) {
+		this.mTurnSprite.mAnimSpeed = -1;
+		this.mTurnSprite.SetCurrentFrame(0);
+		
+		return true;
+	}
+	
+	return false;
+}
+// ...End
+
+
+// GFUnitUI Class...
+// 
+function GFUnitUI() {
+	this.mSlotSprites = new Array();
+	this.mSlotStatus = new Array();
+	this.mSlotText = new Array();
+	
+	this.mSlotSprites[0] = new Sprite();
+	this.mSlotSprites[1] = new Sprite();
+	this.mSlotSprites[2] = new Sprite();
+	this.mSlotSprites[3] = new Sprite();
+	
+	this.mSlotStatus[0] = false;
+	this.mSlotStatus[1] = false;
+	this.mSlotStatus[2] = false;
+	this.mSlotStatus[3] = false;
+	
+	this.mSlotText[0] = new Text();
+	this.mSlotText[1] = new Text();
+	this.mSlotText[2] = new Text();
+	this.mSlotText[3] = new Text();
+}
+
+GFUnitUI.prototype.GetRender = function() {
+	var arr = new Array();
+	arr.push(this.mSlotSprites[0]);
+	arr.push(this.mSlotSprites[1]);
+	arr.push(this.mSlotSprites[2]);
+	arr.push(this.mSlotSprites[3]);
+	
+	arr.push(this.mSlotText[0]);
+	arr.push(this.mSlotText[1]);
+	arr.push(this.mSlotText[2]);
+	arr.push(this.mSlotText[3]);
+	
+	return arr;
 }
 // ...End
 
