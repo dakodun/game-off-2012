@@ -19,10 +19,21 @@ InitScene.prototype.SetUp = function() {
 	try {
 		// load the textures we need
 		nmgrs.resLoad.QueueTexture("tile_set_default", "./res/vis/tile_set_default.png");
+		nmgrs.resLoad.QueueTexture("tile_hilite", "./res/vis/tile_hilite.png");
+		
 		nmgrs.resLoad.QueueTexture("turn_1", "./res/vis/turn_1.png");
 		nmgrs.resLoad.QueueTexture("turn_2", "./res/vis/turn_2.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_up", "./res/vis/gui_arrow_up.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_down", "./res/vis/gui_arrow_down.png");
+		
+		nmgrs.resLoad.QueueTexture("unit_b_workerprod", "./res/vis/unit_b_workerprod.png");
+		nmgrs.resLoad.QueueTexture("gui_workerprod", "./res/vis/gui_workerprod.png");
+		
+		nmgrs.resLoad.QueueTexture("unit_u_pusher", "./res/vis/unit_u_pusher.png");
+		nmgrs.resLoad.QueueTexture("gui_pusher", "./res/vis/gui_pusher.png");
+		nmgrs.resLoad.QueueTexture("unit_u_puller", "./res/vis/unit_u_puller.png");
+		nmgrs.resLoad.QueueTexture("gui_puller", "./res/vis/gui_puller.png");
+		
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
 	} catch(e) {
@@ -43,7 +54,7 @@ InitScene.prototype.Input = function() {
 // handles game logic
 InitScene.prototype.Process = function() {
 	if (nmgrs.resLoad.mWorking == false) {
-		nmgrs.sceneMan.ChangeScene(new TestScene());
+		nmgrs.sceneMan.ChangeScene(new GameScene());
 	}
 }
 
