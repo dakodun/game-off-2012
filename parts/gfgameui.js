@@ -134,8 +134,8 @@ GFGameUI.prototype.Render = function(camera, turn, mapSize, endTurn) {
 	
 	if (endTurn == 1) {
 		this.mDynamicUIBatch.AddText(this.mEndTurnTapTextA);
-		// this.mDynamicUIBatch.AddText(this.mEndTurnTapTextAHi);
 		this.mDynamicUIBatch.AddText(this.mEndTurnTapTextB);
+		// this.mDynamicUIBatch.AddText(this.mEndTurnTapTextAHi);
 		// this.mDynamicUIBatch.AddText(this.mEndTurnTapTextBHi);
 	}
 	
