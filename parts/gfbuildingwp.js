@@ -12,15 +12,30 @@ function GFBuildingWP() {
 	
 	this.mUI = new GFUnitUI();
 	this.mPlacementInfo = "";
+	
+	this.mMovesLeft = 1;
+	this.mMovesLeftSprite = new Sprite();
 }
 
-GFBuildingWP.prototype.SetUp = function(camera, tex, pos) {
+GFBuildingWP.prototype.SetUp = function(camera, pos) {
 	this.mPos.Copy(pos);
-
-	this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
-	this.mSprite.mOrigin.Set(16, 20);
-	this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
-	this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_b_workerprod");
+		this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
+		this.mSprite.mOrigin.Set(16, 20);
+		this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
+		this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	}
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("gui_moves");
+		this.mMovesLeftSprite.SetAnimatedTexture(tex, 3, 1, -1, -1);
+		this.mMovesLeftSprite.mOrigin.Set(20, 34);
+		this.mMovesLeftSprite.mPos.Set((pos.mX * 32) + 16, pos.mY * 32);
+		this.mMovesLeftSprite.SetCurrentFrame(1);
+		this.mMovesLeftSprite.mDepth = -2000;
+	}
 	
 	this.mBound.mOutline = true;
 	this.mBound.mColour = "#FF1111";
@@ -172,17 +187,19 @@ GFBuildingWP.prototype.ProcessUI = function(camera) {
 }
 
 GFBuildingWP.prototype.SetActive = function(active) {
-	if (this.mActive != active) {
+	// if (this.mActive != active) {
 		var tex = nmgrs.resMan.mTexStore.GetResource("unit_b_workerprod");
 		this.mActive = active;
 		
 		if (this.mActive == true) {
+			this.mMovesLeft = 1;
+			this.mMovesLeftSprite.SetCurrentFrame(1);
 			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
 		}
 		else {
 			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, -1, 4, 4, -1);
 		}
-	}
+	// }
 }
 
 GFBuildingWP.prototype.GetRender = function() {
@@ -193,6 +210,8 @@ GFBuildingWP.prototype.GetRender = function() {
 	}
 	
 	if (this.mSelected == true) {
+		arr.push(this.mMovesLeftSprite);
+		
 		this.mUI.mSlotText[0].mString = nmgrs.sceneMan.mCurrScene.mPusherCount + " / 2";
 		this.mUI.mSlotText[1].mString = nmgrs.sceneMan.mCurrScene.mPullerCount + " / 2";
 		
@@ -204,26 +223,50 @@ GFBuildingWP.prototype.GetRender = function() {
 
 GFBuildingWP.prototype.PlacementCallback = function(info, id) {
 	if (info == "create_pusher") {
-		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_pusher");
-		
 		var pusher = new GFUnitPusher();
-		pusher.SetUp(nmgrs.sceneMan.mCurrScene.mCam, tex, nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+		pusher.SetUp(nmgrs.sceneMan.mCurrScene.mCam, nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
 		pusher.SetActive(false);
 		nmgrs.sceneMan.mCurrScene.mGameEntities.push(pusher);
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+		
+		this.mMovesLeft--;
+		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
+		
+		if (this.mMovesLeft == 0) {
+			if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
+				this.SetActive(false);
+				this.mSelected = false;
+				nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+			}
+		}
 		
 		nmgrs.sceneMan.mCurrScene.mPusherCount++;
 		this.mPlacementInfo = "";
 		nmgrs.sceneMan.mCurrScene.TogglePlacementMode(false, null, null);
 	}
 	else if (info == "create_puller") {
-		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_puller");
-		
 		var puller = new GFUnitPuller();
-		puller.SetUp(nmgrs.sceneMan.mCurrScene.mCam, tex, nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+		puller.SetUp(nmgrs.sceneMan.mCurrScene.mCam, nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
 		puller.SetActive(false);
 		nmgrs.sceneMan.mCurrScene.mGameEntities.push(puller);
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+		
+		if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
+			this.SetActive(false);
+			this.mSelected = false;
+			nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+		}
+		
+		this.mMovesLeft--;
+		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
+		
+		if (this.mMovesLeft == 0) {
+			if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
+				this.SetActive(false);
+				this.mSelected = false;
+				nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+			}
+		}
 		
 		nmgrs.sceneMan.mCurrScene.mPullerCount++;
 		this.mPlacementInfo = "";
