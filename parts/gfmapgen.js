@@ -65,11 +65,13 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 		map.mRedTiles.push(pos);
 		
 		map.mMapTiles[i].mSprite.SetCurrentFrame(map.mRand.GetRandInt(10, 14));
+		map.mMapTiles[i].mFree = true;
 		map.mMapTiles[i].mType = "red";
 	}
 	
 	for (var i = (dimX * (dimY - 5)); i < (dimX * dimY); ++i) {
 		map.mMapTiles[i].mSprite.SetCurrentFrame(map.mRand.GetRandInt(5, 9));
+		map.mMapTiles[i].mFree = true;
 	}
 	
 	{
@@ -84,6 +86,7 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 				map.mBlueTiles.push(pos);
 				
 				map.mMapTiles[tileID].mSprite.SetCurrentFrame(map.mRand.GetRandInt(15, 19));
+				map.mMapTiles[tileID].mFree = true;
 				map.mMapTiles[tileID].mType = "blue";
 			}
 		}
@@ -99,6 +102,7 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 				var id = arr[j].mX + (arr[j].mY * dimX);
 				if (map.mMapTiles[id].mType == "") {
 					map.mMapTiles[id].mSprite.SetCurrentFrame(map.mRand.GetRandInt(5, 9));
+					map.mMapTiles[id].mFree = true;
 				}
 			}
 		}
