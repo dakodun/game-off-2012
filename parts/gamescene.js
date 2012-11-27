@@ -53,30 +53,7 @@ GameScene.prototype.SetUp = function() {
 	}
 	
 	this.mTurn = 3;
-	
-	{
-		var workerProd = new GFBuildingWP();
-		
-		var id = (this.mMap.mBlueTiles.length / 3) * this.mMap.mRand.GetRandInt(1, 2);
-		id = this.mMap.mRand.GetRandInt(0, (this.mMap.mBlueTiles.length / 3) - 2) + id;
-		
-		var pos = new IVec2(0, 0);
-		pos.Copy(this.mMap.mBlueTiles[id]);
-		
-		var tex = nmgrs.resMan.mTexStore.GetResource("unit_b_workerprod");
-		workerProd.SetUp(this.mCam, tex, pos);
-		workerProd.mShowBound = true;
-		this.mGameEntities.push(workerProd);
-		
-		{
-			var notFreeID = this.mMap.PosToID(pos);
-			this.mMap.mMapTiles[notFreeID].mFree = false;
-			this.mMap.mMapTiles[notFreeID + 1].mFree = false;
-			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mFree = false;
-			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mFree = false;
-		}
-	}
-	
+	this.SetUpPlayerUnits();
 	this.mGameUI.SetUp(this.mCam);
 }
 
@@ -140,12 +117,6 @@ GameScene.prototype.Input = function() {
 						var pos = new IVec2();
 						pos.Set(this.mPlacementBounds[i].mX / 32, this.mPlacementBounds[i].mY / 32);
 						this.mGameEntities[this.mSelectID].PlacementCallback(this.mGameEntities[this.mSelectID].mPlacementInfo, this.mMap.PosToID(pos));
-						
-						if (this.mSelectID >= 0) {
-							this.mGameEntities[this.mSelectID].SetActive(false);
-							this.mGameEntities[this.mSelectID].mSelected = false;
-							this.mSelectID = -1;
-						}
 					}
 				}
 			}
@@ -245,9 +216,15 @@ GameScene.prototype.HandleTurns = function() {
 			
 			// reset the status of all entities
 			for (var i = 0; i < this.mGameEntities.length; ++i) {
-				this.mGameEntities[i].mSelected = false;
 				this.mGameEntities[i].SetActive(true);
 			}
+			
+			if (this.mSelectID >= 0) {
+				this.mGameEntities[this.mSelectID].mSelected = false;
+				this.mSelectID = -1;
+			}
+			
+			this.TogglePlacementMode(false, null, null);
 		}
 	}
 	else if (this.mTurn == 3) { // intermediate between ai -> player (for setup)
@@ -256,9 +233,15 @@ GameScene.prototype.HandleTurns = function() {
 			
 			// reset the status of all entities
 			for (var i = 0; i < this.mGameEntities.length; ++i) {
-				this.mGameEntities[i].mSelected = false;
 				this.mGameEntities[i].SetActive(true);
 			}
+			
+			if (this.mSelectID >= 0) {
+				this.mGameEntities[this.mSelectID].mSelected = false;
+				this.mSelectID = -1;
+			}
+			
+			this.TogglePlacementMode(false, null, null);
 		}
 	}
 }
@@ -322,6 +305,68 @@ GameScene.prototype.TogglePlacementMode = function(mode, bounds, hilite) {
 			this.mPlacementBounds.splice(0, this.mPlacementBounds.length);
 			this.mPlacementHighlight.splice(0, this.mPlacementHighlight.length);
 		}
+	}
+}
+
+// 
+GameScene.prototype.SetUpPlayerUnits = function() {
+	{
+		var workerProd = new GFBuildingWP();
+		
+		var id = (this.mMap.mBlueTiles.length / 3) * this.mMap.mRand.GetRandInt(1, 2);
+		id = this.mMap.mRand.GetRandInt(0, (this.mMap.mBlueTiles.length / 3) - 2) + id;
+		
+		var pos = new IVec2(0, 0);
+		pos.Copy(this.mMap.mBlueTiles[id]);
+		
+		workerProd.SetUp(this.mCam, pos);
+		this.mGameEntities.push(workerProd);
+		
+		{
+			var notFreeID = this.mMap.PosToID(pos);
+			this.mMap.mMapTiles[notFreeID].mFree = false;
+			this.mMap.mMapTiles[notFreeID + 1].mFree = false;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mFree = false;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mFree = false;
+		}
+	}
+	
+	{
+		var pusher = new GFUnitPusher();
+		
+		var id = this.mMap.mRand.GetRandInt(0, this.mMap.mBlueTiles.length);
+		var notFreeID = this.mMap.PosToID(this.mMap.mBlueTiles[id]);
+		
+		while (this.mMap.mMapTiles[notFreeID].mFree == false) {
+			id = (id + 1) % this.mMap.mBlueTiles.length;
+			notFreeID = this.mMap.PosToID(this.mMap.mBlueTiles[id]);
+		}
+		
+		pusher.SetUp(this.mCam, this.mMap.mBlueTiles[id]);
+		this.mGameEntities.push(pusher);
+		
+		this.mMap.mMapTiles[notFreeID].mFree = false;
+		
+		this.mPusherCount++;
+	}
+	
+	{
+		var puller = new GFUnitPuller();
+		
+		var id = this.mMap.mRand.GetRandInt(0, this.mMap.mBlueTiles.length);
+		var notFreeID = this.mMap.PosToID(this.mMap.mBlueTiles[id]);
+		
+		while (this.mMap.mMapTiles[notFreeID].mFree == false) {
+			id = (id + 1) % this.mMap.mBlueTiles.length;
+			notFreeID = this.mMap.PosToID(this.mMap.mBlueTiles[id]);
+		}
+		
+		puller.SetUp(this.mCam, this.mMap.mBlueTiles[id]);
+		this.mGameEntities.push(puller);
+		
+		this.mMap.mMapTiles[notFreeID].mFree = false;
+		
+		this.mPullerCount++;
 	}
 }
 // ...End
