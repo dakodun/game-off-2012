@@ -7,10 +7,12 @@ function Text() {
 	
 	this.mString = "";
 	this.mColour = "#FFFFFF";
+	this.mShadowColour = "#000000";
 	this.mDepth = 0;
 	
 	this.mPos = new IVec2(0, 12);
 	this.mOutline = false;
+	this.mShadow = false;
 	this.mRotation = 0;
 	this.mHeight = 12;
 }
@@ -28,10 +30,12 @@ Text.prototype.Copy = function(other) {
 	
 	this.mString = other.mString;
 	this.mColour = other.mColour;
+	this.mShadowColour = other.mShadowColour;
 	this.mDepth = other.mDepth;
 	
 	this.mPos.Copy(other.mPos);
 	this.mOutline = other.mOutline;
+	this.mShadow = other.mShadow;
 	this.mRotation = other.mRotation;
 	this.mHeight = other.mHeight;
 }
@@ -54,7 +58,8 @@ Text.prototype.GetWidth = function() {
 
 // return the height of the text
 Text.prototype.GetHeight = function() {
-	return this.mHeight;
+	var txtArr = this.mString.split("\n");
+	return this.mHeight * (txtArr.length - 1);
 }
 
 // 
