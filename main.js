@@ -1404,6 +1404,7 @@ InitScene.prototype.SetUp = function() {
 		nmgrs.resLoad.QueueTexture("turn_2", "./res/vis/turn_2.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_up", "./res/vis/gui_arrow_up.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_down", "./res/vis/gui_arrow_down.png");
+		nmgrs.resLoad.QueueTexture("gui_moves", "./res/vis/gui_moves.png");
 		
 		nmgrs.resLoad.QueueTexture("unit_b_workerprod", "./res/vis/unit_b_workerprod.png");
 		nmgrs.resLoad.QueueTexture("gui_workerprod", "./res/vis/gui_workerprod.png");
@@ -1499,30 +1500,7 @@ GameScene.prototype.SetUp = function() {
 	}
 	
 	this.mTurn = 3;
-	
-	{
-		var workerProd = new GFBuildingWP();
-		
-		var id = (this.mMap.mBlueTiles.length / 3) * this.mMap.mRand.GetRandInt(1, 2);
-		id = this.mMap.mRand.GetRandInt(0, (this.mMap.mBlueTiles.length / 3) - 2) + id;
-		
-		var pos = new IVec2(0, 0);
-		pos.Copy(this.mMap.mBlueTiles[id]);
-		
-		var tex = nmgrs.resMan.mTexStore.GetResource("unit_b_workerprod");
-		workerProd.SetUp(this.mCam, tex, pos);
-		workerProd.mShowBound = true;
-		this.mGameEntities.push(workerProd);
-		
-		{
-			var notFreeID = this.mMap.PosToID(pos);
-			this.mMap.mMapTiles[notFreeID].mFree = false;
-			this.mMap.mMapTiles[notFreeID + 1].mFree = false;
-			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mFree = false;
-			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mFree = false;
-		}
-	}
-	
+	this.SetUpPlayerUnits();
 	this.mGameUI.SetUp(this.mCam);
 }
 
@@ -1586,12 +1564,6 @@ GameScene.prototype.Input = function() {
 						var pos = new IVec2();
 						pos.Set(this.mPlacementBounds[i].mX / 32, this.mPlacementBounds[i].mY / 32);
 						this.mGameEntities[this.mSelectID].PlacementCallback(this.mGameEntities[this.mSelectID].mPlacementInfo, this.mMap.PosToID(pos));
-						
-						if (this.mSelectID >= 0) {
-							this.mGameEntities[this.mSelectID].SetActive(false);
-							this.mGameEntities[this.mSelectID].mSelected = false;
-							this.mSelectID = -1;
-						}
 					}
 				}
 			}
@@ -1691,9 +1663,15 @@ GameScene.prototype.HandleTurns = function() {
 			
 			// reset the status of all entities
 			for (var i = 0; i < this.mGameEntities.length; ++i) {
-				this.mGameEntities[i].mSelected = false;
 				this.mGameEntities[i].SetActive(true);
 			}
+			
+			if (this.mSelectID >= 0) {
+				this.mGameEntities[this.mSelectID].mSelected = false;
+				this.mSelectID = -1;
+			}
+			
+			this.TogglePlacementMode(false, null, null);
 		}
 	}
 	else if (this.mTurn == 3) { // intermediate between ai -> player (for setup)
@@ -1702,9 +1680,15 @@ GameScene.prototype.HandleTurns = function() {
 			
 			// reset the status of all entities
 			for (var i = 0; i < this.mGameEntities.length; ++i) {
-				this.mGameEntities[i].mSelected = false;
 				this.mGameEntities[i].SetActive(true);
 			}
+			
+			if (this.mSelectID >= 0) {
+				this.mGameEntities[this.mSelectID].mSelected = false;
+				this.mSelectID = -1;
+			}
+			
+			this.TogglePlacementMode(false, null, null);
 		}
 	}
 }
@@ -1768,6 +1752,68 @@ GameScene.prototype.TogglePlacementMode = function(mode, bounds, hilite) {
 			this.mPlacementBounds.splice(0, this.mPlacementBounds.length);
 			this.mPlacementHighlight.splice(0, this.mPlacementHighlight.length);
 		}
+	}
+}
+
+// 
+GameScene.prototype.SetUpPlayerUnits = function() {
+	{
+		var workerProd = new GFBuildingWP();
+		
+		var id = (this.mMap.mBlueTiles.length / 3) * this.mMap.mRand.GetRandInt(1, 2);
+		id = this.mMap.mRand.GetRandInt(0, (this.mMap.mBlueTiles.length / 3) - 2) + id;
+		
+		var pos = new IVec2(0, 0);
+		pos.Copy(this.mMap.mBlueTiles[id]);
+		
+		workerProd.SetUp(this.mCam, pos);
+		this.mGameEntities.push(workerProd);
+		
+		{
+			var notFreeID = this.mMap.PosToID(pos);
+			this.mMap.mMapTiles[notFreeID].mFree = false;
+			this.mMap.mMapTiles[notFreeID + 1].mFree = false;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mFree = false;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mFree = false;
+		}
+	}
+	
+	{
+		var pusher = new GFUnitPusher();
+		
+		var id = this.mMap.mRand.GetRandInt(0, this.mMap.mBlueTiles.length);
+		var notFreeID = this.mMap.PosToID(this.mMap.mBlueTiles[id]);
+		
+		while (this.mMap.mMapTiles[notFreeID].mFree == false) {
+			id = (id + 1) % this.mMap.mBlueTiles.length;
+			notFreeID = this.mMap.PosToID(this.mMap.mBlueTiles[id]);
+		}
+		
+		pusher.SetUp(this.mCam, this.mMap.mBlueTiles[id]);
+		this.mGameEntities.push(pusher);
+		
+		this.mMap.mMapTiles[notFreeID].mFree = false;
+		
+		this.mPusherCount++;
+	}
+	
+	{
+		var puller = new GFUnitPuller();
+		
+		var id = this.mMap.mRand.GetRandInt(0, this.mMap.mBlueTiles.length);
+		var notFreeID = this.mMap.PosToID(this.mMap.mBlueTiles[id]);
+		
+		while (this.mMap.mMapTiles[notFreeID].mFree == false) {
+			id = (id + 1) % this.mMap.mBlueTiles.length;
+			notFreeID = this.mMap.PosToID(this.mMap.mBlueTiles[id]);
+		}
+		
+		puller.SetUp(this.mCam, this.mMap.mBlueTiles[id]);
+		this.mGameEntities.push(puller);
+		
+		this.mMap.mMapTiles[notFreeID].mFree = false;
+		
+		this.mPullerCount++;
 	}
 }
 // ...End
@@ -1994,7 +2040,7 @@ function GFMapTile(pos) {
 	
 	this.mSprite = new Sprite();
 	this.mType = "";
-	this.mFree = true;
+	this.mFree = false;
 };
 // ...End
 
@@ -2066,11 +2112,13 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 		map.mRedTiles.push(pos);
 		
 		map.mMapTiles[i].mSprite.SetCurrentFrame(map.mRand.GetRandInt(10, 14));
+		map.mMapTiles[i].mFree = true;
 		map.mMapTiles[i].mType = "red";
 	}
 	
 	for (var i = (dimX * (dimY - 5)); i < (dimX * dimY); ++i) {
 		map.mMapTiles[i].mSprite.SetCurrentFrame(map.mRand.GetRandInt(5, 9));
+		map.mMapTiles[i].mFree = true;
 	}
 	
 	{
@@ -2085,6 +2133,7 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 				map.mBlueTiles.push(pos);
 				
 				map.mMapTiles[tileID].mSprite.SetCurrentFrame(map.mRand.GetRandInt(15, 19));
+				map.mMapTiles[tileID].mFree = true;
 				map.mMapTiles[tileID].mType = "blue";
 			}
 		}
@@ -2100,6 +2149,7 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 				var id = arr[j].mX + (arr[j].mY * dimX);
 				if (map.mMapTiles[id].mType == "") {
 					map.mMapTiles[id].mSprite.SetCurrentFrame(map.mRand.GetRandInt(5, 9));
+					map.mMapTiles[id].mFree = true;
 				}
 			}
 		}
@@ -2190,15 +2240,30 @@ function GFUnitPusher() {
 	
 	this.mUI = new GFUnitUI();
 	this.mPlacementInfo = "";
+	
+	this.mMovesLeft = 2;
+	this.mMovesLeftSprite = new Sprite();
 }
 
-GFUnitPusher.prototype.SetUp = function(camera, tex, pos) {
+GFUnitPusher.prototype.SetUp = function(camera, pos) {
 	this.mPos.Copy(pos);
 	
-	this.mSprite.SetAnimatedTexture(tex, 4, 4, 14 / nmain.game.mFrameLimit, -1);
-	this.mSprite.mOrigin.Set(0, 0);
-	this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
-	this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_pusher");
+		this.mSprite.SetAnimatedTexture(tex, 4, 4, 14 / nmain.game.mFrameLimit, -1);
+		this.mSprite.mOrigin.Set(0, 0);
+		this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
+		this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	}
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("gui_moves");
+		this.mMovesLeftSprite.SetAnimatedTexture(tex, 3, 1, -1, -1);
+		this.mMovesLeftSprite.mOrigin.Set(20, 34);
+		this.mMovesLeftSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
+		this.mMovesLeftSprite.SetCurrentFrame(0);
+		this.mMovesLeftSprite.mDepth = -2000;
+	}
 	
 	this.mBound.mOutline = true;
 	this.mBound.mColour = "#FF1111";
@@ -2285,7 +2350,38 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 				
 				if (util.PointInRectangle(pt, tl, br) == true) {
 					if (i == 0) {
-						// button 1
+						var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
+						var boundsArr = new Array();
+						var hiliteArr = new Array();
+						
+						var arr = new Array();
+						arr = arr.concat(this.CheckValidMove());
+						
+						for (var j = 0; j < arr.length; ++j) {
+							var id = arr[j];
+							var pos = nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id);
+							
+							if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == true) {
+								var tl = new IVec2();
+								tl.Set(pos.mX * 32, pos.mY * 32);
+								boundsArr.push(tl);
+								
+								var br = new IVec2();
+								br.Set((pos.mX * 32) + 32, (pos.mY * 32) + 32);
+								boundsArr.push(br);
+								
+								var spr = new Sprite();
+								spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
+								spr.mOrigin.Set(8, 8);
+								spr.mPos.Set(pos.mX * 32, pos.mY * 32);
+								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id;
+								
+								hiliteArr.push(spr);
+							}
+						}
+						
+						this.mPlacementInfo = "move";
+						nmgrs.sceneMan.mCurrScene.TogglePlacementMode(true, boundsArr, hiliteArr);
 					}
 					else if (i == 1) {
 						// button 2
@@ -2307,17 +2403,19 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 }
 
 GFUnitPusher.prototype.SetActive = function(active) {
-	if (this.mActive != active) {
+	// if (this.mActive != active) {
 		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_pusher");
 		this.mActive = active;
 		
 		if (this.mActive == true) {
+			this.mMovesLeft = 2;
+			this.mMovesLeftSprite.SetCurrentFrame(0);
 			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
 		}
 		else {
 			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, -1, 4, 4, -1);
 		}
-	}
+	// }
 }
 
 GFUnitPusher.prototype.GetRender = function() {
@@ -2328,6 +2426,7 @@ GFUnitPusher.prototype.GetRender = function() {
 	}
 	
 	if (this.mSelected == true) {
+		arr.push(this.mMovesLeftSprite);
 		arr = arr.concat(this.mUI.GetRender());
 	}
 	
@@ -2335,7 +2434,213 @@ GFUnitPusher.prototype.GetRender = function() {
 }
 
 GFUnitPusher.prototype.PlacementCallback = function(info, id) {
+	if (info == "move") {
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mFree = true;
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+		this.mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+		
+		this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+		this.mSprite.mDepth = -500 - id;
+		this.mMovesLeftSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+		this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+		
+		this.mMovesLeft--;
+		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
+		
+		if (this.mMovesLeft == 0) {
+			if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
+				this.SetActive(false);
+				this.mSelected = false;
+				nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+			}
+		}
+		
+		this.mPlacementInfo = "";
+		nmgrs.sceneMan.mCurrScene.TogglePlacementMode(false, null, null);
+	}
+}
+
+GFUnitPusher.prototype.CheckValidMove = function() {
+	var moveAmount = 3;
+	var closedTiles = new Array();
+	var openTiles = new Array();
+	openTiles.push(nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos));
 	
+	for (var j = 0; j < moveAmount + 1; ++j) {
+		var pendingOpenTiles = new Array();
+		
+		while (openTiles.length > 0) {			
+			// check tile to the left
+			// if current tile isn't at 0 (left boundary)
+			if ((openTiles[0] % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) > 0) {
+				var idToCheck = openTiles[0] - 1;
+				
+				// if tile to the left is free (valid move)
+				if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[idToCheck].mFree == true) {
+					// if tile isn't on either the closed or the open list
+					var found = false;
+					for (var k = 0; k < openTiles.length; ++k) {
+						if (openTiles[k] == idToCheck) {
+							found = true;
+							break;
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < pendingOpenTiles.length; ++k) {
+							if (pendingOpenTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < closedTiles.length; ++k) {
+							if (closedTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						pendingOpenTiles.push(idToCheck);
+					}
+				}
+			}
+			
+			// check tile above
+			// if current tile isn't at 0 (top boundary)
+			if (Math.floor(openTiles[0] / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) > 0) {
+				var idToCheck = openTiles[0] - nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX;
+				
+				// if tile above is free (valid move)
+				if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[idToCheck].mFree == true) {
+					// if tile isn't on either the closed or the open list
+					var found = false;
+					for (var k = 0; k < openTiles.length; ++k) {
+						if (openTiles[k] == idToCheck) {
+							found = true;
+							break;
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < pendingOpenTiles.length; ++k) {
+							if (pendingOpenTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < closedTiles.length; ++k) {
+							if (closedTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						pendingOpenTiles.push(idToCheck);
+					}
+				}
+			}
+			
+			// check tile to the right
+			// if current tile isn't at nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX - 1 (right boundary)
+			if ((openTiles[0] % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX - 1) {
+				var idToCheck = openTiles[0] + 1;
+				
+				// if tile to the right is free (valid move)
+				if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[idToCheck].mFree == true) {
+					// if tile isn't on either the closed or the open list
+					var found = false;
+					for (var k = 0; k < openTiles.length; ++k) {
+						if (openTiles[k] == idToCheck) {
+							found = true;
+							break;
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < pendingOpenTiles.length; ++k) {
+							if (pendingOpenTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < closedTiles.length; ++k) {
+							if (closedTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						pendingOpenTiles.push(idToCheck);
+					}
+				}
+			}
+			
+			// check tile below
+			// if current tile isn't at nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY - 1 (bottom boundary)
+			if (Math.floor(openTiles[0] / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY - 1) {
+				var idToCheck = openTiles[0] + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX;
+				
+				// if tile below is free (valid move)
+				if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[idToCheck].mFree == true) {
+					// if tile isn't on either the closed or the open list
+					var found = false;
+					for (var k = 0; k < openTiles.length; ++k) {
+						if (openTiles[k] == idToCheck) {
+							found = true;
+							break;
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < pendingOpenTiles.length; ++k) {
+							if (pendingOpenTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < closedTiles.length; ++k) {
+							if (closedTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						pendingOpenTiles.push(idToCheck);
+					}
+				}
+			}
+			
+			// add this id to the closed list
+			closedTiles.push(openTiles[0]);
+			
+			// remove from the open list
+			openTiles.splice(0, 1);
+		}
+		
+		openTiles = openTiles.concat(pendingOpenTiles);
+	}
+	
+	return closedTiles;
 }
 // ...End
 
@@ -2354,15 +2659,30 @@ function GFUnitPuller() {
 	
 	this.mUI = new GFUnitUI();
 	this.mPlacementInfo = "";
+	
+	this.mMovesLeft = 2;
+	this.mMovesLeftSprite = new Sprite();
 }
 
-GFUnitPuller.prototype.SetUp = function(camera, tex, pos) {
+GFUnitPuller.prototype.SetUp = function(camera, pos) {
 	this.mPos.Copy(pos);
 	
-	this.mSprite.SetAnimatedTexture(tex, 4, 4, 14 / nmain.game.mFrameLimit, -1);
-	this.mSprite.mOrigin.Set(0, 0);
-	this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
-	this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_puller");
+		this.mSprite.SetAnimatedTexture(tex, 4, 4, 14 / nmain.game.mFrameLimit, -1);
+		this.mSprite.mOrigin.Set(0, 0);
+		this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
+		this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	}
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("gui_moves");
+		this.mMovesLeftSprite.SetAnimatedTexture(tex, 3, 1, -1, -1);
+		this.mMovesLeftSprite.mOrigin.Set(20, 34);
+		this.mMovesLeftSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
+		this.mMovesLeftSprite.SetCurrentFrame(0);
+		this.mMovesLeftSprite.mDepth = -2000;
+	}
 	
 	this.mBound.mOutline = true;
 	this.mBound.mColour = "#FF1111";
@@ -2449,7 +2769,38 @@ GFUnitPuller.prototype.ProcessUI = function(camera) {
 				
 				if (util.PointInRectangle(pt, tl, br) == true) {
 					if (i == 0) {
-						// button 1
+						var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
+						var boundsArr = new Array();
+						var hiliteArr = new Array();
+						
+						var arr = new Array();
+						arr = arr.concat(this.CheckValidMove());
+						
+						for (var j = 0; j < arr.length; ++j) {
+							var id = arr[j];
+							var pos = nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id);
+							
+							if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == true) {
+								var tl = new IVec2();
+								tl.Set(pos.mX * 32, pos.mY * 32);
+								boundsArr.push(tl);
+								
+								var br = new IVec2();
+								br.Set((pos.mX * 32) + 32, (pos.mY * 32) + 32);
+								boundsArr.push(br);
+								
+								var spr = new Sprite();
+								spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
+								spr.mOrigin.Set(8, 8);
+								spr.mPos.Set(pos.mX * 32, pos.mY * 32);
+								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id;
+								
+								hiliteArr.push(spr);
+							}
+						}
+						
+						this.mPlacementInfo = "move";
+						nmgrs.sceneMan.mCurrScene.TogglePlacementMode(true, boundsArr, hiliteArr);
 					}
 					else if (i == 1) {
 						// button 2
@@ -2471,17 +2822,19 @@ GFUnitPuller.prototype.ProcessUI = function(camera) {
 }
 
 GFUnitPuller.prototype.SetActive = function(active) {
-	if (this.mActive != active) {
+	// if (this.mActive != active) {
 		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_puller");
 		this.mActive = active;
 		
 		if (this.mActive == true) {
+			this.mMovesLeft = 2;
+			this.mMovesLeftSprite.SetCurrentFrame(0);
 			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
 		}
 		else {
 			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, -1, 4, 4, -1);
 		}
-	}
+	// }
 }
 
 GFUnitPuller.prototype.GetRender = function() {
@@ -2492,6 +2845,7 @@ GFUnitPuller.prototype.GetRender = function() {
 	}
 	
 	if (this.mSelected == true) {
+		arr.push(this.mMovesLeftSprite);
 		arr = arr.concat(this.mUI.GetRender());
 	}
 	
@@ -2499,7 +2853,213 @@ GFUnitPuller.prototype.GetRender = function() {
 }
 
 GFUnitPuller.prototype.PlacementCallback = function(info, id) {
+	if (info == "move") {
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mFree = true;
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+		this.mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+		
+		this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+		this.mSprite.mDepth = -500 - id;
+		this.mMovesLeftSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+		this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+		
+		this.mMovesLeft--;
+		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
+		
+		if (this.mMovesLeft == 0) {
+			if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
+				this.SetActive(false);
+				this.mSelected = false;
+				nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+			}
+		}
+		
+		this.mPlacementInfo = "";
+		nmgrs.sceneMan.mCurrScene.TogglePlacementMode(false, null, null);
+	}
+}
+
+GFUnitPuller.prototype.CheckValidMove = function() {
+	var moveAmount = 3;
+	var closedTiles = new Array();
+	var openTiles = new Array();
+	openTiles.push(nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos));
 	
+	for (var j = 0; j < moveAmount + 1; ++j) {
+		var pendingOpenTiles = new Array();
+		
+		while (openTiles.length > 0) {			
+			// check tile to the left
+			// if current tile isn't at 0 (left boundary)
+			if ((openTiles[0] % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) > 0) {
+				var idToCheck = openTiles[0] - 1;
+				
+				// if tile to the left is free (valid move)
+				if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[idToCheck].mFree == true) {
+					// if tile isn't on either the closed or the open list
+					var found = false;
+					for (var k = 0; k < openTiles.length; ++k) {
+						if (openTiles[k] == idToCheck) {
+							found = true;
+							break;
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < pendingOpenTiles.length; ++k) {
+							if (pendingOpenTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < closedTiles.length; ++k) {
+							if (closedTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						pendingOpenTiles.push(idToCheck);
+					}
+				}
+			}
+			
+			// check tile above
+			// if current tile isn't at 0 (top boundary)
+			if (Math.floor(openTiles[0] / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) > 0) {
+				var idToCheck = openTiles[0] - nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX;
+				
+				// if tile above is free (valid move)
+				if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[idToCheck].mFree == true) {
+					// if tile isn't on either the closed or the open list
+					var found = false;
+					for (var k = 0; k < openTiles.length; ++k) {
+						if (openTiles[k] == idToCheck) {
+							found = true;
+							break;
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < pendingOpenTiles.length; ++k) {
+							if (pendingOpenTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < closedTiles.length; ++k) {
+							if (closedTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						pendingOpenTiles.push(idToCheck);
+					}
+				}
+			}
+			
+			// check tile to the right
+			// if current tile isn't at nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX - 1 (right boundary)
+			if ((openTiles[0] % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX - 1) {
+				var idToCheck = openTiles[0] + 1;
+				
+				// if tile to the right is free (valid move)
+				if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[idToCheck].mFree == true) {
+					// if tile isn't on either the closed or the open list
+					var found = false;
+					for (var k = 0; k < openTiles.length; ++k) {
+						if (openTiles[k] == idToCheck) {
+							found = true;
+							break;
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < pendingOpenTiles.length; ++k) {
+							if (pendingOpenTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < closedTiles.length; ++k) {
+							if (closedTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						pendingOpenTiles.push(idToCheck);
+					}
+				}
+			}
+			
+			// check tile below
+			// if current tile isn't at nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY - 1 (bottom boundary)
+			if (Math.floor(openTiles[0] / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY - 1) {
+				var idToCheck = openTiles[0] + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX;
+				
+				// if tile below is free (valid move)
+				if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[idToCheck].mFree == true) {
+					// if tile isn't on either the closed or the open list
+					var found = false;
+					for (var k = 0; k < openTiles.length; ++k) {
+						if (openTiles[k] == idToCheck) {
+							found = true;
+							break;
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < pendingOpenTiles.length; ++k) {
+							if (pendingOpenTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						for (var k = 0; k < closedTiles.length; ++k) {
+							if (closedTiles[k] == idToCheck) {
+								found = true;
+								break;
+							}
+						}
+					}
+					
+					if (found == false) {
+						pendingOpenTiles.push(idToCheck);
+					}
+				}
+			}
+			
+			// add this id to the closed list
+			closedTiles.push(openTiles[0]);
+			
+			// remove from the open list
+			openTiles.splice(0, 1);
+		}
+		
+		openTiles = openTiles.concat(pendingOpenTiles);
+	}
+	
+	return closedTiles;
 }
 // ...End
 
@@ -2518,15 +3078,30 @@ function GFBuildingWP() {
 	
 	this.mUI = new GFUnitUI();
 	this.mPlacementInfo = "";
+	
+	this.mMovesLeft = 1;
+	this.mMovesLeftSprite = new Sprite();
 }
 
-GFBuildingWP.prototype.SetUp = function(camera, tex, pos) {
+GFBuildingWP.prototype.SetUp = function(camera, pos) {
 	this.mPos.Copy(pos);
-
-	this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
-	this.mSprite.mOrigin.Set(16, 20);
-	this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
-	this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_b_workerprod");
+		this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
+		this.mSprite.mOrigin.Set(16, 20);
+		this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
+		this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	}
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("gui_moves");
+		this.mMovesLeftSprite.SetAnimatedTexture(tex, 3, 1, -1, -1);
+		this.mMovesLeftSprite.mOrigin.Set(20, 34);
+		this.mMovesLeftSprite.mPos.Set((pos.mX * 32) + 16, pos.mY * 32);
+		this.mMovesLeftSprite.SetCurrentFrame(1);
+		this.mMovesLeftSprite.mDepth = -2000;
+	}
 	
 	this.mBound.mOutline = true;
 	this.mBound.mColour = "#FF1111";
@@ -2678,17 +3253,19 @@ GFBuildingWP.prototype.ProcessUI = function(camera) {
 }
 
 GFBuildingWP.prototype.SetActive = function(active) {
-	if (this.mActive != active) {
+	// if (this.mActive != active) {
 		var tex = nmgrs.resMan.mTexStore.GetResource("unit_b_workerprod");
 		this.mActive = active;
 		
 		if (this.mActive == true) {
+			this.mMovesLeft = 1;
+			this.mMovesLeftSprite.SetCurrentFrame(1);
 			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
 		}
 		else {
 			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, -1, 4, 4, -1);
 		}
-	}
+	// }
 }
 
 GFBuildingWP.prototype.GetRender = function() {
@@ -2699,6 +3276,8 @@ GFBuildingWP.prototype.GetRender = function() {
 	}
 	
 	if (this.mSelected == true) {
+		arr.push(this.mMovesLeftSprite);
+		
 		this.mUI.mSlotText[0].mString = nmgrs.sceneMan.mCurrScene.mPusherCount + " / 2";
 		this.mUI.mSlotText[1].mString = nmgrs.sceneMan.mCurrScene.mPullerCount + " / 2";
 		
@@ -2710,26 +3289,50 @@ GFBuildingWP.prototype.GetRender = function() {
 
 GFBuildingWP.prototype.PlacementCallback = function(info, id) {
 	if (info == "create_pusher") {
-		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_pusher");
-		
 		var pusher = new GFUnitPusher();
-		pusher.SetUp(nmgrs.sceneMan.mCurrScene.mCam, tex, nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+		pusher.SetUp(nmgrs.sceneMan.mCurrScene.mCam, nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
 		pusher.SetActive(false);
 		nmgrs.sceneMan.mCurrScene.mGameEntities.push(pusher);
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+		
+		this.mMovesLeft--;
+		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
+		
+		if (this.mMovesLeft == 0) {
+			if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
+				this.SetActive(false);
+				this.mSelected = false;
+				nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+			}
+		}
 		
 		nmgrs.sceneMan.mCurrScene.mPusherCount++;
 		this.mPlacementInfo = "";
 		nmgrs.sceneMan.mCurrScene.TogglePlacementMode(false, null, null);
 	}
 	else if (info == "create_puller") {
-		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_puller");
-		
 		var puller = new GFUnitPuller();
-		puller.SetUp(nmgrs.sceneMan.mCurrScene.mCam, tex, nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+		puller.SetUp(nmgrs.sceneMan.mCurrScene.mCam, nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
 		puller.SetActive(false);
 		nmgrs.sceneMan.mCurrScene.mGameEntities.push(puller);
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+		
+		if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
+			this.SetActive(false);
+			this.mSelected = false;
+			nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+		}
+		
+		this.mMovesLeft--;
+		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
+		
+		if (this.mMovesLeft == 0) {
+			if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
+				this.SetActive(false);
+				this.mSelected = false;
+				nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+			}
+		}
 		
 		nmgrs.sceneMan.mCurrScene.mPullerCount++;
 		this.mPlacementInfo = "";
