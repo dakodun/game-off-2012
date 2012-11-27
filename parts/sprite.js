@@ -20,8 +20,10 @@ function Sprite() {
 	this.mIsAnimated = false;
 	this.mNumLoops = 0;
 	
-	this.mAnimTimer = new Timer();
-	this.mAnimTimer.Reset();
+	// this.mAnimTimer = new Timer();
+	// this.mAnimTimer.Reset();
+	
+	this.mAnimIter = 0;
 };
 
 // returns the type of this object for validity checking
@@ -60,15 +62,19 @@ Sprite.prototype.Copy = function(other) {
 	this.mIsAnimated = other.mIsAnimated;
 	this.mNumLoops = other.mNumLoops;
 	
-	this.mAnimTimer.Copy(other.mAnimTimer);
+	// this.mAnimTimer.Copy(other.mAnimTimer);
+	
+	this.mAnimIter = other.mAnimIter;
 }
 
 // process the sprite (for animation)
 Sprite.prototype.Process = function() {
 	if (this.mIsAnimated) {
 		if (this.mAnimSpeed >= 0) {
-			if (this.mAnimTimer.GetElapsedTime() > this.mAnimSpeed) {
-				this.mAnimTimer.Reset();
+			// if (this.mAnimTimer.GetElapsedTime() > this.mAnimSpeed) {
+			// 	this.mAnimTimer.Reset();
+			if (this.mAnimIter > this.mAnimSpeed) {
+				this.mAnimIter = 0;
 				this.mCurrFrame = (this.mCurrFrame + 1) % (this.mEndFrame + 1);
 				if (this.mCurrFrame < this.mStartFrame) {
 					this.mCurrFrame = this.mStartFrame;
@@ -90,6 +96,8 @@ Sprite.prototype.Process = function() {
 				
 				this.SetClipRect(new IVec2(rectX, rectY), new IVec2(rectW, rectH));
 			}
+			
+			this.mAnimIter += (1 / nmain.game.mFrameLimit);
 		}
 	}
 }
@@ -112,7 +120,9 @@ Sprite.prototype.SetTexture = function(texture) {
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
 	
-	this.mAnimTimer.Reset();
+	// this.mAnimTimer.Reset();
+	
+	this.mAnimIter = 0;
 }
 
 // set the animated texture
@@ -138,7 +148,9 @@ Sprite.prototype.SetAnimatedTexture = function(texture, numFrames, framesPerLine
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
 	
-	this.mAnimTimer.Reset();
+	// this.mAnimTimer.Reset();
+	
+	this.mAnimIter = 0;
 }
 
 // set the animated texture segment (start and end frames capped)
@@ -164,7 +176,9 @@ Sprite.prototype.SetAnimatedTextureSegment = function(texture, numFrames, frames
 	this.mScale.mX = 1.0;
 	this.mScale.mY = 1.0;
 	
-	this.mAnimTimer.Reset();
+	// this.mAnimTimer.Reset();
+	
+	this.mAnimIter = 0;
 	
 	var rectX = (this.mCurrFrame % this.mFramesPerLine) * this.mClipSize.mX;
 	var rectY = (Math.floor(this.mCurrFrame / this.mFramesPerLine)) * this.mClipSize.mY;
@@ -186,7 +200,9 @@ Sprite.prototype.SetClipRect = function(pos, size) {
 // set the current frame
 Sprite.prototype.SetCurrentFrame = function(frame) {
 	if (this.mIsAnimated) {
-		this.mAnimTimer.Reset();
+		// this.mAnimTimer.Reset();
+		this.mAnimIter = 0;
+		
 		this.mCurrFrame = frame % (this.mEndFrame + 1);
 		if (this.mCurrFrame < this.mStartFrame) {
 			this.mCurrFrame = this.mStartFrame;
@@ -207,6 +223,28 @@ Sprite.prototype.GetPosition = function() {
 	iv.mX = this.mPos.mX - this.mOrigin.mX; iv.mY = this.mPos.mY - this.mOrigin.mY;
 	
 	return iv;
+}
+
+//
+Sprite.prototype.GetWidth = function() {
+	var w = this.mTex.mImg.width;
+	
+	if (this.mIsAnimated == true) {
+		w = this.mClipSize.mX;
+	}
+	
+	return w;
+}
+
+//
+Sprite.prototype.GetHeight = function() {
+	var h = this.mTex.mImg.height;
+	
+	if (this.mIsAnimated == true) {
+		h = this.mClipSize.mY;
+	}
+	
+	return h;
 }
 // ...End
 
