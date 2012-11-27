@@ -59,7 +59,7 @@ Text.prototype.GetWidth = function() {
 // return the height of the text
 Text.prototype.GetHeight = function() {
 	var txtArr = this.mString.split("\n");
-	return this.mHeight * (txtArr.length - 1);
+	return this.mHeight * txtArr.length;
 }
 
 // 
