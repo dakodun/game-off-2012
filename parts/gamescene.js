@@ -239,6 +239,12 @@ GameScene.prototype.HandleTurns = function() {
 	else if (this.mTurn == 2) { // intermediate between player -> ai (for setup)
 		if (this.mGameUI.OnTurnStart()) {
 			this.mTurn = 0;
+			
+			// reset the status of all entities
+			for (var i = 0; i < this.mGameEntities.length; ++i) {
+				this.mGameEntities[i].mSelected = false;
+				this.mGameEntities[i].SetActive(true);
+			}
 		}
 	}
 	else if (this.mTurn == 3) { // intermediate between ai -> player (for setup)
@@ -276,7 +282,7 @@ GameScene.prototype.OnEntityClick = function(uiClick) {
 				if (i != this.mSelectID) {
 					// check if something is already selected
 					if (this.mSelectID >= 0) {
-						this.mGameEntities[mSelectID].mSelected = false; // deselect it
+						this.mGameEntities[this.mSelectID].mSelected = false; // deselect it
 					}
 					
 					this.mGameEntities[i].mSelected = true; // select this
