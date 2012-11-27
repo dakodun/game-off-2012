@@ -6,7 +6,7 @@ function GFMapTile(pos) {
 	
 	this.mSprite = new Sprite();
 	this.mType = "";
-	this.mFree = true;
+	this.mFree = false;
 };
 // ...End
 
