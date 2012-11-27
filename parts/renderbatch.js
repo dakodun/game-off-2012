@@ -29,7 +29,9 @@ RenderBatch.prototype.AddSprite = function(sprite) {
 	var spr = new Sprite();
 	spr.Copy(sprite);
 	
-	this.mRenderData.push(spr);
+	if (spr.mTex != null) {
+		this.mRenderData.push(spr);
+	}
 	// this.mRenderData.sort(DepthSort); // sort the queue
 }
 
@@ -105,7 +107,7 @@ RenderBatch.prototype.Render = function(camera) {
 			var txtArr = txt.mString.split("\n");
 			
 			nmain.game.mCurrContext.font = txt.mFont;
-			nmain.game.mCurrContext.fillStyle = txt.mColour;
+			nmain.game.mCurrContext.strokeStyle = txt.mColour;
 			
 			var w = txt.GetWidth();
 			var h = txt.GetHeight();
@@ -128,6 +130,12 @@ RenderBatch.prototype.Render = function(camera) {
 				}
 				else {
 					for (var j = 0; j < txtArr.length; ++j) {
+						if (txt.mShadow == true) {
+							nmain.game.mCurrContext.fillStyle = txt.mShadowColour;
+							nmain.game.mCurrContext.fillText(txtArr[j], 2, (txt.mHeight * j) + 2);
+						}
+						
+						nmain.game.mCurrContext.fillStyle = txt.mColour;
 						nmain.game.mCurrContext.fillText(txtArr[j], 0, txt.mHeight * j);
 					}
 				}
@@ -138,6 +146,7 @@ RenderBatch.prototype.Render = function(camera) {
 			var pos = shp.GetPosition();
 			
 			nmain.game.mCurrContext.fillStyle = shp.mColour;
+			nmain.game.mCurrContext.strokeStyle = shp.mColour;
 			var oldAlpha = nmain.game.mCurrContext.globalAlpha;
 			nmain.game.mCurrContext.globalAlpha = shp.mAlpha;
 			
@@ -151,7 +160,13 @@ RenderBatch.prototype.Render = function(camera) {
 			}
 			
 			nmain.game.mCurrContext.closePath();
-			nmain.game.mCurrContext.fill();
+			
+			if (shp.mOutline == false) {
+				nmain.game.mCurrContext.fill();
+			}
+			else {
+				nmain.game.mCurrContext.stroke();
+			}
 			
 			nmain.game.mCurrContext.globalAlpha = oldAlpha;
 		}
