@@ -34,6 +34,8 @@ InitScene.prototype.SetUp = function() {
 		nmgrs.resLoad.QueueTexture("gui_pusher", "./res/vis/gui_pusher.png");
 		nmgrs.resLoad.QueueTexture("unit_u_puller", "./res/vis/unit_u_puller.png");
 		nmgrs.resLoad.QueueTexture("gui_puller", "./res/vis/gui_puller.png");
+		nmgrs.resLoad.QueueTexture("unit_u_arty", "./res/vis/unit_u_arty.png");
+		nmgrs.resLoad.QueueTexture("gui_arty", "./res/vis/gui_arty.png");
 		
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
