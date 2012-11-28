@@ -80,7 +80,7 @@ GFGameUI.prototype.SetUp = function(camera) {
 		
 		this.mEndTurnTapTextB.SetFontName("sans-serif");
 		this.mEndTurnTapTextB.SetFontSize(32);
-		this.mEndTurnTapTextB.mString = "CONFIRM";
+		this.mEndTurnTapTextB.mString = "CONFIRM END TURN";
 		this.mEndTurnTapTextB.mDepth = -2000;
 		this.mEndTurnTapTextB.mShadow = true;
 		this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 12);
@@ -114,7 +114,7 @@ GFGameUI.prototype.Process = function() {
 	this.mArrowDownSprite.Process();
 }
 
-GFGameUI.prototype.Render = function(camera, turn, mapSize, endTurn) {
+GFGameUI.prototype.Render = function(camera, turn, mapSize) {
 	this.mDynamicUIBatch.Clear();
 	this.mDynamicUIBatch.AddSprite(this.mTurnSprite);
 	
@@ -132,7 +132,7 @@ GFGameUI.prototype.Render = function(camera, turn, mapSize, endTurn) {
 	this.mDynamicUIBatch.AddText(this.mControlsText);
 	// this.mDynamicUIBatch.AddText(this.mControlsTextHi);
 	
-	if (endTurn == 1) {
+	if (nmgrs.sceneMan.mCurrScene.mEndPlayerTurn > 0) {
 		this.mDynamicUIBatch.AddText(this.mEndTurnTapTextA);
 		this.mDynamicUIBatch.AddText(this.mEndTurnTapTextB);
 		// this.mDynamicUIBatch.AddText(this.mEndTurnTapTextAHi);
