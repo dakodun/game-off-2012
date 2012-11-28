@@ -10,7 +10,6 @@ function GameScene() {
 	
 	this.mTurn = 0;
 	this.mEndPlayerTurn = 0;
-	this.mEndPlayerTurnTimer = new Timer();
 	
 	this.mGameUI = new GFGameUI();
 	
@@ -93,8 +92,11 @@ GameScene.prototype.Input = function() {
 		
 		if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.e)) {
 			if (this.mEndPlayerTurn == 0) {
-				this.mEndPlayerTurn = 1;
-				this.mEndPlayerTurnTimer.Reset();
+				this.mEndPlayerTurn = 100;
+				
+				if (this.mSelectID >= 0) {
+					this.mGameEntities[this.mSelectID].SoftReset();
+				}
 			}
 			else {
 				this.mEndPlayerTurn = 0;
@@ -138,6 +140,8 @@ GameScene.prototype.Input = function() {
 			
 			if (this.mSelectID >= 0) {
 				this.mGameEntities[this.mSelectID].mSelected = false;
+				this.mGameEntities[this.mSelectID].mUI.mShow = true;
+				this.mGameEntities[this.mSelectID].SoftReset();
 				this.mSelectID = -1;
 			}
 		}
@@ -191,7 +195,7 @@ GameScene.prototype.Render = function() {
 	}
 	
 	{
-		this.mGameUI.Render(this.mCam, this.mTurn, this.mMap.mMapSize.mY, this.mEndPlayerTurn);
+		this.mGameUI.Render(this.mCam, this.mTurn, this.mMap.mMapSize.mY);
 	}
 }
 
@@ -204,10 +208,8 @@ GameScene.prototype.HandleTurns = function() {
 		this.mGameUI.SwitchTurn(2);
 	}
 	else if (this.mTurn == 1) { // process player turn
-		if (this.mEndPlayerTurn == 1) {
-			if (this.mEndPlayerTurnTimer.GetElapsedTime() >= 1000) {
-				this.mEndPlayerTurn = 0;
-			}
+		if (this.mEndPlayerTurn > 0) {
+			this.mEndPlayerTurn--;
 		}
 	}
 	else if (this.mTurn == 2) { // intermediate between player -> ai (for setup)
@@ -221,6 +223,8 @@ GameScene.prototype.HandleTurns = function() {
 			
 			if (this.mSelectID >= 0) {
 				this.mGameEntities[this.mSelectID].mSelected = false;
+				this.mGameEntities[this.mSelectID].mUI.mShow = true;
+				this.mGameEntities[this.mSelectID].SoftReset();
 				this.mSelectID = -1;
 			}
 			
@@ -238,6 +242,8 @@ GameScene.prototype.HandleTurns = function() {
 			
 			if (this.mSelectID >= 0) {
 				this.mGameEntities[this.mSelectID].mSelected = false;
+				this.mGameEntities[this.mSelectID].mUI.mShow = true;
+				this.mGameEntities[this.mSelectID].SoftReset();
 				this.mSelectID = -1;
 			}
 			
@@ -269,6 +275,7 @@ GameScene.prototype.OnEntityClick = function(uiClick) {
 					// check if something is already selected
 					if (this.mSelectID >= 0) {
 						this.mGameEntities[this.mSelectID].mSelected = false; // deselect it
+						this.mGameEntities[this.mSelectID].SoftReset();
 					}
 					
 					this.mGameEntities[i].mSelected = true; // select this
@@ -286,6 +293,7 @@ GameScene.prototype.OnEntityClick = function(uiClick) {
 	// if we have a selected entity, unselect it
 	if (this.mSelectID >= 0) {
 		this.mGameEntities[this.mSelectID].mSelected = false;
+		this.mGameEntities[this.mSelectID].SoftReset();
 		this.mSelectID = -1;
 	}
 	
@@ -328,13 +336,18 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 			this.mMap.mMapTiles[notFreeID + 1].mFree = false;
 			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mFree = false;
 			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mFree = false;
+			
+			this.mMap.mMapTiles[notFreeID].mEntityID = this.mGameEntities.length - 1;
+			this.mMap.mMapTiles[notFreeID + 1].mEntityID = this.mGameEntities.length - 1;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mEntityID = this.mGameEntities.length - 1;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mEntityID = this.mGameEntities.length - 1;
 		}
 	}
 	
 	{
 		var pusher = new GFUnitPusher();
 		
-		var id = this.mMap.mRand.GetRandInt(0, this.mMap.mBlueTiles.length);
+		var id = this.mMap.mRand.GetRandInt(0, this.mMap.mBlueTiles.length - 1);
 		var notFreeID = this.mMap.PosToID(this.mMap.mBlueTiles[id]);
 		
 		while (this.mMap.mMapTiles[notFreeID].mFree == false) {
@@ -346,6 +359,7 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		this.mGameEntities.push(pusher);
 		
 		this.mMap.mMapTiles[notFreeID].mFree = false;
+		this.mMap.mMapTiles[notFreeID].mEntityID = this.mGameEntities.length - 1;
 		
 		this.mPusherCount++;
 	}
@@ -353,7 +367,7 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 	{
 		var puller = new GFUnitPuller();
 		
-		var id = this.mMap.mRand.GetRandInt(0, this.mMap.mBlueTiles.length);
+		var id = this.mMap.mRand.GetRandInt(0, this.mMap.mBlueTiles.length - 1);
 		var notFreeID = this.mMap.PosToID(this.mMap.mBlueTiles[id]);
 		
 		while (this.mMap.mMapTiles[notFreeID].mFree == false) {
@@ -365,8 +379,27 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		this.mGameEntities.push(puller);
 		
 		this.mMap.mMapTiles[notFreeID].mFree = false;
+		this.mMap.mMapTiles[notFreeID].mEntityID = this.mGameEntities.length - 1;
 		
 		this.mPullerCount++;
+	}
+	
+	{
+		var arty = new GFUnitArtillery();
+		
+		var id = this.mMap.mRand.GetRandInt(0, this.mMap.mBlueTiles.length - 1);
+		var notFreeID = this.mMap.PosToID(this.mMap.mBlueTiles[id]);
+		
+		while (this.mMap.mMapTiles[notFreeID].mFree == false) {
+			id = (id + 1) % this.mMap.mBlueTiles.length;
+			notFreeID = this.mMap.PosToID(this.mMap.mBlueTiles[id]);
+		}
+		
+		arty.SetUp(this.mCam, this.mMap.mBlueTiles[id]);
+		this.mGameEntities.push(arty);
+		
+		this.mMap.mMapTiles[notFreeID].mFree = false;
+		this.mMap.mMapTiles[notFreeID].mEntityID = this.mGameEntities.length - 1;
 	}
 }
 // ...End
