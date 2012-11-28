@@ -17,6 +17,10 @@ function GFBuildingWP() {
 	this.mMovesLeftSprite = new Sprite();
 }
 
+GFBuildingWP.prototype.Type = function() {
+	return "GFBuildingWP";
+};
+
 GFBuildingWP.prototype.SetUp = function(camera, pos) {
 	this.mPos.Copy(pos);
 	
@@ -142,6 +146,7 @@ GFBuildingWP.prototype.ProcessUI = function(camera) {
 							
 							this.mPlacementInfo = "create_pusher";
 							nmgrs.sceneMan.mCurrScene.TogglePlacementMode(true, boundsArr, hiliteArr);
+							this.mUI.mShow = false;
 						}
 					}
 					else if (i == 1) {
@@ -174,7 +179,14 @@ GFBuildingWP.prototype.ProcessUI = function(camera) {
 							
 							this.mPlacementInfo = "create_puller";
 							nmgrs.sceneMan.mCurrScene.TogglePlacementMode(true, boundsArr, hiliteArr);
+							this.mUI.mShow = false;
 						}
+					}
+					else if (i == 2) {
+						// button 3
+					}
+					else if (i == 3) {
+						// button 4
 					}
 					
 					return true;
@@ -210,12 +222,13 @@ GFBuildingWP.prototype.GetRender = function() {
 	}
 	
 	if (this.mSelected == true) {
-		arr.push(this.mMovesLeftSprite);
-		
 		this.mUI.mSlotText[0].mString = nmgrs.sceneMan.mCurrScene.mPusherCount + " / 2";
 		this.mUI.mSlotText[1].mString = nmgrs.sceneMan.mCurrScene.mPullerCount + " / 2";
 		
 		arr = arr.concat(this.mUI.GetRender());
+		if (this.mUI.mShow == true) {
+			arr.push(this.mMovesLeftSprite);
+		}
 	}
 	
 	return arr;
@@ -228,9 +241,12 @@ GFBuildingWP.prototype.PlacementCallback = function(info, id) {
 		pusher.SetActive(false);
 		nmgrs.sceneMan.mCurrScene.mGameEntities.push(pusher);
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
 		
 		this.mMovesLeft--;
 		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
+		
+		this.mUI.mShow = true;
 		
 		if (this.mMovesLeft == 0) {
 			if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
@@ -250,15 +266,12 @@ GFBuildingWP.prototype.PlacementCallback = function(info, id) {
 		puller.SetActive(false);
 		nmgrs.sceneMan.mCurrScene.mGameEntities.push(puller);
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
-		
-		if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
-			this.SetActive(false);
-			this.mSelected = false;
-			nmgrs.sceneMan.mCurrScene.mSelectID = -1;
-		}
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
 		
 		this.mMovesLeft--;
 		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
+		
+		this.mUI.mShow = true;
 		
 		if (this.mMovesLeft == 0) {
 			if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
@@ -272,6 +285,11 @@ GFBuildingWP.prototype.PlacementCallback = function(info, id) {
 		this.mPlacementInfo = "";
 		nmgrs.sceneMan.mCurrScene.TogglePlacementMode(false, null, null);
 	}
+}
+
+//
+GFBuildingWP.prototype.SoftReset = function() {
+	
 }
 // ...End
 
