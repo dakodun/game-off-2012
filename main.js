@@ -1415,6 +1415,7 @@ InitScene.prototype.SetUp = function() {
 		nmgrs.resLoad.QueueTexture("gui_puller", "./res/vis/gui_puller.png");
 		nmgrs.resLoad.QueueTexture("unit_u_arty", "./res/vis/unit_u_arty.png");
 		nmgrs.resLoad.QueueTexture("gui_arty", "./res/vis/gui_arty.png");
+		nmgrs.resLoad.QueueTexture("arty_firezone", "./res/vis/arty_firezone.png");
 		
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
@@ -2269,7 +2270,7 @@ function GFUnitPusher() {
 	
 	this.mSprite = new Sprite();
 	this.mBound = new Shape();
-	this.mShowBound = true;
+	this.mShowBound = false;
 	
 	this.mSelected = false;
 	this.mActive = true;
@@ -2323,7 +2324,7 @@ GFUnitPusher.prototype.SetUp = function(camera, pos) {
 		var tex = nmgrs.resMan.mTexStore.GetResource("gui_pusher");
 		this.mUI.mSlotSprites[0].SetAnimatedTexture(tex, 3, 3, -1, -1);
 		this.mUI.mSlotSprites[0].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 264, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mUI.mSlotSprites[0].mDepth = -1000;
+		this.mUI.mSlotSprites[0].mDepth = -9999;
 		this.mUI.mSlotStatus[0] = true;
 		
 		var wOffset = (this.mUI.mSlotSprites[0].GetWidth() / 2) - (this.mUI.mSlotText[0].GetWidth() / 2);
@@ -2332,7 +2333,7 @@ GFUnitPusher.prototype.SetUp = function(camera, pos) {
 		this.mUI.mSlotSprites[1].SetAnimatedTexture(tex, 3, 3, -1, -1);
 		this.mUI.mSlotSprites[1].SetCurrentFrame(1);
 		this.mUI.mSlotSprites[1].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 192, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mUI.mSlotSprites[1].mDepth = -1000;
+		this.mUI.mSlotSprites[1].mDepth = -9999;
 		this.mUI.mSlotStatus[1] = true;
 		
 		wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
@@ -2341,7 +2342,7 @@ GFUnitPusher.prototype.SetUp = function(camera, pos) {
 		this.mUI.mSlotSprites[2].SetAnimatedTexture(tex, 3, 3, -1, -1);
 		this.mUI.mSlotSprites[2].SetCurrentFrame(2);
 		this.mUI.mSlotSprites[2].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 120, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mUI.mSlotSprites[2].mDepth = -1000;
+		this.mUI.mSlotSprites[2].mDepth = -9999;
 		this.mUI.mSlotStatus[2] = true;
 		
 		wOffset = (this.mUI.mSlotSprites[2].GetWidth() / 2) - (this.mUI.mSlotText[2].GetWidth() / 2);
@@ -2352,14 +2353,14 @@ GFUnitPusher.prototype.SetUp = function(camera, pos) {
 		this.mKillConfirmA.SetFontName("sans-serif");
 		this.mKillConfirmA.SetFontSize(12);
 		this.mKillConfirmA.mString = "Click Button Again To";
-		this.mKillConfirmA.mDepth = -2000;
+		this.mKillConfirmA.mDepth = -9999;
 		this.mKillConfirmA.mShadow = true;
 		this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
 		
 		this.mKillConfirmB.SetFontName("sans-serif");
 		this.mKillConfirmB.SetFontSize(32);
 		this.mKillConfirmB.mString = "CONFIRM KILL UNIT";
-		this.mKillConfirmB.mDepth = -2000;
+		this.mKillConfirmB.mDepth = -9999;
 		this.mKillConfirmB.mShadow = true;
 		this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + this.mKillConfirmB.GetHeight() + 12);
 	}
@@ -2618,6 +2619,7 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[otherNewID].mFree = false;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[otherNewID].mEntityID = oldID;
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(otherNewID));
+			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mFireZone.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 			
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mDepth = -500 - otherID;
@@ -2980,7 +2982,7 @@ function GFUnitPuller() {
 	
 	this.mSprite = new Sprite();
 	this.mBound = new Shape();
-	this.mShowBound = true;
+	this.mShowBound = false;
 	
 	this.mSelected = false;
 	this.mActive = true;
@@ -3034,7 +3036,7 @@ GFUnitPuller.prototype.SetUp = function(camera, pos) {
 		var tex = nmgrs.resMan.mTexStore.GetResource("gui_puller");
 		this.mUI.mSlotSprites[0].SetAnimatedTexture(tex, 3, 3, -1, -1);
 		this.mUI.mSlotSprites[0].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 264, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mUI.mSlotSprites[0].mDepth = -1000;
+		this.mUI.mSlotSprites[0].mDepth = -9999;
 		this.mUI.mSlotStatus[0] = true;
 		
 		var wOffset = (this.mUI.mSlotSprites[0].GetWidth() / 2) - (this.mUI.mSlotText[0].GetWidth() / 2);
@@ -3043,7 +3045,7 @@ GFUnitPuller.prototype.SetUp = function(camera, pos) {
 		this.mUI.mSlotSprites[1].SetAnimatedTexture(tex, 3, 3, -1, -1);
 		this.mUI.mSlotSprites[1].SetCurrentFrame(1);
 		this.mUI.mSlotSprites[1].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 192, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mUI.mSlotSprites[1].mDepth = -1000;
+		this.mUI.mSlotSprites[1].mDepth = -9999;
 		this.mUI.mSlotStatus[1] = true;
 		
 		wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
@@ -3052,7 +3054,7 @@ GFUnitPuller.prototype.SetUp = function(camera, pos) {
 		this.mUI.mSlotSprites[2].SetAnimatedTexture(tex, 3, 3, -1, -1);
 		this.mUI.mSlotSprites[2].SetCurrentFrame(2);
 		this.mUI.mSlotSprites[2].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 120, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mUI.mSlotSprites[2].mDepth = -1000;
+		this.mUI.mSlotSprites[2].mDepth = -9999;
 		this.mUI.mSlotStatus[2] = true;
 		
 		wOffset = (this.mUI.mSlotSprites[2].GetWidth() / 2) - (this.mUI.mSlotText[2].GetWidth() / 2);
@@ -3063,14 +3065,14 @@ GFUnitPuller.prototype.SetUp = function(camera, pos) {
 		this.mKillConfirmA.SetFontName("sans-serif");
 		this.mKillConfirmA.SetFontSize(12);
 		this.mKillConfirmA.mString = "Click Button Again To";
-		this.mKillConfirmA.mDepth = -2000;
+		this.mKillConfirmA.mDepth = -9999;
 		this.mKillConfirmA.mShadow = true;
 		this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
 		
 		this.mKillConfirmB.SetFontName("sans-serif");
 		this.mKillConfirmB.SetFontSize(32);
 		this.mKillConfirmB.mString = "CONFIRM KILL UNIT";
-		this.mKillConfirmB.mDepth = -2000;
+		this.mKillConfirmB.mDepth = -9999;
 		this.mKillConfirmB.mShadow = true;
 		this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + this.mKillConfirmB.GetHeight() + 12);
 	}
@@ -3348,6 +3350,7 @@ GFUnitPuller.prototype.PlacementCallback = function(info, id) {
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mDepth = -500 - thisNewID;
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mMovesLeftSprite.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mBound.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
+			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mFireZone.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 		}
 		
 		this.mMovesLeft--;
@@ -3691,7 +3694,7 @@ function GFUnitArtillery() {
 	
 	this.mSprite = new Sprite();
 	this.mBound = new Shape();
-	this.mShowBound = true;
+	this.mShowBound = false;
 	
 	this.mSelected = false;
 	this.mActive = true;
@@ -3705,6 +3708,8 @@ function GFUnitArtillery() {
 	this.mKillSwitch = 0;
 	this.mKillConfirmA = new Text();
 	this.mKillConfirmB = new Text();
+	
+	this.mFireZone = new Sprite();
 }
 
 GFUnitArtillery.prototype.Type = function() {
@@ -3731,6 +3736,14 @@ GFUnitArtillery.prototype.SetUp = function(camera, pos) {
 		this.mMovesLeftSprite.mDepth = -2000;
 	}
 	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("arty_firezone");
+		this.mFireZone.SetTexture(tex);
+		this.mFireZone.mOrigin.Set(128, 128);
+		this.mFireZone.mPos.Set(pos.mX * 32, pos.mY * 32);
+		this.mFireZone.mDepth = -1500;
+	}
+	
 	this.mBound.mOutline = true;
 	this.mBound.mColour = "#FF1111";
 	this.mBound.mDepth = -9999;
@@ -3745,7 +3758,7 @@ GFUnitArtillery.prototype.SetUp = function(camera, pos) {
 		var tex = nmgrs.resMan.mTexStore.GetResource("gui_arty");
 		this.mUI.mSlotSprites[0].SetAnimatedTexture(tex, 2, 2, -1, -1);
 		this.mUI.mSlotSprites[0].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 192, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mUI.mSlotSprites[0].mDepth = -1000;
+		this.mUI.mSlotSprites[0].mDepth = -9999;
 		this.mUI.mSlotStatus[0] = true;
 		
 		var wOffset = (this.mUI.mSlotSprites[0].GetWidth() / 2) - (this.mUI.mSlotText[0].GetWidth() / 2);
@@ -3754,7 +3767,7 @@ GFUnitArtillery.prototype.SetUp = function(camera, pos) {
 		this.mUI.mSlotSprites[1].SetAnimatedTexture(tex, 2, 2, -1, -1);
 		this.mUI.mSlotSprites[1].SetCurrentFrame(1);
 		this.mUI.mSlotSprites[1].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 120, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mUI.mSlotSprites[1].mDepth = -1000;
+		this.mUI.mSlotSprites[1].mDepth = -9999;
 		this.mUI.mSlotStatus[1] = true;
 		
 		wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
@@ -3765,14 +3778,14 @@ GFUnitArtillery.prototype.SetUp = function(camera, pos) {
 		this.mKillConfirmA.SetFontName("sans-serif");
 		this.mKillConfirmA.SetFontSize(12);
 		this.mKillConfirmA.mString = "Click Button Again To";
-		this.mKillConfirmA.mDepth = -2000;
+		this.mKillConfirmA.mDepth = -9999;
 		this.mKillConfirmA.mShadow = true;
 		this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
 		
 		this.mKillConfirmB.SetFontName("sans-serif");
 		this.mKillConfirmB.SetFontSize(32);
 		this.mKillConfirmB.mString = "CONFIRM KILL UNIT";
-		this.mKillConfirmB.mDepth = -2000;
+		this.mKillConfirmB.mDepth = -9999;
 		this.mKillConfirmB.mShadow = true;
 		this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + this.mKillConfirmB.GetHeight() + 12);
 	}
@@ -3897,6 +3910,8 @@ GFUnitArtillery.prototype.GetRender = function() {
 			arr = arr.concat(this.mKillConfirmA);
 			arr = arr.concat(this.mKillConfirmB);
 		}
+		
+		arr.push(this.mFireZone);
 	}
 	
 	return arr;
@@ -3922,7 +3937,7 @@ function GFBuildingWP() {
 	
 	this.mSprite = new Sprite();
 	this.mBound = new Shape();
-	this.mShowBound = true;
+	this.mShowBound = false;
 	
 	this.mSelected = false;
 	this.mActive = true;
@@ -3972,7 +3987,7 @@ GFBuildingWP.prototype.SetUp = function(camera, pos) {
 		var tex = nmgrs.resMan.mTexStore.GetResource("gui_workerprod");
 		this.mUI.mSlotSprites[0].SetAnimatedTexture(tex, 2, 2, -1, -1);
 		this.mUI.mSlotSprites[0].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 192, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mUI.mSlotSprites[0].mDepth = -1000;
+		this.mUI.mSlotSprites[0].mDepth = -9999;
 		this.mUI.mSlotStatus[0] = true;
 		this.mUI.mSlotText[0].mString = "0 / 2";
 		this.mUI.mSlotText[0].mShadow = true;
@@ -3983,7 +3998,7 @@ GFBuildingWP.prototype.SetUp = function(camera, pos) {
 		this.mUI.mSlotSprites[1].SetAnimatedTexture(tex, 2, 2, -1, -1);
 		this.mUI.mSlotSprites[1].SetCurrentFrame(1);
 		this.mUI.mSlotSprites[1].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 120, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mUI.mSlotSprites[1].mDepth = -1000;
+		this.mUI.mSlotSprites[1].mDepth = -9999;
 		this.mUI.mSlotStatus[1] = true;
 		this.mUI.mSlotText[1].mString = "0 / 2";
 		this.mUI.mSlotText[1].mShadow = true;
