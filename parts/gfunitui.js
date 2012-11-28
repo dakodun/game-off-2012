@@ -19,19 +19,24 @@ function GFUnitUI() {
 	this.mSlotText[1] = new Text();
 	this.mSlotText[2] = new Text();
 	this.mSlotText[3] = new Text();
+	
+	this.mShow = true;
 }
 
 GFUnitUI.prototype.GetRender = function() {
 	var arr = new Array();
-	arr.push(this.mSlotSprites[0]);
-	arr.push(this.mSlotSprites[1]);
-	arr.push(this.mSlotSprites[2]);
-	arr.push(this.mSlotSprites[3]);
 	
-	arr.push(this.mSlotText[0]);
-	arr.push(this.mSlotText[1]);
-	arr.push(this.mSlotText[2]);
-	arr.push(this.mSlotText[3]);
+	if (this.mShow == true) {
+		arr.push(this.mSlotSprites[0]);
+		arr.push(this.mSlotSprites[1]);
+		arr.push(this.mSlotSprites[2]);
+		arr.push(this.mSlotSprites[3]);
+		
+		arr.push(this.mSlotText[0]);
+		arr.push(this.mSlotText[1]);
+		arr.push(this.mSlotText[2]);
+		arr.push(this.mSlotText[3]);
+	}
 	
 	return arr;
 }
