@@ -1417,6 +1417,8 @@ InitScene.prototype.SetUp = function() {
 		nmgrs.resLoad.QueueTexture("gui_arty", "./res/vis/gui_arty.png");
 		nmgrs.resLoad.QueueTexture("arty_firezone", "./res/vis/arty_firezone.png");
 		
+		nmgrs.resLoad.QueueTexture("fog", "./res/vis/fog.png");
+		
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
 	} catch(e) {
@@ -1603,6 +1605,10 @@ GameScene.prototype.Process = function() {
 	this.HandleTurns();
 	this.mGameUI.Process();
 	
+	for (var i = 0; i < this.mMap.mMapTiles.length; ++i) {
+		this.mMap.mMapTiles[i].mFogSprite.Process();
+	}
+	
 	for (var i = 0; i < this.mGameEntities.length; ++i) {
 		this.mGameEntities[i].Process();
 	}
@@ -1626,6 +1632,7 @@ GameScene.prototype.Render = function() {
 		}
 		
 		arr = arr.concat(this.mPlacementHighlight);
+		arr = arr.concat(this.mMap.GetRender());
 		
 		this.mUnitBatch.Clear();
 		
@@ -1778,6 +1785,8 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		pos.Copy(this.mMap.mBlueTiles[id]);
 		
 		workerProd.SetUp(this.mCam, pos);
+		workerProd.AdjustFog(1);
+		
 		this.mGameEntities.push(workerProd);
 		
 		{
@@ -1806,6 +1815,8 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		}
 		
 		pusher.SetUp(this.mCam, this.mMap.mBlueTiles[id]);
+		pusher.AdjustFog(1);
+		
 		this.mGameEntities.push(pusher);
 		
 		this.mMap.mMapTiles[notFreeID].mFree = false;
@@ -1826,6 +1837,8 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		}
 		
 		puller.SetUp(this.mCam, this.mMap.mBlueTiles[id]);
+		puller.AdjustFog(1);
+		
 		this.mGameEntities.push(puller);
 		
 		this.mMap.mMapTiles[notFreeID].mFree = false;
@@ -1846,6 +1859,8 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		}
 		
 		arty.SetUp(this.mCam, this.mMap.mBlueTiles[id]);
+		arty.AdjustFog(1);
+		
 		this.mGameEntities.push(arty);
 		
 		this.mMap.mMapTiles[notFreeID].mFree = false;
@@ -2038,6 +2053,7 @@ GFMap.prototype.SetUp = function(size) {
 	
 	var iv = new IVec2(0, 0);
 	var tex = nmgrs.resMan.mTexStore.GetResource("tile_set_default");
+	var fog = nmgrs.resMan.mTexStore.GetResource("fog");
 	
 	for (var y = 0; y < this.mMapSize.mY; ++y) {
 		for (var x = 0; x < this.mMapSize.mX; ++x) {
@@ -2049,6 +2065,11 @@ GFMap.prototype.SetUp = function(size) {
 			this.mMapTiles[ind].mSprite.mPos.Set(32 * x, 32 * y);
 			this.mMapTiles[ind].mSprite.mDepth = 1000 + (this.mMapSize.mX * this.mMapSize.mY) - ind;
 			this.mMapTiles[ind].mSprite.SetCurrentFrame(0);
+			
+			this.mMapTiles[ind].mFogSprite.SetAnimatedTexture(fog, 4, 4, 8 / nmain.game.mFrameLimit, -1);
+			this.mMapTiles[ind].mFogSprite.mOrigin.Set(8, 8);
+			this.mMapTiles[ind].mFogSprite.mPos.Set(32 * x, 32 * y);
+			this.mMapTiles[ind].mFogSprite.mDepth = -1600 - ind;
 		}
 	}
 }
@@ -2065,6 +2086,22 @@ GFMap.prototype.PosToID = function(pos) {
 	var id = pos.mX + (this.mMapSize.mX * pos.mY);
 	return id;
 }
+
+GFMap.prototype.GetRender = function() {
+	var arr = new Array();
+	
+	for (var y = 0; y < this.mMapSize.mY; ++y) {
+		for (var x = 0; x < this.mMapSize.mX; ++x) {
+			var ind = x + (this.mMapSize.mX * y);
+			
+			if (this.mMapTiles[ind].mFog == 0 && this.mMapTiles[ind].mSprite.mCurrFrame != 0) {
+				arr.push(this.mMapTiles[ind].mFogSprite);
+			}
+		}
+	}
+	
+	return arr;
+}
 // ...End
 
 
@@ -2078,6 +2115,9 @@ function GFMapTile(pos) {
 	this.mType = "";
 	this.mFree = false;
 	this.mEntityID = -1;
+	
+	this.mFogSprite = new Sprite();
+	this.mFog = 0;
 };
 // ...End
 
@@ -2421,6 +2461,7 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 						var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
 						var boundsArr = new Array();
 						var hiliteArr = new Array();
+						var fogDepth = 0;
 						
 						var arr = new Array();
 						arr = arr.concat(this.CheckValidMove());
@@ -2430,6 +2471,12 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 							var pos = nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id);
 							
 							if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == true) {
+								fogDepth = 0;
+								
+								if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFog == 0) {
+									fogDepth = 3000;
+								}
+								
 								var tl = new IVec2();
 								tl.Set(pos.mX * 32, pos.mY * 32);
 								boundsArr.push(tl);
@@ -2442,7 +2489,7 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 								spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 								spr.mOrigin.Set(8, 8);
 								spr.mPos.Set(pos.mX * 32, pos.mY * 32);
-								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id;
+								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id - fogDepth;
 								
 								hiliteArr.push(spr);
 							}
@@ -2456,6 +2503,7 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 						var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
 						var boundsArr = new Array();
 						var hiliteArr = new Array();
+						var fogDepth = 0;
 						
 						var arr = new Array();
 						arr = arr.concat(this.CheckValidPush());
@@ -2464,6 +2512,12 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 							for (var j = 0; j < arr.length; ++j) {
 								var id = arr[j];
 								var pos = nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id);
+								
+								fogDepth = 0;
+								
+								if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFog == 0) {
+									fogDepth = 3000;
+								}
 								
 								var tl = new IVec2();
 								tl.Set(pos.mX * 32, pos.mY * 32);
@@ -2477,7 +2531,7 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 								spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 								spr.mOrigin.Set(8, 8);
 								spr.mPos.Set(pos.mX * 32, pos.mY * 32);
-								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id;
+								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id - fogDepth;
 								
 								hiliteArr.push(spr);
 							}
@@ -2497,6 +2551,7 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 							nmgrs.sceneMan.mCurrScene.mGameEntities.splice(nmgrs.sceneMan.mCurrScene.mSelectID, 1);
 							nmgrs.sceneMan.mCurrScene.mPusherCount--;
 							nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+							this.AdjustFog(-1);
 						}
 						else {
 							this.mKillSwitch = 100;
@@ -2562,12 +2617,14 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mEntityID = -1;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = oldID;
+			this.AdjustFog(-1); // adjust fog in current position
 			this.mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
 			
 			this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mSprite.mDepth = -500 - id;
 			this.mMovesLeftSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+			this.AdjustFog(1); // adjust fog in new position
 		}
 		
 		this.mMovesLeft--;
@@ -2618,13 +2675,15 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[otherID].mEntityID = -1;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[otherNewID].mFree = false;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[otherNewID].mEntityID = oldID;
+			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].AdjustFog(-1); // adjust fog in current position
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(otherNewID));
-			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mFireZone.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 			
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mDepth = -500 - otherID;
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mMovesLeftSprite.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mBound.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
+			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mFireZone.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
+			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].AdjustFog(1); // adjust fog in current position
 		}
 		
 		{ // move this
@@ -2633,12 +2692,14 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[thisID].mEntityID = -1;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[thisNewID].mFree = false;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[thisNewID].mEntityID = oldID;
+			this.AdjustFog(-1); // adjust fog in current position
 			this.mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(thisNewID));
 			
 			this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mSprite.mDepth = -500 - thisNewID;
 			this.mMovesLeftSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+			this.AdjustFog(1); // adjust fog in new position
 		}
 		
 		this.mMovesLeft--;
@@ -2972,6 +3033,30 @@ GFUnitPusher.prototype.CheckValidPush = function() {
 GFUnitPusher.prototype.SoftReset = function() {
 	this.mKillSwitch = 0;
 }
+
+//
+GFUnitPusher.prototype.AdjustFog = function(mode) {
+	var arr = new Array();
+	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+	
+	for (var y = -2; y <= 2; ++y) {
+		for (var x = -2; x <= 2; ++x) {
+			if ((id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x >= 0 &&
+					(id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) {
+				
+				if (Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y >= 0 &&
+						Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) {
+					
+					arr.push((id + x) + (y * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX));
+				}
+			}
+		}
+	}
+	
+	for (var i = 0; i < arr.length; ++i) {
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[arr[i]].mFog += mode;
+	}
+}
 // ...End
 
 
@@ -3133,6 +3218,7 @@ GFUnitPuller.prototype.ProcessUI = function(camera) {
 						var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
 						var boundsArr = new Array();
 						var hiliteArr = new Array();
+						var fogDepth = 0;
 						
 						var arr = new Array();
 						arr = arr.concat(this.CheckValidMove());
@@ -3142,6 +3228,12 @@ GFUnitPuller.prototype.ProcessUI = function(camera) {
 							var pos = nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id);
 							
 							if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == true) {
+								fogDepth = 0;
+								
+								if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFog == 0) {
+									fogDepth = 3000;
+								}
+								
 								var tl = new IVec2();
 								tl.Set(pos.mX * 32, pos.mY * 32);
 								boundsArr.push(tl);
@@ -3154,7 +3246,7 @@ GFUnitPuller.prototype.ProcessUI = function(camera) {
 								spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 								spr.mOrigin.Set(8, 8);
 								spr.mPos.Set(pos.mX * 32, pos.mY * 32);
-								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id;
+								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id - fogDepth;
 								
 								hiliteArr.push(spr);
 							}
@@ -3168,6 +3260,7 @@ GFUnitPuller.prototype.ProcessUI = function(camera) {
 						var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
 						var boundsArr = new Array();
 						var hiliteArr = new Array();
+						var fogDepth = 0;
 						
 						var arr = new Array();
 						arr = arr.concat(this.CheckValidPull());
@@ -3176,6 +3269,12 @@ GFUnitPuller.prototype.ProcessUI = function(camera) {
 							for (var j = 0; j < arr.length; ++j) {
 								var id = arr[j];
 								var pos = nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id);
+								
+								fogDepth = 0;
+								
+								if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFog == 0) {
+									fogDepth = 3000;
+								}
 								
 								var tl = new IVec2();
 								tl.Set(pos.mX * 32, pos.mY * 32);
@@ -3189,7 +3288,7 @@ GFUnitPuller.prototype.ProcessUI = function(camera) {
 								spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 								spr.mOrigin.Set(8, 8);
 								spr.mPos.Set(pos.mX * 32, pos.mY * 32);
-								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id;
+								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id - fogDepth;
 								
 								hiliteArr.push(spr);
 							}
@@ -3209,6 +3308,7 @@ GFUnitPuller.prototype.ProcessUI = function(camera) {
 							nmgrs.sceneMan.mCurrScene.mGameEntities.splice(nmgrs.sceneMan.mCurrScene.mSelectID, 1);
 							nmgrs.sceneMan.mCurrScene.mPusherCount--;
 							nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+							this.AdjustFog(-1);
 						}
 						else {
 							this.mKillSwitch = 100;
@@ -3274,12 +3374,14 @@ GFUnitPuller.prototype.PlacementCallback = function(info, id) {
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mEntityID = -1;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = oldID;
+			this.AdjustFog(-1); // adjust fog in current position
 			this.mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
 			
 			this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mSprite.mDepth = -500 - id;
 			this.mMovesLeftSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+			this.AdjustFog(1); // adjust fog in new position
 		}
 		
 		this.mMovesLeft--;
@@ -3330,12 +3432,14 @@ GFUnitPuller.prototype.PlacementCallback = function(info, id) {
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[thisID].mEntityID = -1;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[thisNewID].mFree = false;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[thisNewID].mEntityID = oldID;
+			this.AdjustFog(-1); // adjust fog in current position
 			this.mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(thisNewID));
 			
 			this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mSprite.mDepth = -500 - thisNewID;
 			this.mMovesLeftSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+			this.AdjustFog(1); // adjust fog in new position
 		}
 		
 		{ // move other
@@ -3344,6 +3448,7 @@ GFUnitPuller.prototype.PlacementCallback = function(info, id) {
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[otherID].mEntityID = -1;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[otherNewID].mFree = false;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[otherNewID].mEntityID = oldID;
+			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].AdjustFog(-1); // adjust fog in current position
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(otherNewID));
 			
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
@@ -3351,6 +3456,7 @@ GFUnitPuller.prototype.PlacementCallback = function(info, id) {
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mMovesLeftSprite.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mBound.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mFireZone.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
+			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].AdjustFog(1); // adjust fog in current position
 		}
 		
 		this.mMovesLeft--;
@@ -3684,6 +3790,30 @@ GFUnitPuller.prototype.CheckValidPull = function() {
 GFUnitPuller.prototype.SoftReset = function() {
 	this.mKillSwitch = 0;
 }
+
+//
+GFUnitPuller.prototype.AdjustFog = function(mode) {
+	var arr = new Array();
+	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+	
+	for (var y = -2; y <= 2; ++y) {
+		for (var x = -2; x <= 2; ++x) {
+			if ((id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x >= 0 &&
+					(id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) {
+				
+				if (Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y >= 0 &&
+						Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) {
+					
+					arr.push((id + x) + (y * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX));
+				}
+			}
+		}
+	}
+	
+	for (var i = 0; i < arr.length; ++i) {
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[arr[i]].mFog += mode;
+	}
+}
 // ...End
 
 
@@ -3741,7 +3871,7 @@ GFUnitArtillery.prototype.SetUp = function(camera, pos) {
 		this.mFireZone.SetTexture(tex);
 		this.mFireZone.mOrigin.Set(128, 128);
 		this.mFireZone.mPos.Set(pos.mX * 32, pos.mY * 32);
-		this.mFireZone.mDepth = -1500;
+		this.mFireZone.mDepth = -2500;
 	}
 	
 	this.mBound.mOutline = true;
@@ -3853,6 +3983,7 @@ GFUnitArtillery.prototype.ProcessUI = function(camera) {
 							nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mEntityID = -1;
 							nmgrs.sceneMan.mCurrScene.mGameEntities.splice(nmgrs.sceneMan.mCurrScene.mSelectID, 1);
 							nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+							this.AdjustFog(-1);
 						}
 						else {
 							this.mKillSwitch = 100;
@@ -3925,6 +4056,30 @@ GFUnitArtillery.prototype.PlacementCallback = function(info, id) {
 //
 GFUnitArtillery.prototype.SoftReset = function() {
 	this.mKillSwitch = 0;
+}
+
+//
+GFUnitArtillery.prototype.AdjustFog = function(mode) {
+	var arr = new Array();
+	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+	
+	for (var y = -2; y <= 2; ++y) {
+		for (var x = -2; x <= 2; ++x) {
+			if ((id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x >= 0 &&
+					(id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) {
+				
+				if (Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y >= 0 &&
+						Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) {
+					
+					arr.push((id + x) + (y * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX));
+				}
+			}
+		}
+	}
+	
+	for (var i = 0; i < arr.length; ++i) {
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[arr[i]].mFog += mode;
+	}
 }
 
 // ...End
@@ -4053,11 +4208,18 @@ GFBuildingWP.prototype.ProcessUI = function(camera) {
 							var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
 							var boundsArr = new Array();
 							var hiliteArr = new Array();
+							var fogDepth = 0;
 							
 							for (var j = 0; j < nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles.length; ++j) {
 								var pos = nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j];
 								var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
 								if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == true) {
+									fogDepth = 0;
+									
+									if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFog == 0) {
+										fogDepth = 3000;
+									}
+									
 									var tl = new IVec2();
 									tl.Set(nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mX * 32, nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mY * 32);
 									boundsArr.push(tl);
@@ -4070,7 +4232,7 @@ GFBuildingWP.prototype.ProcessUI = function(camera) {
 									spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 									spr.mOrigin.Set(8, 8);
 									spr.mPos.Set(nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mX * 32, nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mY * 32);
-									spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id;
+									spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id - fogDepth;
 									
 									hiliteArr.push(spr);
 								}
@@ -4086,11 +4248,18 @@ GFBuildingWP.prototype.ProcessUI = function(camera) {
 							var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
 							var boundsArr = new Array();
 							var hiliteArr = new Array();
+							var fogDepth = 0;
 							
 							for (var j = 0; j < nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles.length; ++j) {
 								var pos = nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j];
 								var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
 								if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == true) {
+									fogDepth = 0;
+									
+									if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFog == 0) {
+										fogDepth = 3000;
+									}
+									
 									var tl = new IVec2();
 									tl.Set(nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mX * 32, nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mY * 32);
 									boundsArr.push(tl);
@@ -4103,7 +4272,7 @@ GFBuildingWP.prototype.ProcessUI = function(camera) {
 									spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 									spr.mOrigin.Set(8, 8);
 									spr.mPos.Set(nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mX * 32, nmgrs.sceneMan.mCurrScene.mMap.mBlueTiles[j].mY * 32);
-									spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id;
+									spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id - fogDepth;
 									
 									hiliteArr.push(spr);
 								}
@@ -4171,6 +4340,7 @@ GFBuildingWP.prototype.PlacementCallback = function(info, id) {
 		var pusher = new GFUnitPusher();
 		pusher.SetUp(nmgrs.sceneMan.mCurrScene.mCam, nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
 		pusher.SetActive(false);
+		pusher.AdjustFog(1);
 		nmgrs.sceneMan.mCurrScene.mGameEntities.push(pusher);
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
@@ -4196,6 +4366,7 @@ GFBuildingWP.prototype.PlacementCallback = function(info, id) {
 		var puller = new GFUnitPuller();
 		puller.SetUp(nmgrs.sceneMan.mCurrScene.mCam, nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
 		puller.SetActive(false);
+		puller.AdjustFog(1);
 		nmgrs.sceneMan.mCurrScene.mGameEntities.push(puller);
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
@@ -4222,6 +4393,30 @@ GFBuildingWP.prototype.PlacementCallback = function(info, id) {
 //
 GFBuildingWP.prototype.SoftReset = function() {
 	
+}
+
+//
+GFBuildingWP.prototype.AdjustFog = function(mode) {
+	var arr = new Array();
+	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+	
+	for (var y = -3; y <= 3; ++y) {
+		for (var x = -3; x <= 3; ++x) {
+			if ((id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x >= 0 &&
+					(id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) {
+				
+				if (Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y >= 0 &&
+						Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) {
+					
+					arr.push((id + x) + (y * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX));
+				}
+			}
+		}
+	}
+	
+	for (var i = 0; i < arr.length; ++i) {
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[arr[i]].mFog += mode;
+	}
 }
 // ...End
 
