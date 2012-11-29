@@ -153,6 +153,10 @@ GameScene.prototype.Process = function() {
 	this.HandleTurns();
 	this.mGameUI.Process();
 	
+	for (var i = 0; i < this.mMap.mMapTiles.length; ++i) {
+		this.mMap.mMapTiles[i].mFogSprite.Process();
+	}
+	
 	for (var i = 0; i < this.mGameEntities.length; ++i) {
 		this.mGameEntities[i].Process();
 	}
@@ -176,6 +180,7 @@ GameScene.prototype.Render = function() {
 		}
 		
 		arr = arr.concat(this.mPlacementHighlight);
+		arr = arr.concat(this.mMap.GetRender());
 		
 		this.mUnitBatch.Clear();
 		
@@ -328,6 +333,8 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		pos.Copy(this.mMap.mBlueTiles[id]);
 		
 		workerProd.SetUp(this.mCam, pos);
+		workerProd.AdjustFog(1);
+		
 		this.mGameEntities.push(workerProd);
 		
 		{
@@ -356,6 +363,8 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		}
 		
 		pusher.SetUp(this.mCam, this.mMap.mBlueTiles[id]);
+		pusher.AdjustFog(1);
+		
 		this.mGameEntities.push(pusher);
 		
 		this.mMap.mMapTiles[notFreeID].mFree = false;
@@ -376,6 +385,8 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		}
 		
 		puller.SetUp(this.mCam, this.mMap.mBlueTiles[id]);
+		puller.AdjustFog(1);
+		
 		this.mGameEntities.push(puller);
 		
 		this.mMap.mMapTiles[notFreeID].mFree = false;
@@ -396,6 +407,8 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		}
 		
 		arty.SetUp(this.mCam, this.mMap.mBlueTiles[id]);
+		arty.AdjustFog(1);
+		
 		this.mGameEntities.push(arty);
 		
 		this.mMap.mMapTiles[notFreeID].mFree = false;
