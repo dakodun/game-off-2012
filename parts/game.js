@@ -15,6 +15,10 @@ function Game() {
 	
 	this.mCanvasPos = new IVec2(); // position of the canvas on the page
 	this.mCanvasSize = new IVec2(); // dimensions of the canvas
+	
+	this.mFPSIter = 0;
+	this.mFPSAccum = 0;
+	this.mFPS = 0;
 };
 
 // initialises the game object
@@ -61,6 +65,7 @@ Game.prototype.Run = function() {
 	var dt = (this.mTimer.GetElapsedTime() / 1000); // get the delta time (since last frame)
 	this.mTimer.Reset(); // reset the timer to time next frame
 	this.mAccum += dt; // add the delta time to our accumulated time
+	this.mFPSAccum += dt;
 	
 	// while our accumulated time is greater than the frame limit
 	while (this.mAccum > (1 / this.mFrameLimit)) {
@@ -70,11 +75,21 @@ Game.prototype.Run = function() {
 		// interpolate for smoother running, baby
 		
 		updateDisplay = true; // we need to redisplay
+		
+		
 	}
+	
+	this.mFPSIter++;
 	
 	// if we need to redisplay
 	if (updateDisplay == true) {
 		this.Render(); // render the results
+	}
+	
+	if (this.mFPSAccum > 1) {
+		this.mFPS = this.mFPSIter / this.mFPSAccum;
+		this.mFPSAccum = 0;
+		this.mFPSIter = 0;
 	}
 }
 
