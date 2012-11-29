@@ -38,6 +38,8 @@ InitScene.prototype.SetUp = function() {
 		nmgrs.resLoad.QueueTexture("gui_arty", "./res/vis/gui_arty.png");
 		nmgrs.resLoad.QueueTexture("arty_firezone", "./res/vis/arty_firezone.png");
 		
+		nmgrs.resLoad.QueueTexture("fog", "./res/vis/fog.png");
+		
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
 	} catch(e) {
