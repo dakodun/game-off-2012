@@ -9,6 +9,7 @@ function GFMap() {
 	this.mRand = new RNG(0);
 	
 	this.mMapBatch = new RenderBatch();
+	this.mShowFog = true;
 };
 
 GFMap.prototype.SetUp = function(size) {
@@ -53,12 +54,14 @@ GFMap.prototype.PosToID = function(pos) {
 GFMap.prototype.GetRender = function() {
 	var arr = new Array();
 	
-	for (var y = 0; y < this.mMapSize.mY; ++y) {
-		for (var x = 0; x < this.mMapSize.mX; ++x) {
-			var ind = x + (this.mMapSize.mX * y);
-			
-			if (this.mMapTiles[ind].mFog == 0 && this.mMapTiles[ind].mSprite.mCurrFrame != 0) {
-				arr.push(this.mMapTiles[ind].mFogSprite);
+	if (this.mShowFog == true) {
+		for (var y = 0; y < this.mMapSize.mY; ++y) {
+			for (var x = 0; x < this.mMapSize.mX; ++x) {
+				var ind = x + (this.mMapSize.mX * y);
+				
+				if (this.mMapTiles[ind].mFog == 0 && this.mMapTiles[ind].mSprite.mCurrFrame != 0) {
+					arr.push(this.mMapTiles[ind].mFogSprite);
+				}
 			}
 		}
 	}
