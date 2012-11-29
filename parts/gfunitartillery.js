@@ -9,6 +9,7 @@ function GFUnitArtillery() {
 	
 	this.mSelected = false;
 	this.mActive = true;
+	this.mPlayerUnit = true;
 	
 	this.mUI = new GFUnitUI();
 	this.mPlacementInfo = "";
@@ -21,6 +22,8 @@ function GFUnitArtillery() {
 	this.mKillConfirmB = new Text();
 	
 	this.mFireZone = new Sprite();
+	
+	this.mSuperMode = false;
 }
 
 GFUnitArtillery.prototype.Type = function() {
@@ -32,7 +35,7 @@ GFUnitArtillery.prototype.SetUp = function(camera, pos) {
 	
 	{
 		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_arty");
-		this.mSprite.SetAnimatedTexture(tex, 4, 4, 14 / nmain.game.mFrameLimit, -1);
+		this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
 		this.mSprite.mOrigin.Set(0, 0);
 		this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
 		this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);

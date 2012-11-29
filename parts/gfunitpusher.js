@@ -9,6 +9,7 @@ function GFUnitPusher() {
 	
 	this.mSelected = false;
 	this.mActive = true;
+	this.mPlayerUnit = true;
 	
 	this.mUI = new GFUnitUI();
 	this.mPlacementInfo = "";
@@ -19,6 +20,8 @@ function GFUnitPusher() {
 	this.mKillSwitch = 0;
 	this.mKillConfirmA = new Text();
 	this.mKillConfirmB = new Text();
+	
+	this.mSuperMode = false;
 }
 
 GFUnitPusher.prototype.Type = function() {
@@ -30,7 +33,7 @@ GFUnitPusher.prototype.SetUp = function(camera, pos) {
 	
 	{
 		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_pusher");
-		this.mSprite.SetAnimatedTexture(tex, 4, 4, 14 / nmain.game.mFrameLimit, -1);
+		this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
 		this.mSprite.mOrigin.Set(0, 0);
 		this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
 		this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
@@ -322,7 +325,9 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 			this.AdjustFog(1); // adjust fog in new position
 		}
 		
-		this.mMovesLeft--;
+		if (this.mSuperMode == false) {
+			this.mMovesLeft--;
+		}
 		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
 		
 		this.mUI.mShow = true;
@@ -397,7 +402,9 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 			this.AdjustFog(1); // adjust fog in new position
 		}
 		
-		this.mMovesLeft--;
+		if (this.mSuperMode == false) {
+			this.mMovesLeft--;
+		}
 		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
 		
 		this.mUI.mShow = true;
@@ -417,6 +424,10 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 
 GFUnitPusher.prototype.CheckValidMove = function() {
 	var moveAmount = 3;
+	if (this.mSuperMode == true) {
+		moveAmount = nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX;
+	}
+	
 	var closedTiles = new Array();
 	var openTiles = new Array();
 	openTiles.push(nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos));
@@ -600,6 +611,11 @@ GFUnitPusher.prototype.CheckValidMove = function() {
 
 //
 GFUnitPusher.prototype.CheckValidPush = function() {
+	var moveAmount = 3;
+	if (this.mSuperMode == true) {
+		moveAmount = nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX;
+	}
+	
 	var arr = new Array();
 	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
 	
@@ -619,7 +635,7 @@ GFUnitPusher.prototype.CheckValidPush = function() {
 					var idIter = 2; // the id we have pushed it to
 					
 					// while the tile is a valid move and we have moves left
-					while ((leftBound - idIter >= 0) && (moveIter < 3)) {
+					while ((leftBound - idIter >= 0) && (moveIter < moveAmount)) {
 						// if already occuppied, we are done (obstacle hit)
 						if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id - idIter].mFree == false) {
 							break;
@@ -650,7 +666,7 @@ GFUnitPusher.prototype.CheckValidPush = function() {
 					var idIter = 2;
 					
 					// check spaces n above
-					while ((topBound - idIter >= 0) && (moveIter < 3)) {
+					while ((topBound - idIter >= 0) && (moveIter < moveAmount)) {
 						if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id - (idIter * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX)].mFree == false) {
 							break;
 						}
@@ -678,7 +694,7 @@ GFUnitPusher.prototype.CheckValidPush = function() {
 					var idIter = 2;
 					
 					// check spaces n above
-					while ((rightBound + idIter <= nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX - 1) && (moveIter < 3)) {
+					while ((rightBound + idIter <= nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX - 1) && (moveIter < moveAmount)) {
 						if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + idIter].mFree == false) {
 							break;
 						}
@@ -706,7 +722,7 @@ GFUnitPusher.prototype.CheckValidPush = function() {
 					var idIter = 2;
 					
 					// check spaces n above
-					while ((bottomBound + idIter <= nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY - 1) && (moveIter < 3)) {
+					while ((bottomBound + idIter <= nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY - 1) && (moveIter < moveAmount)) {
 						if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + (idIter * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX)].mFree == false) {
 							break;
 						}

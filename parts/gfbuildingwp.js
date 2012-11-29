@@ -9,12 +9,15 @@ function GFBuildingWP() {
 	
 	this.mSelected = false;
 	this.mActive = true;
+	this.mPlayerUnit = true;
 	
 	this.mUI = new GFUnitUI();
 	this.mPlacementInfo = "";
 	
 	this.mMovesLeft = 1;
 	this.mMovesLeftSprite = new Sprite();
+	
+	this.mSuperMode = false;
 }
 
 GFBuildingWP.prototype.Type = function() {
@@ -117,7 +120,7 @@ GFBuildingWP.prototype.ProcessUI = function(camera) {
 				
 				if (util.PointInRectangle(pt, tl, br) == true) {
 					if (i == 0) {
-						if (nmgrs.sceneMan.mCurrScene.mPusherCount < 2) {
+						if (nmgrs.sceneMan.mCurrScene.mPusherCount < 2 || this.mSuperMode == true) {
 							var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
 							var boundsArr = new Array();
 							var hiliteArr = new Array();
@@ -157,7 +160,7 @@ GFBuildingWP.prototype.ProcessUI = function(camera) {
 						}
 					}
 					else if (i == 1) {
-						if (nmgrs.sceneMan.mCurrScene.mPullerCount < 2) {
+						if (nmgrs.sceneMan.mCurrScene.mPullerCount < 2 || this.mSuperMode == true) {
 							var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
 							var boundsArr = new Array();
 							var hiliteArr = new Array();
@@ -258,7 +261,14 @@ GFBuildingWP.prototype.PlacementCallback = function(info, id) {
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
 		
-		this.mMovesLeft--;
+		if (this.mSuperMode == false) {
+			this.mMovesLeft--;
+		}
+		else {
+			nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1].SetActive(true);
+			nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1].mSuperMode = true;
+		}
+		
 		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
 		
 		this.mUI.mShow = true;
@@ -284,7 +294,14 @@ GFBuildingWP.prototype.PlacementCallback = function(info, id) {
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
 		
-		this.mMovesLeft--;
+		if (this.mSuperMode == false) {
+			this.mMovesLeft--;
+		}
+		else {
+			nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1].SetActive(true);
+			nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1].mSuperMode = true;
+		}
+		
 		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
 		
 		this.mUI.mShow = true;
