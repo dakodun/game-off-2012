@@ -8,6 +8,9 @@ function GFMapTile(pos) {
 	this.mType = "";
 	this.mFree = false;
 	this.mEntityID = -1;
+	
+	this.mFogSprite = new Sprite();
+	this.mFog = 0;
 };
 // ...End
 

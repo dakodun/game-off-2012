@@ -16,6 +16,7 @@ GFMap.prototype.SetUp = function(size) {
 	
 	var iv = new IVec2(0, 0);
 	var tex = nmgrs.resMan.mTexStore.GetResource("tile_set_default");
+	var fog = nmgrs.resMan.mTexStore.GetResource("fog");
 	
 	for (var y = 0; y < this.mMapSize.mY; ++y) {
 		for (var x = 0; x < this.mMapSize.mX; ++x) {
@@ -27,6 +28,11 @@ GFMap.prototype.SetUp = function(size) {
 			this.mMapTiles[ind].mSprite.mPos.Set(32 * x, 32 * y);
 			this.mMapTiles[ind].mSprite.mDepth = 1000 + (this.mMapSize.mX * this.mMapSize.mY) - ind;
 			this.mMapTiles[ind].mSprite.SetCurrentFrame(0);
+			
+			this.mMapTiles[ind].mFogSprite.SetAnimatedTexture(fog, 4, 4, 8 / nmain.game.mFrameLimit, -1);
+			this.mMapTiles[ind].mFogSprite.mOrigin.Set(8, 8);
+			this.mMapTiles[ind].mFogSprite.mPos.Set(32 * x, 32 * y);
+			this.mMapTiles[ind].mFogSprite.mDepth = -1600 - ind;
 		}
 	}
 }
@@ -42,6 +48,22 @@ GFMap.prototype.IDToPos = function(id) {
 GFMap.prototype.PosToID = function(pos) {
 	var id = pos.mX + (this.mMapSize.mX * pos.mY);
 	return id;
+}
+
+GFMap.prototype.GetRender = function() {
+	var arr = new Array();
+	
+	for (var y = 0; y < this.mMapSize.mY; ++y) {
+		for (var x = 0; x < this.mMapSize.mX; ++x) {
+			var ind = x + (this.mMapSize.mX * y);
+			
+			if (this.mMapTiles[ind].mFog == 0 && this.mMapTiles[ind].mSprite.mCurrFrame != 0) {
+				arr.push(this.mMapTiles[ind].mFogSprite);
+			}
+		}
+	}
+	
+	return arr;
 }
 // ...End
 

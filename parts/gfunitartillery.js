@@ -52,7 +52,7 @@ GFUnitArtillery.prototype.SetUp = function(camera, pos) {
 		this.mFireZone.SetTexture(tex);
 		this.mFireZone.mOrigin.Set(128, 128);
 		this.mFireZone.mPos.Set(pos.mX * 32, pos.mY * 32);
-		this.mFireZone.mDepth = -1500;
+		this.mFireZone.mDepth = -2500;
 	}
 	
 	this.mBound.mOutline = true;
@@ -164,6 +164,7 @@ GFUnitArtillery.prototype.ProcessUI = function(camera) {
 							nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mEntityID = -1;
 							nmgrs.sceneMan.mCurrScene.mGameEntities.splice(nmgrs.sceneMan.mCurrScene.mSelectID, 1);
 							nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+							this.AdjustFog(-1);
 						}
 						else {
 							this.mKillSwitch = 100;
@@ -236,6 +237,30 @@ GFUnitArtillery.prototype.PlacementCallback = function(info, id) {
 //
 GFUnitArtillery.prototype.SoftReset = function() {
 	this.mKillSwitch = 0;
+}
+
+//
+GFUnitArtillery.prototype.AdjustFog = function(mode) {
+	var arr = new Array();
+	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+	
+	for (var y = -2; y <= 2; ++y) {
+		for (var x = -2; x <= 2; ++x) {
+			if ((id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x >= 0 &&
+					(id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) {
+				
+				if (Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y >= 0 &&
+						Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) {
+					
+					arr.push((id + x) + (y * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX));
+				}
+			}
+		}
+	}
+	
+	for (var i = 0; i < arr.length; ++i) {
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[arr[i]].mFog += mode;
+	}
 }
 
 // ...End
