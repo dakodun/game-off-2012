@@ -23,6 +23,10 @@ function GameScene() {
 	this.mPlacementMode = false;
 	this.mPlacementBounds = new Array();
 	this.mPlacementHighlight = new Array();
+	
+	this.mTimerAction = 0;
+	
+	this.mDebug = new GFDebug();
 }
 
 // returns the type of this object for validity checking
@@ -53,7 +57,9 @@ GameScene.prototype.SetUp = function() {
 	
 	this.mTurn = 3;
 	this.SetUpPlayerUnits();
+	this.SetUpEnemyUnits();
 	this.mGameUI.SetUp(this.mCam);
+	this.mDebug.SetUp();
 }
 
 // cleans up the scene object
@@ -90,6 +96,10 @@ GameScene.prototype.Input = function() {
 			}
 		}
 		
+		if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.d)) {
+			this.mDebug.mActive = !this.mDebug.mActive;
+		}
+		
 		if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.e)) {
 			if (this.mEndPlayerTurn == 0) {
 				this.mEndPlayerTurn = 100;
@@ -107,6 +117,8 @@ GameScene.prototype.Input = function() {
 		}
 		
 		if (nmgrs.inputMan.GetMousePressed(nmouse.button.code.left)) {
+			this.mDebug.Input();
+			
 			// check if we are in placement mode or not
 			if (this.mPlacementMode == true) {
 				// the mouse cursor position offset by the current camera (view)
@@ -150,6 +162,7 @@ GameScene.prototype.Input = function() {
 
 // handles game logic
 GameScene.prototype.Process = function() {
+	this.mDebug.Process();
 	this.HandleTurns();
 	this.mGameUI.Process();
 	
@@ -201,6 +214,7 @@ GameScene.prototype.Render = function() {
 	
 	{
 		this.mGameUI.Render(this.mCam, this.mTurn, this.mMap.mMapSize.mY);
+		this.mDebug.Render();
 	}
 }
 
@@ -208,9 +222,33 @@ GameScene.prototype.Render = function() {
 GameScene.prototype.HandleTurns = function() {
 	// process ai turn
 	if (this.mTurn == 0) {
-		this.mTurn = 3;
+		var aiDone = false;
 		
-		this.mGameUI.SwitchTurn(2);
+		if (this.mTimerAction > 0) {
+			this.mTimerAction--;
+		}
+		else {
+			if (aiDone == false) {
+				aiDone = true; // assume we're going to be finished after this iteration
+				
+				for (var i = 0; i < this.mGameEntities.length; ++i) {
+					if (this.mGameEntities[i].mPlayerUnit == false) {
+						if (this.mGameEntities[i].mMovesLeft > 0) {
+							this.mGameEntities[i].PerformAIAction();
+							
+							aiDone = false; // we're not yet finished
+							// this.mTimerAction = 20; // slow down ai when player has vision of the unit taking action
+							break;
+						}
+					}
+				}
+			}
+		}
+		
+		if (aiDone == true) {
+			this.mTurn = 3;
+			this.mGameUI.SwitchTurn(2);
+		}
 	}
 	else if (this.mTurn == 1) { // process player turn
 		if (this.mEndPlayerTurn > 0) {
@@ -260,35 +298,37 @@ GameScene.prototype.HandleTurns = function() {
 // handles clicking units and buildings
 GameScene.prototype.OnEntityClick = function(uiClick) {
 	for (var i = 0; i < this.mGameEntities.length; ++i) {
-		if (this.mGameEntities[i].mActive == true) {
-			// the mouse cursor position offset by the current camera (view)
-			var pt = new IVec2(0, 0);
-			pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
-			pt.mX += this.mCam.mTranslate.mX; pt.mY += this.mCam.mTranslate.mY;
-			
-			// top left of the buildings boundbox
-			var tl = new IVec2(0, 0);
-			tl.Set(this.mGameEntities[i].mPos.mX * 32, this.mGameEntities[i].mPos.mY * 32);
-			
-			// bottom right of the buildings boundbox
-			var br = new IVec2(0, 0);
-			br.Set((this.mGameEntities[i].mPos.mX * 32) + this.mGameEntities[i].mBound.mSize.mX, (this.mGameEntities[i].mPos.mY * 32) + this.mGameEntities[i].mBound.mSize.mY);
-			
-			if (util.PointInRectangle(pt, tl, br) == true) {
-				// check if this is already selected
-				if (i != this.mSelectID) {
-					// check if something is already selected
-					if (this.mSelectID >= 0) {
-						this.mGameEntities[this.mSelectID].mSelected = false; // deselect it
-						this.mGameEntities[this.mSelectID].SoftReset();
+		if (this.mGameEntities[i].mPlayerUnit == true) {
+			if (this.mGameEntities[i].mActive == true) {
+				// the mouse cursor position offset by the current camera (view)
+				var pt = new IVec2(0, 0);
+				pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
+				pt.mX += this.mCam.mTranslate.mX; pt.mY += this.mCam.mTranslate.mY;
+				
+				// top left of the buildings boundbox
+				var tl = new IVec2(0, 0);
+				tl.Set(this.mGameEntities[i].mPos.mX * 32, this.mGameEntities[i].mPos.mY * 32);
+				
+				// bottom right of the buildings boundbox
+				var br = new IVec2(0, 0);
+				br.Set((this.mGameEntities[i].mPos.mX * 32) + this.mGameEntities[i].mBound.mSize.mX, (this.mGameEntities[i].mPos.mY * 32) + this.mGameEntities[i].mBound.mSize.mY);
+				
+				if (util.PointInRectangle(pt, tl, br) == true) {
+					// check if this is already selected
+					if (i != this.mSelectID) {
+						// check if something is already selected
+						if (this.mSelectID >= 0) {
+							this.mGameEntities[this.mSelectID].mSelected = false; // deselect it
+							this.mGameEntities[this.mSelectID].SoftReset();
+						}
+						
+						this.mGameEntities[i].mSelected = true; // select this
+						this.mGameEntities[i].UpdateUI(this.mCam);
+						this.mSelectID = i;
 					}
 					
-					this.mGameEntities[i].mSelected = true; // select this
-					this.mGameEntities[i].UpdateUI(this.mCam);
-					this.mSelectID = i;
+					return true;
 				}
-				
-				return true;
 			}
 		}
 	}
@@ -414,6 +454,32 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		this.mMap.mMapTiles[notFreeID].mFree = false;
 		this.mMap.mMapTiles[notFreeID].mEntityID = this.mGameEntities.length - 1;
 	}
+}
+
+// 
+GameScene.prototype.SetUpEnemyUnits = function() {
+	{
+		var eScoutProd = new GFEBuildingSP();
+		
+		var pos = new IVec2(0, 0);
+		
+		eScoutProd.SetUp(pos);
+		
+		this.mGameEntities.push(eScoutProd);
+		
+		{
+			var notFreeID = this.mMap.PosToID(pos);
+			this.mMap.mMapTiles[notFreeID].mFree = false;
+			this.mMap.mMapTiles[notFreeID + 1].mFree = false;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mFree = false;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mFree = false;
+			
+			this.mMap.mMapTiles[notFreeID].mEntityID = this.mGameEntities.length - 1;
+			this.mMap.mMapTiles[notFreeID + 1].mEntityID = this.mGameEntities.length - 1;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mEntityID = this.mGameEntities.length - 1;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mEntityID = this.mGameEntities.length - 1;
+		}
+	}	
 }
 // ...End
 
