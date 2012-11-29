@@ -49,13 +49,13 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 	var enemyBaseSize = 0;
 	{
 		if (baseSize == "s") {
-			enemyBaseSize = 2;
+			enemyBaseSize = 3;
 		}
 		else if (baseSize == "m") {
-			enemyBaseSize = map.mRand.GetRandInt(2, 3);
+			enemyBaseSize = map.mRand.GetRandInt(3, 4);
 		}
 		else {
-			enemyBaseSize = map.mRand.GetRandInt(3, 4);
+			enemyBaseSize = map.mRand.GetRandInt(4, 5);
 		}
 	}
 	
@@ -66,12 +66,14 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 		
 		map.mMapTiles[i].mSprite.SetCurrentFrame(map.mRand.GetRandInt(10, 14));
 		map.mMapTiles[i].mFree = true;
+		map.mMapTiles[i].mBlankTile = false;
 		map.mMapTiles[i].mType = "red";
 	}
 	
 	for (var i = (dimX * (dimY - 5)); i < (dimX * dimY); ++i) {
 		map.mMapTiles[i].mSprite.SetCurrentFrame(map.mRand.GetRandInt(5, 9));
 		map.mMapTiles[i].mFree = true;
+		map.mMapTiles[i].mBlankTile = false;
 	}
 	
 	{
@@ -87,6 +89,7 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 				
 				map.mMapTiles[tileID].mSprite.SetCurrentFrame(map.mRand.GetRandInt(15, 19));
 				map.mMapTiles[tileID].mFree = true;
+				map.mMapTiles[tileID].mBlankTile = false;
 				map.mMapTiles[tileID].mType = "blue";
 			}
 		}
@@ -103,6 +106,7 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 				if (map.mMapTiles[id].mType == "") {
 					map.mMapTiles[id].mSprite.SetCurrentFrame(map.mRand.GetRandInt(5, 9));
 					map.mMapTiles[id].mFree = true;
+					map.mMapTiles[id].mBlankTile = false;
 				}
 			}
 		}
