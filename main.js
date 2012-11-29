@@ -117,6 +117,331 @@ var util = new function() {
 // ...End
 
 
+// AStarTile Class
+//
+function AStarTile() {
+	this.mID = 0;
+	this.mParent = -1;
+	this.mG = 0;
+	this.mH = 0;
+	
+	this.mValid = true;
+}
+
+AStarTile.prototype.Copy = function(other) {
+	this.mID = other.mID;
+	this.mParent = other.mParent;
+	this.mG = other.mG;
+	this.mH = other.mH;
+	
+	this.mValid = other.mValid;
+}
+// ...End
+
+// AStar Class
+//
+function AStar() {
+	this.mMap = new Array();
+	this.mMapSize = new IVec2(0, 0);
+}
+
+AStar.prototype.SetUp = function(size) {
+	this.mMap.splice(0, this.mMap.length);
+	this.mMapSize.Copy(size);
+	
+	for (var y = 0; y < size.mY; ++y) {
+		for (var x = 0; x < size.mX; ++x) {
+			var defaultTile = new AStarTile()
+			defaultTile.mID = x + (y * size.mX);
+			this.mMap.push(defaultTile);
+		}
+	}
+}
+
+AStar.prototype.FindPath = function(startID, endID) {
+	var exit = false;
+	var pathEnd = false;
+	var closedList = new Array();
+	var openList = new Array();
+	openList.push(startID);
+	
+	while (exit == false) {
+		var lowestID = 0;
+		for (var i = 0; i < openList.length; ++i) {
+			if (this.mMap[openList[i]].mG + this.mMap[openList[i]].mH <
+					this.mMap[openList[lowestID]].mG + this.mMap[openList[lowestID]].mH) {
+				
+				lowestID = i;
+			}
+		}
+		
+		var thisID = openList[lowestID];
+		closedList.push(thisID);
+		openList.splice(lowestID, 1);
+		
+		if (thisID == endID) {
+			exit = true;
+			pathEnd = true;
+		}
+		else {
+			// check tile to the left
+			// check if there is a tile to the left (boundary check)
+			if (thisID % this.mMapSize.mX > 0) {
+				var adjID = thisID - 1;
+				var valid = true;
+				
+				// check if the tile is traversable
+				if (this.mMap[adjID].mValid == true) {
+					// check if the tile is already on the closed list
+					for (var i = 0; i < closedList.length; ++i) {
+						if (adjID == closedList[i]) {
+							valid = false; // not valid, ignore
+							break;
+						}
+					}
+				}
+				else { // otherwise not valid, ignore
+					valid = false;
+				}
+				
+				// if tile is valid
+				if (valid == true) {
+					var inOpen = false;
+					
+					// check if it isalready on the open list
+					for (var i = 0; i < openList.length; ++i) {
+						if (adjID == openList[i]) {
+							inOpen = true;
+							break;
+						}
+					}
+					
+					// if it isn't
+					if (inOpen == false) {
+						openList.push(adjID);
+						this.mMap[adjID].mID = adjID;
+						this.mMap[adjID].mParent = thisID;
+						this.mMap[adjID].mG = this.mMap[thisID].mG + 1;
+						
+						var thisPos = this.IDToPos(adjID);
+						var targetPos = this.IDToPos(endID);
+						
+						this.mMap[adjID].mH = Math.abs(thisPos.mX - targetPos.mX) + Math.abs(thisPos.mY - targetPos.mY);
+					}
+					else { // otherwise check if this is a shorter path
+						if (this.mMap[thisID].mG + 1 < this.mMap[adjID].mG) {
+							this.mMap[adjID].mParent = thisID;
+							this.mMap[adjID].mG = this.mMap[thisID].mG + 1;
+						}
+					}
+				}
+			}
+			
+			// check tile to the right
+			if (thisID % this.mMapSize.mX < this.mMapSize.mX - 1) {
+				var adjID = thisID + 1;
+				var valid = true;
+				if (this.mMap[adjID].mValid == true) {
+					for (var i = 0; i < closedList.length; ++i) {
+						if (adjID == closedList[i]) {
+							valid = false;
+							break;
+						}
+					}
+				}
+				else {
+					valid = false;
+				}
+				
+				if (valid == true) {
+					var inOpen = false;
+					for (var i = 0; i < openList.length; ++i) {
+						if (adjID == openList[i]) {
+							inOpen = true;
+							break;
+						}
+					}
+					
+					if (inOpen == false) {
+						openList.push(adjID);
+						this.mMap[adjID].mID = adjID;
+						this.mMap[adjID].mParent = thisID;
+						this.mMap[adjID].mG = this.mMap[thisID].mG + 1;
+						
+						var thisPos = this.IDToPos(adjID);
+						var targetPos = this.IDToPos(endID);
+						
+						this.mMap[adjID].mH = Math.abs(thisPos.mX - targetPos.mX) + Math.abs(thisPos.mY - targetPos.mY);
+					}
+					else {
+						if (this.mMap[thisID].mG + 1 < this.mMap[adjID].mG) {
+							this.mMap[adjID].mParent = thisID;
+							this.mMap[adjID].mG = this.mMap[thisID].mG + 1;
+						}
+					}
+				}
+			}
+			
+			// check tile above
+			if (Math.floor(thisID / this.mMapSize.mX) > 0) {
+				var adjID = thisID - this.mMapSize.mX;
+				var valid = true;
+				if (this.mMap[adjID].mValid == true) {
+					for (var i = 0; i < closedList.length; ++i) {
+						if (adjID == closedList[i]) {
+							valid = false;
+							break;
+						}
+					}
+				}
+				else {
+					valid = false;
+				}
+				
+				if (valid == true) {
+					var inOpen = false;
+					for (var i = 0; i < openList.length; ++i) {
+						if (adjID == openList[i]) {
+							inOpen = true;
+							break;
+						}
+					}
+					
+					if (inOpen == false) {
+						openList.push(adjID);
+						this.mMap[adjID].mID = adjID;
+						this.mMap[adjID].mParent = thisID;
+						this.mMap[adjID].mG = this.mMap[thisID].mG + 1;
+						
+						var thisPos = this.IDToPos(adjID);
+						var targetPos = this.IDToPos(endID);
+						
+						this.mMap[adjID].mH = Math.abs(thisPos.mX - targetPos.mX) + Math.abs(thisPos.mY - targetPos.mY);
+					}
+					else {
+						if (this.mMap[thisID].mG + 1 < this.mMap[adjID].mG) {
+							this.mMap[adjID].mParent = thisID;
+							this.mMap[adjID].mG = this.mMap[thisID].mG + 1;
+						}
+					}
+				}
+			}
+			
+			// check tile below
+			if (Math.floor(thisID / this.mMapSize.mX) < this.mMapSize.mY - 1) {
+				var adjID = thisID + this.mMapSize.mX;
+				var valid = true;
+				if (this.mMap[adjID].mValid == true) {
+					for (var i = 0; i < closedList.length; ++i) {
+						if (adjID == closedList[i]) {
+							valid = false;
+							break;
+						}
+					}
+				}
+				else {
+					valid = false;
+				}
+				
+				if (valid == true) {
+					var inOpen = false;
+					for (var i = 0; i < openList.length; ++i) {
+						if (adjID == openList[i]) {
+							inOpen = true;
+							break;
+						}
+					}
+					
+					if (inOpen == false) {
+						openList.push(adjID);
+						this.mMap[adjID].mID = adjID;
+						this.mMap[adjID].mParent = thisID;
+						this.mMap[adjID].mG = this.mMap[thisID].mG + 1;
+						
+						var thisPos = this.IDToPos(adjID);
+						var targetPos = this.IDToPos(endID);
+						
+						this.mMap[adjID].mH = Math.abs(thisPos.mX - targetPos.mX) + Math.abs(thisPos.mY - targetPos.mY);
+					}
+					else {
+						if (this.mMap[thisID].mG + 1 < this.mMap[adjID].mG) {
+							this.mMap[adjID].mParent = thisID;
+							this.mMap[adjID].mG = this.mMap[thisID].mG + 1;
+						}
+					}
+				}
+			}
+			
+			if (openList.length == 0) {
+				exit = true;
+			}
+		}
+	}
+	
+	exit = false;
+	var path = new Array();
+	var prev = 0;
+	
+	if (pathEnd == true) {
+		path.push(endID);
+		prev = endID;
+	}
+	else {
+		var arbitID = 0;
+		var currDist = -1;
+		
+		var endPos = new IVec2(0, 0);
+		endPos.Copy(this.IDToPos(endID));
+		
+		for (var i = 0; i < closedList.length; ++i) {
+			var thisPos = new IVec2(0, 0);
+			thisPos.Copy(this.IDToPos(closedList[i]));
+			
+			var dist = Math.abs(thisPos.mX - endPos.mX) + Math.abs(thisPos.mY - endPos.mY);
+			if (dist < currDist || currDist < 0) {
+				currDist = dist;
+				arbitID = closedList[i];
+			}
+			else if (dist == currDist) {
+				if (thisPos.mY > this.IDToPos(arbitID).mY) {
+					currDist = dist;
+					arbitID = closedList[i];
+				}
+			}
+		}
+		
+		path.push(arbitID);
+		prev = arbitID;
+	}
+	
+	while (exit == false) {
+		if (this.mMap[prev].mParent >= 0) {
+			path.push(this.mMap[prev].mParent);
+			prev = this.mMap[prev].mParent;
+		}
+		else {
+			exit = true;
+		}
+	}
+	
+	return path;
+}
+
+AStar.prototype.IDToPos = function(id) {
+	var pos = new IVec2(0, 0);
+	pos.mY = Math.floor(id / this.mMapSize.mX);
+	pos.mX = id - (this.mMapSize.mX * pos.mY);
+	
+	return pos;
+}
+
+AStar.prototype.PosToID = function(pos) {
+	var id = pos.mX + (this.mMapSize.mX * pos.mY);
+	return id;
+}
+// ...End
+
+
 // enums...
 var nkeyboard = {
 	key : {
@@ -1405,10 +1730,10 @@ InitScene.prototype.SetUp = function() {
 		nmgrs.resLoad.QueueTexture("gui_arrow_up", "./res/vis/gui_arrow_up.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_down", "./res/vis/gui_arrow_down.png");
 		nmgrs.resLoad.QueueTexture("gui_moves", "./res/vis/gui_moves.png");
+		nmgrs.resLoad.QueueTexture("gui_debug", "./res/vis/gui_debug.png");
 		
 		nmgrs.resLoad.QueueTexture("unit_b_workerprod", "./res/vis/unit_b_workerprod.png");
 		nmgrs.resLoad.QueueTexture("gui_workerprod", "./res/vis/gui_workerprod.png");
-		
 		nmgrs.resLoad.QueueTexture("unit_u_pusher", "./res/vis/unit_u_pusher.png");
 		nmgrs.resLoad.QueueTexture("gui_pusher", "./res/vis/gui_pusher.png");
 		nmgrs.resLoad.QueueTexture("unit_u_puller", "./res/vis/unit_u_puller.png");
@@ -1416,6 +1741,9 @@ InitScene.prototype.SetUp = function() {
 		nmgrs.resLoad.QueueTexture("unit_u_arty", "./res/vis/unit_u_arty.png");
 		nmgrs.resLoad.QueueTexture("gui_arty", "./res/vis/gui_arty.png");
 		nmgrs.resLoad.QueueTexture("arty_firezone", "./res/vis/arty_firezone.png");
+		
+		nmgrs.resLoad.QueueTexture("unit_b_enemyscoutprod", "./res/vis/unit_b_enemyscoutprod.png");
+		nmgrs.resLoad.QueueTexture("unit_u_enemyscout", "./res/vis/unit_u_enemyscout.png");
 		
 		nmgrs.resLoad.QueueTexture("fog", "./res/vis/fog.png");
 		
@@ -1475,6 +1803,10 @@ function GameScene() {
 	this.mPlacementMode = false;
 	this.mPlacementBounds = new Array();
 	this.mPlacementHighlight = new Array();
+	
+	this.mTimerAction = 0;
+	
+	this.mDebug = new GFDebug();
 }
 
 // returns the type of this object for validity checking
@@ -1505,7 +1837,9 @@ GameScene.prototype.SetUp = function() {
 	
 	this.mTurn = 3;
 	this.SetUpPlayerUnits();
+	this.SetUpEnemyUnits();
 	this.mGameUI.SetUp(this.mCam);
+	this.mDebug.SetUp();
 }
 
 // cleans up the scene object
@@ -1542,6 +1876,10 @@ GameScene.prototype.Input = function() {
 			}
 		}
 		
+		if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.d)) {
+			this.mDebug.mActive = !this.mDebug.mActive;
+		}
+		
 		if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.e)) {
 			if (this.mEndPlayerTurn == 0) {
 				this.mEndPlayerTurn = 100;
@@ -1559,6 +1897,8 @@ GameScene.prototype.Input = function() {
 		}
 		
 		if (nmgrs.inputMan.GetMousePressed(nmouse.button.code.left)) {
+			this.mDebug.Input();
+			
 			// check if we are in placement mode or not
 			if (this.mPlacementMode == true) {
 				// the mouse cursor position offset by the current camera (view)
@@ -1602,6 +1942,7 @@ GameScene.prototype.Input = function() {
 
 // handles game logic
 GameScene.prototype.Process = function() {
+	this.mDebug.Process();
 	this.HandleTurns();
 	this.mGameUI.Process();
 	
@@ -1653,6 +1994,7 @@ GameScene.prototype.Render = function() {
 	
 	{
 		this.mGameUI.Render(this.mCam, this.mTurn, this.mMap.mMapSize.mY);
+		this.mDebug.Render();
 	}
 }
 
@@ -1660,9 +2002,33 @@ GameScene.prototype.Render = function() {
 GameScene.prototype.HandleTurns = function() {
 	// process ai turn
 	if (this.mTurn == 0) {
-		this.mTurn = 3;
+		var aiDone = false;
 		
-		this.mGameUI.SwitchTurn(2);
+		if (this.mTimerAction > 0) {
+			this.mTimerAction--;
+		}
+		else {
+			if (aiDone == false) {
+				aiDone = true; // assume we're going to be finished after this iteration
+				
+				for (var i = 0; i < this.mGameEntities.length; ++i) {
+					if (this.mGameEntities[i].mPlayerUnit == false) {
+						if (this.mGameEntities[i].mMovesLeft > 0) {
+							this.mGameEntities[i].PerformAIAction();
+							
+							aiDone = false; // we're not yet finished
+							// this.mTimerAction = 20; // slow down ai when player has vision of the unit taking action
+							break;
+						}
+					}
+				}
+			}
+		}
+		
+		if (aiDone == true) {
+			this.mTurn = 3;
+			this.mGameUI.SwitchTurn(2);
+		}
 	}
 	else if (this.mTurn == 1) { // process player turn
 		if (this.mEndPlayerTurn > 0) {
@@ -1712,35 +2078,37 @@ GameScene.prototype.HandleTurns = function() {
 // handles clicking units and buildings
 GameScene.prototype.OnEntityClick = function(uiClick) {
 	for (var i = 0; i < this.mGameEntities.length; ++i) {
-		if (this.mGameEntities[i].mActive == true) {
-			// the mouse cursor position offset by the current camera (view)
-			var pt = new IVec2(0, 0);
-			pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
-			pt.mX += this.mCam.mTranslate.mX; pt.mY += this.mCam.mTranslate.mY;
-			
-			// top left of the buildings boundbox
-			var tl = new IVec2(0, 0);
-			tl.Set(this.mGameEntities[i].mPos.mX * 32, this.mGameEntities[i].mPos.mY * 32);
-			
-			// bottom right of the buildings boundbox
-			var br = new IVec2(0, 0);
-			br.Set((this.mGameEntities[i].mPos.mX * 32) + this.mGameEntities[i].mBound.mSize.mX, (this.mGameEntities[i].mPos.mY * 32) + this.mGameEntities[i].mBound.mSize.mY);
-			
-			if (util.PointInRectangle(pt, tl, br) == true) {
-				// check if this is already selected
-				if (i != this.mSelectID) {
-					// check if something is already selected
-					if (this.mSelectID >= 0) {
-						this.mGameEntities[this.mSelectID].mSelected = false; // deselect it
-						this.mGameEntities[this.mSelectID].SoftReset();
+		if (this.mGameEntities[i].mPlayerUnit == true) {
+			if (this.mGameEntities[i].mActive == true) {
+				// the mouse cursor position offset by the current camera (view)
+				var pt = new IVec2(0, 0);
+				pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
+				pt.mX += this.mCam.mTranslate.mX; pt.mY += this.mCam.mTranslate.mY;
+				
+				// top left of the buildings boundbox
+				var tl = new IVec2(0, 0);
+				tl.Set(this.mGameEntities[i].mPos.mX * 32, this.mGameEntities[i].mPos.mY * 32);
+				
+				// bottom right of the buildings boundbox
+				var br = new IVec2(0, 0);
+				br.Set((this.mGameEntities[i].mPos.mX * 32) + this.mGameEntities[i].mBound.mSize.mX, (this.mGameEntities[i].mPos.mY * 32) + this.mGameEntities[i].mBound.mSize.mY);
+				
+				if (util.PointInRectangle(pt, tl, br) == true) {
+					// check if this is already selected
+					if (i != this.mSelectID) {
+						// check if something is already selected
+						if (this.mSelectID >= 0) {
+							this.mGameEntities[this.mSelectID].mSelected = false; // deselect it
+							this.mGameEntities[this.mSelectID].SoftReset();
+						}
+						
+						this.mGameEntities[i].mSelected = true; // select this
+						this.mGameEntities[i].UpdateUI(this.mCam);
+						this.mSelectID = i;
 					}
 					
-					this.mGameEntities[i].mSelected = true; // select this
-					this.mGameEntities[i].UpdateUI(this.mCam);
-					this.mSelectID = i;
+					return true;
 				}
-				
-				return true;
 			}
 		}
 	}
@@ -1867,6 +2235,32 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		this.mMap.mMapTiles[notFreeID].mEntityID = this.mGameEntities.length - 1;
 	}
 }
+
+// 
+GameScene.prototype.SetUpEnemyUnits = function() {
+	{
+		var eScoutProd = new GFEBuildingSP();
+		
+		var pos = new IVec2(0, 0);
+		
+		eScoutProd.SetUp(pos);
+		
+		this.mGameEntities.push(eScoutProd);
+		
+		{
+			var notFreeID = this.mMap.PosToID(pos);
+			this.mMap.mMapTiles[notFreeID].mFree = false;
+			this.mMap.mMapTiles[notFreeID + 1].mFree = false;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mFree = false;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mFree = false;
+			
+			this.mMap.mMapTiles[notFreeID].mEntityID = this.mGameEntities.length - 1;
+			this.mMap.mMapTiles[notFreeID + 1].mEntityID = this.mGameEntities.length - 1;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mEntityID = this.mGameEntities.length - 1;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mEntityID = this.mGameEntities.length - 1;
+		}
+	}	
+}
 // ...End
 
 
@@ -1887,6 +2281,10 @@ function Game() {
 	
 	this.mCanvasPos = new IVec2(); // position of the canvas on the page
 	this.mCanvasSize = new IVec2(); // dimensions of the canvas
+	
+	this.mFPSIter = 0;
+	this.mFPSAccum = 0;
+	this.mFPS = 0;
 };
 
 // initialises the game object
@@ -1933,6 +2331,7 @@ Game.prototype.Run = function() {
 	var dt = (this.mTimer.GetElapsedTime() / 1000); // get the delta time (since last frame)
 	this.mTimer.Reset(); // reset the timer to time next frame
 	this.mAccum += dt; // add the delta time to our accumulated time
+	this.mFPSAccum += dt;
 	
 	// while our accumulated time is greater than the frame limit
 	while (this.mAccum > (1 / this.mFrameLimit)) {
@@ -1942,11 +2341,21 @@ Game.prototype.Run = function() {
 		// interpolate for smoother running, baby
 		
 		updateDisplay = true; // we need to redisplay
+		
+		
 	}
+	
+	this.mFPSIter++;
 	
 	// if we need to redisplay
 	if (updateDisplay == true) {
 		this.Render(); // render the results
+	}
+	
+	if (this.mFPSAccum > 1) {
+		this.mFPS = this.mFPSIter / this.mFPSAccum;
+		this.mFPSAccum = 0;
+		this.mFPSIter = 0;
 	}
 }
 
@@ -2035,6 +2444,137 @@ function main() {
 	}
 };
 
+// GFDebug Class...
+// 
+function GFDebug() {
+	this.mActive = false;
+	
+	this.mBatch = new RenderBatch();
+	this.mSpriteArr = new Array();
+	this.mStatusArr = new Array();
+	
+	this.mSpriteArr[0] = new Sprite();
+	this.mStatusArr[0] = true;
+	
+	this.mSpriteArr[1] = new Sprite();
+	this.mStatusArr[1] = false;
+	
+	this.mSpriteArr[2] = new Sprite();
+	this.mStatusArr[2] = false;
+	
+	this.mSpriteArr[3] = new Sprite();
+	this.mStatusArr[3] = false;
+}
+
+GFDebug.prototype.SetUp = function() {
+	var tex = nmgrs.resMan.mTexStore.GetResource("gui_debug");
+	var frames = 8;
+	
+	{
+		this.mSpriteArr[0].SetAnimatedTexture(tex, frames, frames / 2, -1, -1);
+		this.mSpriteArr[0].mOrigin.Set(0, 0);
+		this.mSpriteArr[0].mPos.Set(nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX, 96 + nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY);
+		this.mSpriteArr[0].mDepth = -3000;
+		this.mSpriteArr[0].SetCurrentFrame(0);
+	}
+	
+	{
+		this.mSpriteArr[1].SetAnimatedTexture(tex, frames, frames / 2, -1, -1);
+		this.mSpriteArr[1].mOrigin.Set(0, 0);
+		this.mSpriteArr[1].mPos.Set(72 + nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX, 96 + nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY);
+		this.mSpriteArr[1].mDepth = -3000;
+		this.mSpriteArr[1].SetCurrentFrame(1 + (this.mSpriteArr[1].mNumFrames / 2));
+	}
+	
+	{
+		this.mSpriteArr[2].SetAnimatedTexture(tex, frames, frames / 2, -1, -1);
+		this.mSpriteArr[2].mOrigin.Set(0, 0);
+		this.mSpriteArr[2].mPos.Set(144 + nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX, 96 + nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY);
+		this.mSpriteArr[2].mDepth = -3000;
+		this.mSpriteArr[2].SetCurrentFrame(2 + (this.mSpriteArr[2].mNumFrames / 2));
+	}
+	
+	{
+		this.mSpriteArr[3].SetAnimatedTexture(tex, frames, frames / 2, -1, -1);
+		this.mSpriteArr[3].mOrigin.Set(0, 0);
+		this.mSpriteArr[3].mPos.Set(nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX, 160 + nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY);
+		this.mSpriteArr[3].mDepth = -3000;
+		this.mSpriteArr[3].SetCurrentFrame(3 + (this.mSpriteArr[3].mNumFrames / 2));
+	}
+}
+
+GFDebug.prototype.Input = function() {
+	// on left click
+	
+	if (this.mActive == true) {
+		// the mouse cursor position offset by the current camera (view)
+		var pt = new IVec2(0, 0);
+		pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
+		pt.mX += nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX; pt.mY += nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY;
+		
+		for (var i = 0; i < this.mSpriteArr.length; ++i) {
+			// top left of the buttons boundbox
+			var tl = new IVec2(this.mSpriteArr[i].mPos.mX, this.mSpriteArr[i].mPos.mY);
+			
+			// bottom right of the buttons boundbox
+			var br = new IVec2(this.mSpriteArr[i].mPos.mX + this.mSpriteArr[i].GetWidth(),
+					this.mSpriteArr[i].mPos.mY + this.mSpriteArr[i].GetHeight());
+			
+			if (util.PointInRectangle(pt, tl, br) == true) {
+				this.mStatusArr[i] = !this.mStatusArr[i];
+				if (this.mStatusArr[i] == true) {
+					this.mSpriteArr[i].SetCurrentFrame(i);
+				}
+				else {
+					this.mSpriteArr[i].SetCurrentFrame(i + (this.mSpriteArr[i].mNumFrames / 2));
+				}
+				
+				if (i == 0) {
+					nmgrs.sceneMan.mCurrScene.mMap.mShowFog = this.mStatusArr[i];
+				}
+				else if (i == 1) {
+					for (var j = 0; j < nmgrs.sceneMan.mCurrScene.mGameEntities.length; ++j) {
+						nmgrs.sceneMan.mCurrScene.mGameEntities[j].mShowBound = this.mStatusArr[i];
+					}
+				}
+				else if (i == 2) {
+					for (var j = 0; j < nmgrs.sceneMan.mCurrScene.mGameEntities.length; ++j) {
+						if (nmgrs.sceneMan.mCurrScene.mGameEntities[j].mPlayerUnit == true) {
+							nmgrs.sceneMan.mCurrScene.mGameEntities[j].mSuperMode = this.mStatusArr[i];
+						}
+					}
+				}
+				else if (i == 3) {
+					nmgrs.sceneMan.mCurrScene.mGameUI.mShowDebug = this.mStatusArr[i];
+				}
+			}
+		}
+	}
+}
+
+GFDebug.prototype.Process = function() {
+	if (this.mActive == true) {
+		this.mSpriteArr[0].mPos.Set(nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX, 96 + nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY);
+		this.mSpriteArr[1].mPos.Set(72 + nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX, 96 + nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY);
+		this.mSpriteArr[2].mPos.Set(144 + nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX, 96 + nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY);
+		this.mSpriteArr[3].mPos.Set(nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX, 160 + nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY);
+	}
+}
+
+GFDebug.prototype.Render = function() {
+	if (this.mActive == true) {
+		this.mBatch.Clear();
+		
+		for (var i = 0; i < this.mSpriteArr.length; ++i) {
+			this.mBatch.AddSprite(this.mSpriteArr[i]);
+		}
+		
+		this.mBatch.Render(nmgrs.sceneMan.mCurrScene.mCam);
+	}
+}
+// ...End
+
+
 // GFMap Class...
 // 
 function GFMap() {
@@ -2046,6 +2586,7 @@ function GFMap() {
 	this.mRand = new RNG(0);
 	
 	this.mMapBatch = new RenderBatch();
+	this.mShowFog = true;
 };
 
 GFMap.prototype.SetUp = function(size) {
@@ -2090,12 +2631,14 @@ GFMap.prototype.PosToID = function(pos) {
 GFMap.prototype.GetRender = function() {
 	var arr = new Array();
 	
-	for (var y = 0; y < this.mMapSize.mY; ++y) {
-		for (var x = 0; x < this.mMapSize.mX; ++x) {
-			var ind = x + (this.mMapSize.mX * y);
-			
-			if (this.mMapTiles[ind].mFog == 0 && this.mMapTiles[ind].mSprite.mCurrFrame != 0) {
-				arr.push(this.mMapTiles[ind].mFogSprite);
+	if (this.mShowFog == true) {
+		for (var y = 0; y < this.mMapSize.mY; ++y) {
+			for (var x = 0; x < this.mMapSize.mX; ++x) {
+				var ind = x + (this.mMapSize.mX * y);
+				
+				if (this.mMapTiles[ind].mFog == 0 && this.mMapTiles[ind].mSprite.mCurrFrame != 0) {
+					arr.push(this.mMapTiles[ind].mFogSprite);
+				}
 			}
 		}
 	}
@@ -2118,6 +2661,8 @@ function GFMapTile(pos) {
 	
 	this.mFogSprite = new Sprite();
 	this.mFog = 0;
+	
+	this.mBlankTile = true;
 };
 // ...End
 
@@ -2173,13 +2718,13 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 	var enemyBaseSize = 0;
 	{
 		if (baseSize == "s") {
-			enemyBaseSize = 2;
+			enemyBaseSize = 3;
 		}
 		else if (baseSize == "m") {
-			enemyBaseSize = map.mRand.GetRandInt(2, 3);
+			enemyBaseSize = map.mRand.GetRandInt(3, 4);
 		}
 		else {
-			enemyBaseSize = map.mRand.GetRandInt(3, 4);
+			enemyBaseSize = map.mRand.GetRandInt(4, 5);
 		}
 	}
 	
@@ -2190,12 +2735,14 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 		
 		map.mMapTiles[i].mSprite.SetCurrentFrame(map.mRand.GetRandInt(10, 14));
 		map.mMapTiles[i].mFree = true;
+		map.mMapTiles[i].mBlankTile = false;
 		map.mMapTiles[i].mType = "red";
 	}
 	
 	for (var i = (dimX * (dimY - 5)); i < (dimX * dimY); ++i) {
 		map.mMapTiles[i].mSprite.SetCurrentFrame(map.mRand.GetRandInt(5, 9));
 		map.mMapTiles[i].mFree = true;
+		map.mMapTiles[i].mBlankTile = false;
 	}
 	
 	{
@@ -2211,6 +2758,7 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 				
 				map.mMapTiles[tileID].mSprite.SetCurrentFrame(map.mRand.GetRandInt(15, 19));
 				map.mMapTiles[tileID].mFree = true;
+				map.mMapTiles[tileID].mBlankTile = false;
 				map.mMapTiles[tileID].mType = "blue";
 			}
 		}
@@ -2227,6 +2775,7 @@ GFMapGen.prototype.GenerateMap = function(seed, size, baseSize) {
 				if (map.mMapTiles[id].mType == "") {
 					map.mMapTiles[id].mSprite.SetCurrentFrame(map.mRand.GetRandInt(5, 9));
 					map.mMapTiles[id].mFree = true;
+					map.mMapTiles[id].mBlankTile = false;
 				}
 			}
 		}
@@ -2314,6 +2863,7 @@ function GFUnitPusher() {
 	
 	this.mSelected = false;
 	this.mActive = true;
+	this.mPlayerUnit = true;
 	
 	this.mUI = new GFUnitUI();
 	this.mPlacementInfo = "";
@@ -2324,6 +2874,8 @@ function GFUnitPusher() {
 	this.mKillSwitch = 0;
 	this.mKillConfirmA = new Text();
 	this.mKillConfirmB = new Text();
+	
+	this.mSuperMode = false;
 }
 
 GFUnitPusher.prototype.Type = function() {
@@ -2335,7 +2887,7 @@ GFUnitPusher.prototype.SetUp = function(camera, pos) {
 	
 	{
 		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_pusher");
-		this.mSprite.SetAnimatedTexture(tex, 4, 4, 14 / nmain.game.mFrameLimit, -1);
+		this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
 		this.mSprite.mOrigin.Set(0, 0);
 		this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
 		this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
@@ -2627,7 +3179,9 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 			this.AdjustFog(1); // adjust fog in new position
 		}
 		
-		this.mMovesLeft--;
+		if (this.mSuperMode == false) {
+			this.mMovesLeft--;
+		}
 		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
 		
 		this.mUI.mShow = true;
@@ -2702,7 +3256,9 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 			this.AdjustFog(1); // adjust fog in new position
 		}
 		
-		this.mMovesLeft--;
+		if (this.mSuperMode == false) {
+			this.mMovesLeft--;
+		}
 		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
 		
 		this.mUI.mShow = true;
@@ -2722,6 +3278,10 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 
 GFUnitPusher.prototype.CheckValidMove = function() {
 	var moveAmount = 3;
+	if (this.mSuperMode == true) {
+		moveAmount = nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX;
+	}
+	
 	var closedTiles = new Array();
 	var openTiles = new Array();
 	openTiles.push(nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos));
@@ -2905,6 +3465,11 @@ GFUnitPusher.prototype.CheckValidMove = function() {
 
 //
 GFUnitPusher.prototype.CheckValidPush = function() {
+	var moveAmount = 3;
+	if (this.mSuperMode == true) {
+		moveAmount = nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX;
+	}
+	
 	var arr = new Array();
 	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
 	
@@ -2924,7 +3489,7 @@ GFUnitPusher.prototype.CheckValidPush = function() {
 					var idIter = 2; // the id we have pushed it to
 					
 					// while the tile is a valid move and we have moves left
-					while ((leftBound - idIter >= 0) && (moveIter < 3)) {
+					while ((leftBound - idIter >= 0) && (moveIter < moveAmount)) {
 						// if already occuppied, we are done (obstacle hit)
 						if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id - idIter].mFree == false) {
 							break;
@@ -2955,7 +3520,7 @@ GFUnitPusher.prototype.CheckValidPush = function() {
 					var idIter = 2;
 					
 					// check spaces n above
-					while ((topBound - idIter >= 0) && (moveIter < 3)) {
+					while ((topBound - idIter >= 0) && (moveIter < moveAmount)) {
 						if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id - (idIter * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX)].mFree == false) {
 							break;
 						}
@@ -2983,7 +3548,7 @@ GFUnitPusher.prototype.CheckValidPush = function() {
 					var idIter = 2;
 					
 					// check spaces n above
-					while ((rightBound + idIter <= nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX - 1) && (moveIter < 3)) {
+					while ((rightBound + idIter <= nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX - 1) && (moveIter < moveAmount)) {
 						if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + idIter].mFree == false) {
 							break;
 						}
@@ -3011,7 +3576,7 @@ GFUnitPusher.prototype.CheckValidPush = function() {
 					var idIter = 2;
 					
 					// check spaces n above
-					while ((bottomBound + idIter <= nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY - 1) && (moveIter < 3)) {
+					while ((bottomBound + idIter <= nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY - 1) && (moveIter < moveAmount)) {
 						if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + (idIter * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX)].mFree == false) {
 							break;
 						}
@@ -3071,6 +3636,7 @@ function GFUnitPuller() {
 	
 	this.mSelected = false;
 	this.mActive = true;
+	this.mPlayerUnit = true;
 	
 	this.mUI = new GFUnitUI();
 	this.mPlacementInfo = "";
@@ -3081,6 +3647,8 @@ function GFUnitPuller() {
 	this.mKillSwitch = 0;
 	this.mKillConfirmA = new Text();
 	this.mKillConfirmB = new Text();
+	
+	this.mSuperMode = false;
 }
 
 GFUnitPuller.prototype.Type = function() {
@@ -3092,7 +3660,7 @@ GFUnitPuller.prototype.SetUp = function(camera, pos) {
 	
 	{
 		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_puller");
-		this.mSprite.SetAnimatedTexture(tex, 4, 4, 14 / nmain.game.mFrameLimit, -1);
+		this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
 		this.mSprite.mOrigin.Set(0, 0);
 		this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
 		this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
@@ -3384,7 +3952,9 @@ GFUnitPuller.prototype.PlacementCallback = function(info, id) {
 			this.AdjustFog(1); // adjust fog in new position
 		}
 		
-		this.mMovesLeft--;
+		if (this.mSuperMode == false) {
+			this.mMovesLeft--;
+		}
 		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
 		
 		this.mUI.mShow = true;
@@ -3459,7 +4029,9 @@ GFUnitPuller.prototype.PlacementCallback = function(info, id) {
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].AdjustFog(1); // adjust fog in current position
 		}
 		
-		this.mMovesLeft--;
+		if (this.mSuperMode == false) {
+			this.mMovesLeft--;
+		}
 		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
 		
 		this.mUI.mShow = true;
@@ -3479,6 +4051,10 @@ GFUnitPuller.prototype.PlacementCallback = function(info, id) {
 
 GFUnitPuller.prototype.CheckValidMove = function() {
 	var moveAmount = 3;
+	if (this.mSuperMode == true) {
+		moveAmount = nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX;
+	}
+	
 	var closedTiles = new Array();
 	var openTiles = new Array();
 	openTiles.push(nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos));
@@ -3662,6 +4238,11 @@ GFUnitPuller.prototype.CheckValidMove = function() {
 
 //
 GFUnitPuller.prototype.CheckValidPull = function() {
+	var moveAmount = 3;
+	if (this.mSuperMode == true) {
+		moveAmount = nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX;
+	}
+	
 	var arr = new Array();
 	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
 	
@@ -3681,7 +4262,7 @@ GFUnitPuller.prototype.CheckValidPull = function() {
 					var idIter = 1; // the id we have pushed it to
 					
 					// while the tile is a valid move and we have moves left
-					while ((leftBound + idIter <= nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX - 1) && (moveIter < 3)) {
+					while ((leftBound + idIter <= nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX - 1) && (moveIter < moveAmount)) {
 						// if already occuppied, we are done (obstacle hit)
 						if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + idIter].mFree == false) {
 							break;
@@ -3712,7 +4293,7 @@ GFUnitPuller.prototype.CheckValidPull = function() {
 					var idIter = 1;
 					
 					// check spaces n above
-					while ((topBound + idIter <= nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY - 1) && (moveIter < 3)) {
+					while ((topBound + idIter <= nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY - 1) && (moveIter < moveAmount)) {
 						if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + (idIter * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX)].mFree == false) {
 							break;
 						}
@@ -3740,7 +4321,7 @@ GFUnitPuller.prototype.CheckValidPull = function() {
 					var idIter = 1;
 					
 					// check spaces n above
-					while ((rightBound - idIter >= 0) && (moveIter < 3)) {
+					while ((rightBound - idIter >= 0) && (moveIter < moveAmount)) {
 						if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id - idIter].mFree == false) {
 							break;
 						}
@@ -3768,7 +4349,7 @@ GFUnitPuller.prototype.CheckValidPull = function() {
 					var idIter = 1;
 					
 					// check spaces n above
-					while ((bottomBound - idIter >= 0) && (moveIter < 3)) {
+					while ((bottomBound - idIter >= 0) && (moveIter < moveAmount)) {
 						if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id - (idIter * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX)].mFree == false) {
 							break;
 						}
@@ -3828,6 +4409,7 @@ function GFUnitArtillery() {
 	
 	this.mSelected = false;
 	this.mActive = true;
+	this.mPlayerUnit = true;
 	
 	this.mUI = new GFUnitUI();
 	this.mPlacementInfo = "";
@@ -3840,6 +4422,8 @@ function GFUnitArtillery() {
 	this.mKillConfirmB = new Text();
 	
 	this.mFireZone = new Sprite();
+	
+	this.mSuperMode = false;
 }
 
 GFUnitArtillery.prototype.Type = function() {
@@ -3851,7 +4435,7 @@ GFUnitArtillery.prototype.SetUp = function(camera, pos) {
 	
 	{
 		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_arty");
-		this.mSprite.SetAnimatedTexture(tex, 4, 4, 14 / nmain.game.mFrameLimit, -1);
+		this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
 		this.mSprite.mOrigin.Set(0, 0);
 		this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
 		this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
@@ -4096,12 +4680,15 @@ function GFBuildingWP() {
 	
 	this.mSelected = false;
 	this.mActive = true;
+	this.mPlayerUnit = true;
 	
 	this.mUI = new GFUnitUI();
 	this.mPlacementInfo = "";
 	
 	this.mMovesLeft = 1;
 	this.mMovesLeftSprite = new Sprite();
+	
+	this.mSuperMode = false;
 }
 
 GFBuildingWP.prototype.Type = function() {
@@ -4204,7 +4791,7 @@ GFBuildingWP.prototype.ProcessUI = function(camera) {
 				
 				if (util.PointInRectangle(pt, tl, br) == true) {
 					if (i == 0) {
-						if (nmgrs.sceneMan.mCurrScene.mPusherCount < 2) {
+						if (nmgrs.sceneMan.mCurrScene.mPusherCount < 2 || this.mSuperMode == true) {
 							var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
 							var boundsArr = new Array();
 							var hiliteArr = new Array();
@@ -4244,7 +4831,7 @@ GFBuildingWP.prototype.ProcessUI = function(camera) {
 						}
 					}
 					else if (i == 1) {
-						if (nmgrs.sceneMan.mCurrScene.mPullerCount < 2) {
+						if (nmgrs.sceneMan.mCurrScene.mPullerCount < 2 || this.mSuperMode == true) {
 							var tex = nmgrs.resMan.mTexStore.GetResource("tile_hilite");
 							var boundsArr = new Array();
 							var hiliteArr = new Array();
@@ -4345,7 +4932,14 @@ GFBuildingWP.prototype.PlacementCallback = function(info, id) {
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
 		
-		this.mMovesLeft--;
+		if (this.mSuperMode == false) {
+			this.mMovesLeft--;
+		}
+		else {
+			nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1].SetActive(true);
+			nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1].mSuperMode = true;
+		}
+		
 		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
 		
 		this.mUI.mShow = true;
@@ -4371,7 +4965,14 @@ GFBuildingWP.prototype.PlacementCallback = function(info, id) {
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
 		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
 		
-		this.mMovesLeft--;
+		if (this.mSuperMode == false) {
+			this.mMovesLeft--;
+		}
+		else {
+			nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1].SetActive(true);
+			nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1].mSuperMode = true;
+		}
+		
 		this.mMovesLeftSprite.SetCurrentFrame(2 - this.mMovesLeft);
 		
 		this.mUI.mShow = true;
@@ -4421,6 +5022,241 @@ GFBuildingWP.prototype.AdjustFog = function(mode) {
 // ...End
 
 
+// GFEUnitScout Class...
+// 
+function GFEUnitScout() {
+	this.mPos = new IVec2(0, 0);
+	
+	this.mSprite = new Sprite();
+	this.mBound = new Shape();
+	this.mShowBound = false;
+	
+	this.mActive = true;
+	this.mPlayerUnit = false;
+	
+	this.mMovesLeft = 2;
+	
+	this.mCurrentAction = "";
+}
+
+GFEUnitScout.prototype.SetUp = function(pos) {
+	this.mPos.Copy(pos);
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_enemyscout");
+		this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
+		this.mSprite.mOrigin.Set(0, 0);
+		this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
+		this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	}
+	
+	this.mBound.mOutline = true;
+	this.mBound.mColour = "#FF1111";
+	this.mBound.mDepth = -9999;
+	this.mBound.mAlpha = 1;
+	this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+	
+	this.mBound.AddPoint(new IVec2(32, 0));
+	this.mBound.AddPoint(new IVec2(32, 32));
+	this.mBound.AddPoint(new IVec2(0, 32));
+}
+
+GFEUnitScout.prototype.Process = function() {
+	this.mSprite.Process();
+}
+
+GFEUnitScout.prototype.SetActive = function(active) {
+	// if (this.mActive != active) {
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_u_enemyscout");
+		this.mActive = active;
+		
+		if (this.mActive == true) {
+			this.mMovesLeft = 2;
+			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
+		}
+		else {
+			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, -1, 4, 4, -1);
+		}
+	// }
+}
+
+GFEUnitScout.prototype.GetRender = function() {
+	var arr = new Array();
+	arr.push(this.mSprite);
+	if (this.mShowBound == true) {
+		arr.push(this.mBound);
+	}
+	
+	return arr;
+}
+
+GFEUnitScout.prototype.PerformAIAction = function() {
+	if (this.mCurrentAction == "FindUnit") {
+		this.FindUnit();
+	}
+	
+	this.mMovesLeft--;
+}
+
+GFEUnitScout.prototype.FindUnit = function() {	
+	// the scout will travel down (and to an extent across) the map attempting to locate a player's unit
+	// to follow and provide scouting information
+	
+	// responses
+	// FollowUnit(): a unit was found so now we attempt to follow it
+	// FindUnit(): we haven't yet found a unit so keep trying
+	// ReturnToBase(): we didn't find a unit and we reached the bottom of the map so return to base (top)
+	
+	var moveAmount = 3;
+	
+	var as = new AStar();
+	as.SetUp(nmgrs.sceneMan.mCurrScene.mMap.mMapSize);
+	for (var i = 0; i < nmgrs.sceneMan.mCurrScene.mMap.mMapTiles.length; ++i) {
+		as.mMap[i].mValid = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[i].mFree;
+	}
+	
+	var path = new Array();
+	var start = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+	var end = nmgrs.sceneMan.mCurrScene.mMap.PosToID(new IVec2(nmgrs.sceneMan.mCurrScene.mMap.mRand.GetRandInt(0, nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX - 1), nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY - 1));
+	path = as.FindPath(start, end);
+	
+	var id = (path.length - 1) - moveAmount;
+	
+	// if not true then we can't even move 1 tile!
+	if (path.length > 1) {
+		if (id < 0) {
+			id = path.length - 1;
+		}
+		
+		id = path[id];
+		
+		{ // move this
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mFree = true;
+			var oldID = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mEntityID;
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mEntityID = -1;
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = oldID;
+			this.mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+			
+			this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+			this.mSprite.mDepth = -500 - id;
+			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+		}
+	}
+
+	this.mCurrentAction = "FindUnit";
+}
+// ...End
+
+
+// GFEBuildingSP Class...
+// 
+function GFEBuildingSP() {
+	this.mPos = new IVec2(0, 0);
+	
+	this.mSprite = new Sprite();
+	this.mBound = new Shape();
+	this.mShowBound = false;
+	
+	this.mActive = true;
+	this.mPlayerUnit = false;
+	
+	this.mMovesLeft = 1;
+	
+	this.mCurrentAction = "";
+	this.mTurnsUntilSpawn = 0;
+}
+
+GFEBuildingSP.prototype.Type = function() {
+	return "GFEBuildingSP";
+};
+
+GFEBuildingSP.prototype.SetUp = function(pos) {
+	this.mPos.Copy(pos);
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_b_enemyscoutprod");
+		this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
+		this.mSprite.mOrigin.Set(16, 20);
+		this.mSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
+		this.mSprite.mDepth = -500 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	}
+	
+	this.mBound.mOutline = true;
+	this.mBound.mColour = "#FF1111";
+	this.mBound.mDepth = -9999;
+	this.mBound.mAlpha = 1;
+	this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+	
+	this.mBound.AddPoint(new IVec2(64, 0));
+	this.mBound.AddPoint(new IVec2(64, 64));
+	this.mBound.AddPoint(new IVec2(0, 64));
+	
+	this.mTurnsUntilSpawn = nmgrs.sceneMan.mCurrScene.mMap.mRand.GetRandInt(1, 3);
+}
+
+GFEBuildingSP.prototype.Process = function() {
+	this.mSprite.Process();
+}
+
+GFEBuildingSP.prototype.SetActive = function(active) {
+	// if (this.mActive != active) {
+		var tex = nmgrs.resMan.mTexStore.GetResource("unit_b_enemyscoutprod");
+		this.mActive = active;
+		
+		if (this.mActive == true) {
+			this.mMovesLeft = 1;
+			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, 14 / nmain.game.mFrameLimit, 0, 3, -1);
+		}
+		else {
+			this.mSprite.SetAnimatedTextureSegment(tex, 8, 4, -1, 4, 4, -1);
+		}
+	// }
+}
+
+GFEBuildingSP.prototype.GetRender = function() {
+	var arr = new Array();
+	arr.push(this.mSprite);
+	if (this.mShowBound == true) {
+		arr.push(this.mBound);
+	}
+	
+	return arr;
+}
+
+GFEBuildingSP.prototype.PerformAIAction = function() {
+	if (this.mTurnsUntilSpawn == 0) {
+		var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos) + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * 2);
+		
+		if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == true) {
+			var scout = new GFEUnitScout();
+			scout.SetUp(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+			scout.SetActive(false);
+			scout.mCurrentAction = "FindUnit";
+			nmgrs.sceneMan.mCurrScene.mGameEntities.push(scout);
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
+		}
+		else if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1].mFree == true) {
+			var scout = new GFEUnitScout();
+			scout.SetUp(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id + 1));
+			scout.SetActive(false);
+			scout.mCurrentAction = "FindUnit";
+			nmgrs.sceneMan.mCurrScene.mGameEntities.push(scout);
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1].mFree = false;
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
+		}
+		
+		this.mTurnsUntilSpawn = nmgrs.sceneMan.mCurrScene.mMap.mRand.GetRandInt(1, 3);
+	}
+	else {
+		this.mTurnsUntilSpawn--;
+		this.mMovesLeft--;
+	}
+}
+// ...End
+
+
 // GFGameUI Class...
 // 
 function GFGameUI() {
@@ -4431,13 +5267,12 @@ function GFGameUI() {
 	this.mTurnSprite = new Sprite();
 	
 	this.mControlsText = new Text();
-	// this.mControlsTextHi = new Text();
-	// this.mControlsBack = new Shape();
 	
 	this.mEndTurnTapTextA = new Text();
-	// this.mEndTurnTapTextAHi = new Text();
 	this.mEndTurnTapTextB = new Text();
-	// this.mEndTurnTapTextBHi = new Text();
+	
+	this.mDebugInfo = new Text();
+	this.mShowDebug = false;
 }
 
 GFGameUI.prototype.SetUp = function(camera) {
@@ -4464,26 +5299,10 @@ GFGameUI.prototype.SetUp = function(camera) {
 	
 	{
 		this.mControlsText.mColour = "#EBEBEB";
-		this.mControlsText.mString = "Up and Down Arrows to scroll.\nDouble-tap E to end your turn.\nLeft Mouse Button to select a unit or UI option.\nMiddle Mouse Button to cancel.";
+		this.mControlsText.mString = "D to toggle debug mode (cheating!).\nUp and Down Arrows to scroll.\nDouble-tap E to end your turn.\nLeft Mouse Button to select a unit or UI option.\nMiddle Mouse Button to cancel.";
 		this.mControlsText.mDepth = -1000;
 		this.mControlsText.mShadow = true;
 		this.mControlsText.mPos.Set(camera.mTranslate.mX + 4, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.GetHeight() - 5);
-		
-		/* this.mControlsTextHi.mColour = "#000000";
-		this.mControlsTextHi.mString = "Up and Down Arrow to scroll.\nDouble-tap E to end your turn.";
-		this.mControlsTextHi.mDepth = -999;
-		this.mControlsTextHi.mPos.Set(camera.mTranslate.mX + 5, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.mHeight - 6); */
-		
-		/* this.mControlsBack.mColour = "#000000";
-		this.mControlsBack.mDepth = -998;
-		this.mControlsBack.mAlpha = 0.9;
-		this.mControlsBack.mPos.Set(camera.mTranslate.mX + 2, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - (this.mControlsText.mHeight * 2) - 4);
-		
-		var textWidth = this.mControlsText.GetWidth();
-		var textHeight = this.mControlsText.GetHeight() * 2;
-		this.mControlsBack.AddPoint(new IVec2(textWidth + 4, 0));
-		this.mControlsBack.AddPoint(new IVec2(textWidth + 4, textHeight + 2));
-		this.mControlsBack.AddPoint(new IVec2(0, textHeight + 2)); */
 	}
 	
 	{
@@ -4494,26 +5313,20 @@ GFGameUI.prototype.SetUp = function(camera) {
 		this.mEndTurnTapTextA.mShadow = true;
 		this.mEndTurnTapTextA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 12);
 		
-		/* this.mEndTurnTapTextAHi.mColour = "#000000";
-		this.mEndTurnTapTextAHi.SetFontName("sans-serif");
-		this.mEndTurnTapTextAHi.SetFontSize(12);
-		this.mEndTurnTapTextAHi.mString = "Press E Again To";
-		this.mEndTurnTapTextAHi.mDepth = -1999;
-		this.mEndTurnTapTextAHi.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2) + 1, camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 13); */
-		
 		this.mEndTurnTapTextB.SetFontName("sans-serif");
 		this.mEndTurnTapTextB.SetFontSize(32);
 		this.mEndTurnTapTextB.mString = "CONFIRM END TURN";
 		this.mEndTurnTapTextB.mDepth = -2000;
 		this.mEndTurnTapTextB.mShadow = true;
 		this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 12);
-		
-		/* this.mEndTurnTapTextBHi.mColour = "#000000";
-		this.mEndTurnTapTextBHi.SetFontName("sans-serif");
-		this.mEndTurnTapTextBHi.SetFontSize(32);
-		this.mEndTurnTapTextBHi.mString = "CONFIRM";
-		this.mEndTurnTapTextBHi.mDepth = -1999;
-		this.mEndTurnTapTextBHi.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2) + 1, camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 13); */
+	}
+	
+	{
+		this.mDebugInfo.mColour = "#EBEBEB";
+		this.mDebugInfo.mString = "FPS (Framelimit): " + Math.round(nmain.game.mFPS) + " (" + nmain.game.mFrameLimit + ")";
+		this.mDebugInfo.mDepth = -10000;
+		this.mDebugInfo.mShadow = true;
+		this.mDebugInfo.mPos.Set(camera.mTranslate.mX + 72, camera.mTranslate.mY + this.mDebugInfo.GetHeight());
 	}
 }
 
@@ -4523,18 +5336,18 @@ GFGameUI.prototype.Input = function(camera) {
 	this.mArrowDownSprite.mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 46, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
 	
 	this.mControlsText.mPos.Set(camera.mTranslate.mX + 4, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.GetHeight() - 5);
-	// this.mControlsTextHi.mPos.Set(camera.mTranslate.mX + 5, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.mHeight - 6);
-	// this.mControlsBack.mPos.Set(camera.mTranslate.mX + 2, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - (this.mControlsText.mHeight * 2) - 4);
 	
 	this.mEndTurnTapTextA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 12);
-	// this.mEndTurnTapTextAHi.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2) + 1, camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 13);
 	this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 12);
-	// this.mEndTurnTapTextBHi.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2) + 1, camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 13);
+	
+	this.mDebugInfo.mPos.Set(camera.mTranslate.mX + 72, camera.mTranslate.mY + this.mDebugInfo.GetHeight());
 }
 
 GFGameUI.prototype.Process = function() {
 	this.mArrowUpSprite.Process();
 	this.mArrowDownSprite.Process();
+	
+	this.mDebugInfo.mString = "FPS (Framelimit): " + Math.round(nmain.game.mFPS) + " (" + nmain.game.mFrameLimit + ")";
 }
 
 GFGameUI.prototype.Render = function(camera, turn, mapSize) {
@@ -4551,15 +5364,15 @@ GFGameUI.prototype.Render = function(camera, turn, mapSize) {
 		}
 	}
 	
-	// this.mDynamicUIBatch.AddShape(this.mControlsBack);
 	this.mDynamicUIBatch.AddText(this.mControlsText);
-	// this.mDynamicUIBatch.AddText(this.mControlsTextHi);
 	
 	if (nmgrs.sceneMan.mCurrScene.mEndPlayerTurn > 0) {
 		this.mDynamicUIBatch.AddText(this.mEndTurnTapTextA);
 		this.mDynamicUIBatch.AddText(this.mEndTurnTapTextB);
-		// this.mDynamicUIBatch.AddText(this.mEndTurnTapTextAHi);
-		// this.mDynamicUIBatch.AddText(this.mEndTurnTapTextBHi);
+	}
+	
+	if (this.mShowDebug == true) {
+		this.mDynamicUIBatch.AddText(this.mDebugInfo);
 	}
 	
 	this.mDynamicUIBatch.Render(camera);
