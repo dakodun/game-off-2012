@@ -11,6 +11,8 @@ function GFMapTile(pos) {
 	
 	this.mFogSprite = new Sprite();
 	this.mFog = 0;
+	
+	this.mBlankTile = true;
 };
 // ...End
 
