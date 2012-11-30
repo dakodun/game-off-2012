@@ -75,25 +75,26 @@ GFEBuildingSP.prototype.GetRender = function() {
 
 GFEBuildingSP.prototype.PerformAIAction = function() {
 	if (this.mTurnsUntilSpawn == 0) {
-		var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos) + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * 2);
-		
-		if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == true) {
-			var scout = new GFEUnitScout();
-			scout.SetUp(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
-			scout.SetActive(false);
-			scout.mCurrentAction = "FindUnit";
-			nmgrs.sceneMan.mCurrScene.mGameEntities.push(scout);
-			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
-			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
-		}
-		else if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1].mFree == true) {
-			var scout = new GFEUnitScout();
-			scout.SetUp(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id + 1));
-			scout.SetActive(false);
-			scout.mCurrentAction = "FindUnit";
-			nmgrs.sceneMan.mCurrScene.mGameEntities.push(scout);
-			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1].mFree = false;
-			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
+		if (nmgrs.sceneMan.mCurrScene.mScoutCount < 6) {
+			var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos) + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * 2);
+			
+			if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == false) {
+				id++;
+				if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == false) {
+					id = -1;
+				}
+			}
+			
+			if (id > 0) {
+				var scout = new GFEUnitScout();
+				scout.SetUp(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+				scout.SetActive(false);
+				scout.mCurrentAction = "FindUnit";
+				nmgrs.sceneMan.mCurrScene.mGameEntities.push(scout);
+				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = nmgrs.sceneMan.mCurrScene.mGameEntities.length - 1;
+				nmgrs.sceneMan.mCurrScene.mScoutCount++;
+			}
 		}
 		
 		this.mTurnsUntilSpawn = nmgrs.sceneMan.mCurrScene.mMap.mRand.GetRandInt(1, 3);
@@ -101,6 +102,45 @@ GFEBuildingSP.prototype.PerformAIAction = function() {
 	else {
 		this.mTurnsUntilSpawn--;
 		this.mMovesLeft--;
+	}
+}
+
+//
+GFEBuildingSP.prototype.DestroyUnit = function() {
+	this.SetActive(false);
+	this.mSelected = false;
+	
+	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+	var entID = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID;
+	
+	nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = true;
+	nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1].mFree = true;
+	nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mFree = true;
+	nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX + 1].mFree = true;
+	nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = -1;
+	nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1].mEntityID = -1;
+	nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mEntityID = -1;
+	nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX + 1].mEntityID = -1;
+	nmgrs.sceneMan.mCurrScene.mGameEntities.splice(entID, 1);
+	
+	for (var i = entID; i < nmgrs.sceneMan.mCurrScene.mGameEntities.length; ++i) {
+		var nid = nmgrs.sceneMan.mCurrScene.mMap.PosToID(nmgrs.sceneMan.mCurrScene.mGameEntities[i].mPos);
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nid].mEntityID = i;
+		
+		if (nmgrs.sceneMan.mCurrScene.mGameEntities[i].Type() == "GFBuildingWP" ||
+				nmgrs.sceneMan.mCurrScene.mGameEntities[i].Type() == "GFEBuildingSP" ||
+				nmgrs.sceneMan.mCurrScene.mGameEntities[i].Type() == "GFEBuildingIC") {
+			
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nid + 1].mEntityID = i;
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nid + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mEntityID = i;
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nid + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX + 1].mEntityID = i;
+		}
+	}
+	
+	nmgrs.sceneMan.mCurrScene.mEnemyLife--;
+	
+	if (nmgrs.sceneMan.mCurrScene.mSelectID == entID) {
+		nmgrs.sceneMan.mCurrScene.mSelectID = -1;
 	}
 }
 // ...End
