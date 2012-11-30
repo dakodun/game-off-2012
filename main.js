@@ -1729,6 +1729,7 @@ InitScene.prototype.SetUp = function() {
 		nmgrs.resLoad.QueueTexture("turn_1", "./res/vis/turn_1.png");
 		nmgrs.resLoad.QueueTexture("turn_2", "./res/vis/turn_2.png");
 		nmgrs.resLoad.QueueTexture("endturn", "./res/vis/endturn.png");
+		nmgrs.resLoad.QueueTexture("cancel", "./res/vis/cancel.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_up", "./res/vis/gui_arrow_up.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_down", "./res/vis/gui_arrow_down.png");
 		nmgrs.resLoad.QueueTexture("gui_moves", "./res/vis/gui_moves.png");
@@ -6059,6 +6060,8 @@ function GFGameUI() {
 	this.mEndTurnTapTextA = new Text();
 	this.mEndTurnTapTextB = new Text();
 	
+	this.mCancelSprite = new Sprite();
+	
 	this.mDebugInfo = new Text();
 	this.mShowDebug = false;
 }
@@ -6116,6 +6119,13 @@ GFGameUI.prototype.SetUp = function(camera) {
 	}
 	
 	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("cancel");
+		this.mCancelSprite.SetTexture(tex);
+		this.mCancelSprite.mPos.Set(camera.mTranslate.mX, camera.mTranslate.mY + 64);
+		this.mCancelSprite.mDepth = -1000;
+	}
+	
+	{
 		this.mDebugInfo.mColour = "#EBEBEB";
 		this.mDebugInfo.mString = "FPS (Framelimit): " + Math.round(nmain.game.mFPS) + " (" + nmain.game.mFrameLimit + ")\n" +
 				"Map Seed: " + nmgrs.sceneMan.mCurrScene.mMap.mRand.GetSeed();
@@ -6126,13 +6136,13 @@ GFGameUI.prototype.SetUp = function(camera) {
 }
 
 GFGameUI.prototype.Input = function() {
+	// the mouse cursor position offset by the current camera (view)
+	var pt = new IVec2(0, 0);
+	pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
+	pt.mX += nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX; pt.mY += nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY;
+	
 	if (nmgrs.sceneMan.mCurrScene.mCanScroll == true) {
 		if (nmgrs.inputMan.GetMouseDown(nmouse.button.code.left)) {
-			// the mouse cursor position offset by the current camera (view)
-			var pt = new IVec2(0, 0);
-			pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
-			pt.mX += nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX; pt.mY += nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY;
-			
 			if (nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY > -24) {
 				// top left of the buttons boundbox
 				var tl = new IVec2(this.mArrowUpSprite.mPos.mX, this.mArrowUpSprite.mPos.mY);
@@ -6174,28 +6184,50 @@ GFGameUI.prototype.Input = function() {
 	}
 	
 	if (nmgrs.inputMan.GetMousePressed(nmouse.button.code.left)) {
-		// top left of the buttons boundbox
-		var tl = new IVec2(this.mEndTurnSprite.mPos.mX, this.mEndTurnSprite.mPos.mY);
-		
-		// bottom right of the buttons boundbox
-		var br = new IVec2(this.mEndTurnSprite.mPos.mX + this.mEndTurnSprite.GetWidth(),
-				this.mEndTurnSprite.mPos.mY + this.mEndTurnSprite.GetHeight());
-		
-		if (util.PointInRectangle(pt, tl, br) == true) {
-			if (nmgrs.sceneMan.mCurrScene.mEndPlayerTurn == 0) {
-				nmgrs.sceneMan.mCurrScene.mEndPlayerTurn = 100;
-				this.mEndTurnSprite.SetCurrentFrame(0);
-				
-				if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
-					nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mSelectID].SoftReset();
+		{
+			// top left of the buttons boundbox
+			var tl = new IVec2(this.mEndTurnSprite.mPos.mX, this.mEndTurnSprite.mPos.mY);
+			
+			// bottom right of the buttons boundbox
+			var br = new IVec2(this.mEndTurnSprite.mPos.mX + this.mEndTurnSprite.GetWidth(),
+					this.mEndTurnSprite.mPos.mY + this.mEndTurnSprite.GetHeight());
+			
+			if (util.PointInRectangle(pt, tl, br) == true) {
+				if (nmgrs.sceneMan.mCurrScene.mEndPlayerTurn == 0) {
+					nmgrs.sceneMan.mCurrScene.mEndPlayerTurn = 100;
+					this.mEndTurnSprite.SetCurrentFrame(0);
+					
+					if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
+						nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mSelectID].SoftReset();
+					}
+				}
+				else {
+					nmgrs.sceneMan.mCurrScene.mEndPlayerTurn = 0;
+					this.mEndTurnSprite.SetCurrentFrame(1);
+					nmgrs.sceneMan.mCurrScene.mTurn = 2;
+					
+					this.SwitchTurn(1);
 				}
 			}
-			else {
-				nmgrs.sceneMan.mCurrScene.mEndPlayerTurn = 0;
-				this.mEndTurnSprite.SetCurrentFrame(1);
-				nmgrs.sceneMan.mCurrScene.mTurn = 2;
+		}
+		
+		{
+			// top left of the buttons boundbox
+			var tl = new IVec2(this.mCancelSprite.mPos.mX, this.mCancelSprite.mPos.mY);
+			
+			// bottom right of the buttons boundbox
+			var br = new IVec2(this.mCancelSprite.mPos.mX + this.mCancelSprite.GetWidth(),
+					this.mCancelSprite.mPos.mY + this.mCancelSprite.GetHeight());
+			
+			if (util.PointInRectangle(pt, tl, br) == true) {
+				nmgrs.sceneMan.mCurrScene.TogglePlacementMode(false);
 				
-				this.SwitchTurn(1);
+				if (nmgrs.sceneMan.mCurrScene.mSelectID >= 0) {
+					nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mSelectID].mSelected = false;
+					nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mSelectID].mUI.mShow = true;
+					nmgrs.sceneMan.mCurrScene.mGameEntities[nmgrs.sceneMan.mCurrScene.mSelectID].SoftReset();
+					nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+				}
 			}
 		}
 	}
@@ -6206,6 +6238,7 @@ GFGameUI.prototype.Process = function() {
 	this.mArrowDownSprite.Process();
 	
 	this.mEndTurnSprite.mPos.Set(nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX, nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY);
+	this.mCancelSprite.mPos.Set(nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mX, nmgrs.sceneMan.mCurrScene.mCam.mTranslate.mY + 64);
 	
 	this.mDebugInfo.mString = "FPS (Framelimit): " + Math.round(nmain.game.mFPS) + " (" + nmain.game.mFrameLimit + ")\n" +
 			"Map Seed: " + nmgrs.sceneMan.mCurrScene.mMap.mRand.GetSeed();
@@ -6228,6 +6261,7 @@ GFGameUI.prototype.Render = function(camera, turn, mapSize) {
 	// this.mDynamicUIBatch.AddText(this.mControlsText);
 	if (nmgrs.sceneMan.mCurrScene.mTurn == 1) {
 		this.mDynamicUIBatch.AddSprite(this.mEndTurnSprite);
+		this.mDynamicUIBatch.AddSprite(this.mCancelSprite);
 	}
 	
 	if (nmgrs.sceneMan.mCurrScene.mEndPlayerTurn > 0) {
