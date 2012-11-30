@@ -25,6 +25,7 @@ InitScene.prototype.SetUp = function() {
 		nmgrs.resLoad.QueueTexture("turn_1", "./res/vis/turn_1.png");
 		nmgrs.resLoad.QueueTexture("turn_2", "./res/vis/turn_2.png");
 		nmgrs.resLoad.QueueTexture("endturn", "./res/vis/endturn.png");
+		nmgrs.resLoad.QueueTexture("cancel", "./res/vis/cancel.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_up", "./res/vis/gui_arrow_up.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_down", "./res/vis/gui_arrow_down.png");
 		nmgrs.resLoad.QueueTexture("gui_moves", "./res/vis/gui_moves.png");
