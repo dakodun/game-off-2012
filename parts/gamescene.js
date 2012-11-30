@@ -23,6 +23,8 @@ function GameScene() {
 	
 	this.mEnemyLife = 0;
 	this.mPlayerLife = 0;
+	this.mGameEnd = false;
+	this.mGameEndSprite = new Sprite();
 	
 	this.mPlacementMode = false;
 	this.mPlacementBounds = new Array();
@@ -73,133 +75,143 @@ GameScene.prototype.TearDown = function() {
 
 // handles user input
 GameScene.prototype.Input = function() {
-	if (this.mTurn == 1) { // if it is the player's turn
-		{
-			if (this.mCanScroll == true) {
-				if (this.mCam.mTranslate.mY > -24) {
-					if (nmgrs.inputMan.GetKeyboardDown(nkeyboard.key.code.up)) {
-						this.mCam.mTranslate.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY - 2);
-						
-						this.mGameUI.UpdateUI(this.mCam);
-						
-						if (this.mSelectID >= 0) {
-							this.mGameEntities[this.mSelectID].UpdateUI(this.mCam);
+	if (this.mGameEnd == false) {
+		if (this.mTurn == 1) { // if it is the player's turn
+			{
+				if (this.mCanScroll == true) {
+					if (this.mCam.mTranslate.mY > -24) {
+						if (nmgrs.inputMan.GetKeyboardDown(nkeyboard.key.code.up)) {
+							this.mCam.mTranslate.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY - 2);
+							
+							this.mGameUI.UpdateUI(this.mCam);
+							
+							if (this.mSelectID >= 0) {
+								this.mGameEntities[this.mSelectID].UpdateUI(this.mCam);
+							}
+						}
+					}
+					
+					if (this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY < (this.mMap.mMapSize.mY * 32) + 24) {
+						if (nmgrs.inputMan.GetKeyboardDown(nkeyboard.key.code.down)) {
+							this.mCam.mTranslate.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY + 2);
+							
+							this.mGameUI.UpdateUI(this.mCam);
+							
+							if (this.mSelectID >= 0) {
+								this.mGameEntities[this.mSelectID].UpdateUI(this.mCam);
+							}
 						}
 					}
 				}
 				
-				if (this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY < (this.mMap.mMapSize.mY * 32) + 24) {
-					if (nmgrs.inputMan.GetKeyboardDown(nkeyboard.key.code.down)) {
-						this.mCam.mTranslate.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY + 2);
-						
-						this.mGameUI.UpdateUI(this.mCam);
+				if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.d)) {
+					// this.mDebug.mActive = !this.mDebug.mActive;
+					this.mDebug.ToggleDebug();
+				}
+				
+				if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.e)) {
+					if (this.mEndPlayerTurn == 0) {
+						this.mEndPlayerTurn = 100;
+						this.mGameUI.mEndTurnSprite.SetCurrentFrame(0);
 						
 						if (this.mSelectID >= 0) {
-							this.mGameEntities[this.mSelectID].UpdateUI(this.mCam);
+							this.mGameEntities[this.mSelectID].SoftReset();
 						}
+					}
+					else {
+						this.mEndPlayerTurn = 0;
+						this.mGameUI.mEndTurnSprite.SetCurrentFrame(1);
+						this.mTurn = 2;
+						
+						this.mGameUI.SwitchTurn(1);
 					}
 				}
 			}
 			
-			if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.d)) {
-				// this.mDebug.mActive = !this.mDebug.mActive;
-				this.mDebug.ToggleDebug();
-			}
-			
-			if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.e)) {
-				if (this.mEndPlayerTurn == 0) {
-					this.mEndPlayerTurn = 100;
-					this.mGameUI.mEndTurnSprite.SetCurrentFrame(0);
+			if (nmgrs.inputMan.GetMousePressed(nmouse.button.code.left)) {
+				this.mDebug.Input();
+				
+				// check if we are in placement mode or not
+				if (this.mPlacementMode == true) {
+					// the mouse cursor position offset by the current camera (view)
+					var pt = new IVec2(0, 0);
+					pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
+					pt.mX += this.mCam.mTranslate.mX; pt.mY += this.mCam.mTranslate.mY;
 					
-					if (this.mSelectID >= 0) {
-						this.mGameEntities[this.mSelectID].SoftReset();
+					for (var i = 0; i < this.mPlacementBounds.length; i += 2) {
+						if (util.PointInRectangle(pt, this.mPlacementBounds[i], this.mPlacementBounds[i + 1]) == true) {
+							var pos = new IVec2();
+							pos.Set(this.mPlacementBounds[i].mX / 32, this.mPlacementBounds[i].mY / 32);
+							this.mGameEntities[this.mSelectID].PlacementCallback(this.mGameEntities[this.mSelectID].mPlacementInfo, this.mMap.PosToID(pos));
+						}
 					}
 				}
 				else {
-					this.mEndPlayerTurn = 0;
-					this.mGameUI.mEndTurnSprite.SetCurrentFrame(1);
-					this.mTurn = 2;
+					var uiClick = false;
 					
-					this.mGameUI.SwitchTurn(1);
-				}
-			}
-		}
-		
-		if (nmgrs.inputMan.GetMousePressed(nmouse.button.code.left)) {
-			this.mDebug.Input();
-			
-			// check if we are in placement mode or not
-			if (this.mPlacementMode == true) {
-				// the mouse cursor position offset by the current camera (view)
-				var pt = new IVec2(0, 0);
-				pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
-				pt.mX += this.mCam.mTranslate.mX; pt.mY += this.mCam.mTranslate.mY;
-				
-				for (var i = 0; i < this.mPlacementBounds.length; i += 2) {
-					if (util.PointInRectangle(pt, this.mPlacementBounds[i], this.mPlacementBounds[i + 1]) == true) {
-						var pos = new IVec2();
-						pos.Set(this.mPlacementBounds[i].mX / 32, this.mPlacementBounds[i].mY / 32);
-						this.mGameEntities[this.mSelectID].PlacementCallback(this.mGameEntities[this.mSelectID].mPlacementInfo, this.mMap.PosToID(pos));
+					if (this.mSelectID >= 0) {
+						uiClick = this.mGameEntities[this.mSelectID].ProcessUI(this.mCam);
+					}
+					
+					// ui clicks take precedence over unit clicks - this handles any overlap between the elements
+					if (uiClick == false) {
+						this.OnEntityClick(uiClick);
 					}
 				}
 			}
-			else {
-				var uiClick = false;
+			else if (nmgrs.inputMan.GetMousePressed(nmouse.button.code.middle)) {
+				this.TogglePlacementMode(false);
 				
 				if (this.mSelectID >= 0) {
-					uiClick = this.mGameEntities[this.mSelectID].ProcessUI(this.mCam);
-				}
-				
-				// ui clicks take precedence over unit clicks - this handles any overlap between the elements
-				if (uiClick == false) {
-					this.OnEntityClick(uiClick);
+					this.mGameEntities[this.mSelectID].mSelected = false;
+					this.mGameEntities[this.mSelectID].mUI.mShow = true;
+					this.mGameEntities[this.mSelectID].SoftReset();
+					this.mSelectID = -1;
 				}
 			}
-		}
-		else if (nmgrs.inputMan.GetMousePressed(nmouse.button.code.middle)) {
-			this.TogglePlacementMode(false);
 			
-			if (this.mSelectID >= 0) {
-				this.mGameEntities[this.mSelectID].mSelected = false;
-				this.mGameEntities[this.mSelectID].mUI.mShow = true;
-				this.mGameEntities[this.mSelectID].SoftReset();
-				this.mSelectID = -1;
-			}
+			this.mGameUI.Input();
 		}
-		
-		this.mGameUI.Input();
 	}
 }
 
 // handles game logic
 GameScene.prototype.Process = function() {
-	if (this.mPlayerLife == 0) {
-		alert("player loses");
-		// create end situation
-		// set end var to true
-		// allow restart
-	}
-	else if (this.mEnemyLife == 0) {
-		alert("enemy loses");
-		// create end situation
-		// set end var to true
-		// allow restart
-	}
-	
-	this.mDebug.Process();
-	this.HandleTurns();
-	this.mGameUI.Process();
-	
-	for (var i = 0; i < this.mMap.mMapTiles.length; ++i) {
-		this.mMap.mMapTiles[i].mFogSprite.Process();
-	}
-	
-	for (var i = 0; i < this.mGameEntities.length; ++i) {
-		this.mGameEntities[i].Process();
-	}
-	
-	for (var i = 0; i < this.mPlacementHighlight.length; ++i) {
-		this.mPlacementHighlight[i].Process();
+	if (this.mGameEnd == false) {
+		if (this.mPlayerLife == 0) {
+			this.mGameEnd = true;
+			
+			var tex = nmgrs.resMan.mTexStore.GetResource("lose");
+			this.mGameEndSprite.SetTexture(tex);
+			this.mGameEndSprite.mPos.Set(this.mCam.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mGameEndSprite.GetWidth() / 2),
+					this.mCam.mTranslate.mY + (nmain.game.mCanvasSize.mY / 2) - (this.mGameEndSprite.GetHeight() / 2));
+			this.mGameEndSprite.mDepth = -500;
+		}
+		else if (this.mEnemyLife == 0) {
+			this.mGameEnd = true;
+			
+			var tex = nmgrs.resMan.mTexStore.GetResource("won");
+			this.mGameEndSprite.SetTexture(tex);
+			this.mGameEndSprite.mPos.Set(this.mCam.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mGameEndSprite.GetWidth() / 2),
+					this.mCam.mTranslate.mY + (nmain.game.mCanvasSize.mY / 2) - (this.mGameEndSprite.GetHeight() / 2));
+			this.mGameEndSprite.mDepth = -500;
+		}
+		
+		this.mDebug.Process();
+		this.HandleTurns();
+		this.mGameUI.Process();
+		
+		for (var i = 0; i < this.mMap.mMapTiles.length; ++i) {
+			this.mMap.mMapTiles[i].mFogSprite.Process();
+		}
+		
+		for (var i = 0; i < this.mGameEntities.length; ++i) {
+			this.mGameEntities[i].Process();
+		}
+		
+		for (var i = 0; i < this.mPlacementHighlight.length; ++i) {
+			this.mPlacementHighlight[i].Process();
+		}
 	}
 }
 
@@ -208,37 +220,44 @@ GameScene.prototype.Render = function() {
 	nmain.game.SetIdentity();
 	this.mCam.Apply();
 	
-	this.mMap.mMapBatch.Render(this.mCam);
-	
-	{
-		var arr = new Array();
-		for (var i = 0; i < this.mGameEntities.length; ++i) {
-			arr = arr.concat(this.mGameEntities[i].GetRender());
+	if (this.mGameEnd == false) {
+		this.mMap.mMapBatch.Render(this.mCam);
+		
+		{
+			var arr = new Array();
+			for (var i = 0; i < this.mGameEntities.length; ++i) {
+				arr = arr.concat(this.mGameEntities[i].GetRender());
+			}
+			
+			arr = arr.concat(this.mPlacementHighlight);
+			arr = arr.concat(this.mMap.GetRender());
+			
+			this.mUnitBatch.Clear();
+			
+			for (var i = 0; i < arr.length; ++i) {
+				if (arr[i].Type() == "Sprite") {
+					this.mUnitBatch.AddSprite(arr[i]);
+				}
+				else if (arr[i].Type() == "Text") {
+					this.mUnitBatch.AddText(arr[i]);
+				}
+				else if (arr[i].Type() == "Shape") {
+					this.mUnitBatch.AddShape(arr[i]);
+				}
+			}
+			
+			this.mUnitBatch.Render(this.mCam);
 		}
 		
-		arr = arr.concat(this.mPlacementHighlight);
-		arr = arr.concat(this.mMap.GetRender());
-		
-		this.mUnitBatch.Clear();
-		
-		for (var i = 0; i < arr.length; ++i) {
-			if (arr[i].Type() == "Sprite") {
-				this.mUnitBatch.AddSprite(arr[i]);
-			}
-			else if (arr[i].Type() == "Text") {
-				this.mUnitBatch.AddText(arr[i]);
-			}
-			else if (arr[i].Type() == "Shape") {
-				this.mUnitBatch.AddShape(arr[i]);
-			}
+		{
+			this.mGameUI.Render(this.mCam, this.mTurn, this.mMap.mMapSize.mY);
+			this.mDebug.Render();
 		}
-		
-		this.mUnitBatch.Render(this.mCam);
 	}
-	
-	{
-		this.mGameUI.Render(this.mCam, this.mTurn, this.mMap.mMapSize.mY);
-		this.mDebug.Render();
+	else {
+		this.mUnitBatch.Clear();
+		this.mUnitBatch.AddSprite(this.mGameEndSprite);
+		this.mUnitBatch.Render(this.mCam);
 	}
 }
 
@@ -498,6 +517,7 @@ GameScene.prototype.SetUpEnemyUnits = function() {
 		var pos = new IVec2(0, 0);
 		
 		eScoutProd.SetUp(pos);
+		eScoutProd.AdjustFog(1);
 		
 		this.mGameEntities.push(eScoutProd);
 		
@@ -523,6 +543,7 @@ GameScene.prototype.SetUpEnemyUnits = function() {
 		var pos = new IVec2(this.mMap.mMapSize.mX - 2, 0);
 		
 		eIonCan.SetUp(pos);
+		eIonCan.AdjustFog(1);
 		
 		this.mGameEntities.push(eIonCan);
 		
