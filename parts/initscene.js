@@ -20,9 +20,11 @@ InitScene.prototype.SetUp = function() {
 		// load the textures we need
 		nmgrs.resLoad.QueueTexture("tile_set_default", "./res/vis/tile_set_default.png");
 		nmgrs.resLoad.QueueTexture("tile_hilite", "./res/vis/tile_hilite.png");
+		nmgrs.resLoad.QueueTexture("tile_hilite_fire", "./res/vis/tile_hilite_fire.png");
 		
 		nmgrs.resLoad.QueueTexture("turn_1", "./res/vis/turn_1.png");
 		nmgrs.resLoad.QueueTexture("turn_2", "./res/vis/turn_2.png");
+		nmgrs.resLoad.QueueTexture("endturn", "./res/vis/endturn.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_up", "./res/vis/gui_arrow_up.png");
 		nmgrs.resLoad.QueueTexture("gui_arrow_down", "./res/vis/gui_arrow_down.png");
 		nmgrs.resLoad.QueueTexture("gui_moves", "./res/vis/gui_moves.png");
@@ -38,6 +40,7 @@ InitScene.prototype.SetUp = function() {
 		nmgrs.resLoad.QueueTexture("gui_arty", "./res/vis/gui_arty.png");
 		nmgrs.resLoad.QueueTexture("arty_firezone", "./res/vis/arty_firezone.png");
 		
+		nmgrs.resLoad.QueueTexture("unit_b_enemyion", "./res/vis/unit_b_enemyion.png");
 		nmgrs.resLoad.QueueTexture("unit_b_enemyscoutprod", "./res/vis/unit_b_enemyscoutprod.png");
 		nmgrs.resLoad.QueueTexture("unit_u_enemyscout", "./res/vis/unit_u_enemyscout.png");
 		
