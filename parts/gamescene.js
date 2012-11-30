@@ -19,6 +19,10 @@ function GameScene() {
 	this.mSelectID = -1;
 	this.mPusherCount = 0;
 	this.mPullerCount = 0;
+	this.mScoutCount = 0;
+	
+	this.mEnemyLife = 0;
+	this.mPlayerLife = 0;
 	
 	this.mPlacementMode = false;
 	this.mPlacementBounds = new Array();
@@ -59,7 +63,7 @@ GameScene.prototype.SetUp = function() {
 	this.SetUpPlayerUnits();
 	this.SetUpEnemyUnits();
 	this.mGameUI.SetUp(this.mCam);
-	this.mDebug.SetUp();
+	this.mDebug.SetUp(new IVec2(0, nmain.game.mCanvasSize.mY - 128));
 }
 
 // cleans up the scene object
@@ -70,49 +74,54 @@ GameScene.prototype.TearDown = function() {
 // handles user input
 GameScene.prototype.Input = function() {
 	if (this.mTurn == 1) { // if it is the player's turn
-		if (this.mCanScroll == true) {
-			if (this.mCam.mTranslate.mY > -24) {
-				if (nmgrs.inputMan.GetKeyboardDown(nkeyboard.key.code.up)) {
-					this.mCam.mTranslate.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY - 1);
-					
-					this.mGameUI.Input(this.mCam);
-					
-					if (this.mSelectID >= 0) {
-						this.mGameEntities[this.mSelectID].UpdateUI(this.mCam);
+		{
+			if (this.mCanScroll == true) {
+				if (this.mCam.mTranslate.mY > -24) {
+					if (nmgrs.inputMan.GetKeyboardDown(nkeyboard.key.code.up)) {
+						this.mCam.mTranslate.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY - 2);
+						
+						this.mGameUI.UpdateUI(this.mCam);
+						
+						if (this.mSelectID >= 0) {
+							this.mGameEntities[this.mSelectID].UpdateUI(this.mCam);
+						}
+					}
+				}
+				
+				if (this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY < (this.mMap.mMapSize.mY * 32) + 24) {
+					if (nmgrs.inputMan.GetKeyboardDown(nkeyboard.key.code.down)) {
+						this.mCam.mTranslate.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY + 2);
+						
+						this.mGameUI.UpdateUI(this.mCam);
+						
+						if (this.mSelectID >= 0) {
+							this.mGameEntities[this.mSelectID].UpdateUI(this.mCam);
+						}
 					}
 				}
 			}
 			
-			if (this.mCam.mTranslate.mY + nmain.game.mCanvasSize.mY < (this.mMap.mMapSize.mY * 32) + 24) {
-				if (nmgrs.inputMan.GetKeyboardDown(nkeyboard.key.code.down)) {
-					this.mCam.mTranslate.Set(this.mCam.mTranslate.mX, this.mCam.mTranslate.mY + 1);
-					
-					this.mGameUI.Input(this.mCam);
+			if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.d)) {
+				// this.mDebug.mActive = !this.mDebug.mActive;
+				this.mDebug.ToggleDebug();
+			}
+			
+			if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.e)) {
+				if (this.mEndPlayerTurn == 0) {
+					this.mEndPlayerTurn = 100;
+					this.mGameUI.mEndTurnSprite.SetCurrentFrame(0);
 					
 					if (this.mSelectID >= 0) {
-						this.mGameEntities[this.mSelectID].UpdateUI(this.mCam);
+						this.mGameEntities[this.mSelectID].SoftReset();
 					}
 				}
-			}
-		}
-		
-		if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.d)) {
-			this.mDebug.mActive = !this.mDebug.mActive;
-		}
-		
-		if (nmgrs.inputMan.GetKeyboardPressed(nkeyboard.key.code.e)) {
-			if (this.mEndPlayerTurn == 0) {
-				this.mEndPlayerTurn = 100;
-				
-				if (this.mSelectID >= 0) {
-					this.mGameEntities[this.mSelectID].SoftReset();
+				else {
+					this.mEndPlayerTurn = 0;
+					this.mGameUI.mEndTurnSprite.SetCurrentFrame(1);
+					this.mTurn = 2;
+					
+					this.mGameUI.SwitchTurn(1);
 				}
-			}
-			else {
-				this.mEndPlayerTurn = 0;
-				this.mTurn = 2;
-				
-				this.mGameUI.SwitchTurn(1);
 			}
 		}
 		
@@ -157,11 +166,26 @@ GameScene.prototype.Input = function() {
 				this.mSelectID = -1;
 			}
 		}
+		
+		this.mGameUI.Input();
 	}
 }
 
 // handles game logic
 GameScene.prototype.Process = function() {
+	if (this.mPlayerLife == 0) {
+		alert("player loses");
+		// create end situation
+		// set end var to true
+		// allow restart
+	}
+	else if (this.mEnemyLife == 0) {
+		alert("enemy loses");
+		// create end situation
+		// set end var to true
+		// allow restart
+	}
+	
 	this.mDebug.Process();
 	this.HandleTurns();
 	this.mGameUI.Process();
@@ -253,6 +277,10 @@ GameScene.prototype.HandleTurns = function() {
 	else if (this.mTurn == 1) { // process player turn
 		if (this.mEndPlayerTurn > 0) {
 			this.mEndPlayerTurn--;
+			
+			if (this.mEndPlayerTurn == 0) {
+				this.mGameUI.mEndTurnSprite.SetCurrentFrame(1);
+			}
 		}
 	}
 	else if (this.mTurn == 2) { // intermediate between player -> ai (for setup)
@@ -325,6 +353,10 @@ GameScene.prototype.OnEntityClick = function(uiClick) {
 						this.mGameEntities[i].mSelected = true; // select this
 						this.mGameEntities[i].UpdateUI(this.mCam);
 						this.mSelectID = i;
+						
+						if (this.mGameEntities[i].Type() == "GFUnitArtillery") {
+							this.mGameEntities[i].mShowFireZone = true;
+						}
 					}
 					
 					return true;
@@ -336,11 +368,11 @@ GameScene.prototype.OnEntityClick = function(uiClick) {
 	// if we reach here, then an unoccupied part of the map was clicked
 	
 	// if we have a selected entity, unselect it
-	if (this.mSelectID >= 0) {
+	/* if (this.mSelectID >= 0) {
 		this.mGameEntities[this.mSelectID].mSelected = false;
 		this.mGameEntities[this.mSelectID].SoftReset();
 		this.mSelectID = -1;
-	}
+	} */
 	
 	return false;
 }
@@ -435,7 +467,7 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		this.mPullerCount++;
 	}
 	
-	{
+	for (var i = 0; i < 2; ++i) {
 		var arty = new GFUnitArtillery();
 		
 		var id = this.mMap.mRand.GetRandInt(0, this.mMap.mBlueTiles.length - 1);
@@ -453,6 +485,8 @@ GameScene.prototype.SetUpPlayerUnits = function() {
 		
 		this.mMap.mMapTiles[notFreeID].mFree = false;
 		this.mMap.mMapTiles[notFreeID].mEntityID = this.mGameEntities.length - 1;
+		
+		this.mPlayerLife++;
 	}
 }
 
@@ -479,7 +513,34 @@ GameScene.prototype.SetUpEnemyUnits = function() {
 			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mEntityID = this.mGameEntities.length - 1;
 			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mEntityID = this.mGameEntities.length - 1;
 		}
-	}	
+		
+		this.mEnemyLife++;
+	}
+	
+	{
+		var eIonCan = new GFEBuildingIC();
+		
+		var pos = new IVec2(this.mMap.mMapSize.mX - 2, 0);
+		
+		eIonCan.SetUp(pos);
+		
+		this.mGameEntities.push(eIonCan);
+		
+		{
+			var notFreeID = this.mMap.PosToID(pos);
+			this.mMap.mMapTiles[notFreeID].mFree = false;
+			this.mMap.mMapTiles[notFreeID + 1].mFree = false;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mFree = false;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mFree = false;
+			
+			this.mMap.mMapTiles[notFreeID].mEntityID = this.mGameEntities.length - 1;
+			this.mMap.mMapTiles[notFreeID + 1].mEntityID = this.mGameEntities.length - 1;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX].mEntityID = this.mGameEntities.length - 1;
+			this.mMap.mMapTiles[notFreeID + this.mMap.mMapSize.mX + 1].mEntityID = this.mGameEntities.length - 1;
+		}
+		
+		this.mEnemyLife++;
+	}
 }
 // ...End
 
