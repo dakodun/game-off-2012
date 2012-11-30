@@ -73,7 +73,84 @@ GFEBuildingIC.prototype.GetRender = function() {
 }
 
 GFEBuildingIC.prototype.PerformAIAction = function() {
-	// fire on enemies!
+	var arr = new Array();
+	arr = this.CheckValidFire();
+	
+	var target = -1;
+	var priority = 0;
+	for (var i = 0; i < arr.length; ++i) {
+		var entID = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[arr[i]].mEntityID;
+		var aiFog = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[arr[i]].mAIFog;
+		
+		if (nmgrs.sceneMan.mCurrScene.mGameEntities[entID].Type() == "GFUnitArtillery" && priority < 1 && aiFog > 0) {
+			
+			target = entID;
+			priority = 1;
+		}
+		else if (priority == 0 && aiFog > 0) {
+			target = entID;
+		}
+	}
+	
+	if (target >= 0) {
+		nmgrs.sceneMan.mCurrScene.mGameEntities[target].DestroyUnit();
+	}
+	
+	this.mMovesLeft--;
+}
+
+GFEBuildingIC.prototype.CheckValidFire = function() {
+	var arr = new Array();
+	
+	var arrPos = new Array();
+	
+	for (var y = -5; y <= 6; ++y) {
+		for (var x = -5; x <= 6; ++x) {
+			var pos = new IVec2(this.mPos.mX + x, this.mPos.mY + y);
+			if (pos.mX >= 0 && pos.mX < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX &&
+					pos.mY >= 0 && pos.mY < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) {
+				
+				arrPos.push(pos);
+			}
+		}
+	}
+	
+	for (var i = 0; i < arrPos.length; ++i) {
+		var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(arrPos[i]);
+		var entID = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID;
+		
+		if (entID >= 0) {
+			if (nmgrs.sceneMan.mCurrScene.mGameEntities[entID].mPlayerUnit == true) {
+				arr.push(id);
+			}
+		}
+	}
+	
+	return arr;
+}
+
+//
+GFEBuildingIC.prototype.AdjustFog = function(mode) {
+	var arr = new Array();
+	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+	
+	for (var y = -2; y <= 3; ++y) {
+		for (var x = -2; x <= 3; ++x) {
+			if ((id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x >= 0 &&
+					(id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) {
+				
+				if (Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y >= 0 &&
+						Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) {
+					
+					arr.push((id + x) + (y * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX));
+				}
+			}
+		}
+	}
+	
+	for (var i = 0; i < arr.length; ++i) {
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[arr[i]].mAIFog += mode;
+	}
 }
 
 //
@@ -108,6 +185,7 @@ GFEBuildingIC.prototype.DestroyUnit = function() {
 		}
 	}
 	
+	this.AdjustFog(-1);
 	nmgrs.sceneMan.mCurrScene.mEnemyLife--;
 	
 	if (nmgrs.sceneMan.mCurrScene.mSelectID == entID) {
