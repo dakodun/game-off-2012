@@ -46,6 +46,9 @@ InitScene.prototype.SetUp = function() {
 		
 		nmgrs.resLoad.QueueTexture("fog", "./res/vis/fog.png");
 		
+		nmgrs.resLoad.QueueTexture("lose", "./res/vis/lose.png");
+		nmgrs.resLoad.QueueTexture("won", "./res/vis/won.png");
+		
 		nmgrs.resLoad.AcquireResources();
 		nmgrs.resLoad.mIntervalID = setInterval(function() {nmgrs.resLoad.ProgressCheck();}, 0);
 	} catch(e) {
