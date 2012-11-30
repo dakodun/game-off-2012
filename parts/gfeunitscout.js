@@ -119,11 +119,13 @@ GFEUnitScout.prototype.FindUnit = function() {
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mEntityID = -1;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = oldID;
+			this.AdjustFog(-1);
 			this.mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
 			
 			this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mSprite.mDepth = -500 - id;
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+			this.AdjustFog(1);
 		}
 	}
 	
@@ -193,6 +195,30 @@ GFEUnitScout.prototype.FollowUnit = function() {
 }
 
 //
+GFEUnitScout.prototype.AdjustFog = function(mode) {
+	var arr = new Array();
+	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+	
+	for (var y = -1; y <= 1; ++y) {
+		for (var x = -1; x <= 1; ++x) {
+			if ((id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x >= 0 &&
+					(id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) {
+				
+				if (Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y >= 0 &&
+						Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) {
+					
+					arr.push((id + x) + (y * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX));
+				}
+			}
+		}
+	}
+	
+	for (var i = 0; i < arr.length; ++i) {
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[arr[i]].mAIFog += mode;
+	}
+}
+
+//
 GFEUnitScout.prototype.DestroyUnit = function() {
 	this.SetActive(false);
 	this.mSelected = false;
@@ -218,6 +244,7 @@ GFEUnitScout.prototype.DestroyUnit = function() {
 		}
 	}
 	
+	this.AdjustFog(-1);
 	nmgrs.sceneMan.mCurrScene.mScoutCount--;
 	
 	if (nmgrs.sceneMan.mCurrScene.mSelectID == entID) {

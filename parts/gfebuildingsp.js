@@ -89,6 +89,7 @@ GFEBuildingSP.prototype.PerformAIAction = function() {
 				var scout = new GFEUnitScout();
 				scout.SetUp(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
 				scout.SetActive(false);
+				scout.AdjustFog(1);
 				scout.mCurrentAction = "FindUnit";
 				nmgrs.sceneMan.mCurrScene.mGameEntities.push(scout);
 				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
@@ -101,7 +102,32 @@ GFEBuildingSP.prototype.PerformAIAction = function() {
 	}
 	else {
 		this.mTurnsUntilSpawn--;
-		this.mMovesLeft--;
+	}
+	
+	this.mMovesLeft--;
+}
+
+//
+GFEBuildingSP.prototype.AdjustFog = function(mode) {
+	var arr = new Array();
+	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+	
+	for (var y = -2; y <= 3; ++y) {
+		for (var x = -2; x <= 3; ++x) {
+			if ((id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x >= 0 &&
+					(id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) {
+				
+				if (Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y >= 0 &&
+						Math.floor(id / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) {
+					
+					arr.push((id + x) + (y * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX));
+				}
+			}
+		}
+	}
+	
+	for (var i = 0; i < arr.length; ++i) {
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[arr[i]].mAIFog += mode;
 	}
 }
 
@@ -137,6 +163,7 @@ GFEBuildingSP.prototype.DestroyUnit = function() {
 		}
 	}
 	
+	this.AdjustFog(-1);
 	nmgrs.sceneMan.mCurrScene.mEnemyLife--;
 	
 	if (nmgrs.sceneMan.mCurrScene.mSelectID == entID) {
