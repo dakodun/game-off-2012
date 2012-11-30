@@ -15,6 +15,10 @@ function GFEUnitScout() {
 	this.mCurrentAction = "";
 }
 
+GFEUnitScout.prototype.Type = function() {
+	return "GFEUnitScout";
+};
+
 GFEUnitScout.prototype.SetUp = function(pos) {
 	this.mPos.Copy(pos);
 	
@@ -70,6 +74,9 @@ GFEUnitScout.prototype.PerformAIAction = function() {
 	if (this.mCurrentAction == "FindUnit") {
 		this.FindUnit();
 	}
+	else if (this.mCurrentAction == "ReturnToBase") {
+		this.ReturnToBase();
+	}
 	
 	this.mMovesLeft--;
 }
@@ -119,8 +126,103 @@ GFEUnitScout.prototype.FindUnit = function() {
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 		}
 	}
+	
+	if (this.mPos.mY == nmgrs.sceneMan.mCurrScene.mMap.IDToPos(end).mY) {
+		this.mCurrentAction = "ReturnToBase";
+	}
+	else {
+		this.mCurrentAction = "FindUnit";
+	}
+}
 
-	this.mCurrentAction = "FindUnit";
+GFEUnitScout.prototype.ReturnToBase = function() {	
+	// the scout will travel upwards trying to get back to it's base upon
+	// which it will then continue seeking units
+	
+	// responses
+	// ReturnToBase(): we haven't reached base yet so keep trying
+	// FindUnit(): we've reached base so now seek out a unit to follow again
+	
+	var moveAmount = 3;
+	
+	var as = new AStar();
+	as.SetUp(nmgrs.sceneMan.mCurrScene.mMap.mMapSize);
+	for (var i = 0; i < nmgrs.sceneMan.mCurrScene.mMap.mMapTiles.length; ++i) {
+		as.mMap[i].mValid = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[i].mFree;
+	}
+	
+	var path = new Array();
+	var start = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+	var end = nmgrs.sceneMan.mCurrScene.mMap.PosToID(new IVec2(nmgrs.sceneMan.mCurrScene.mMap.mRand.GetRandInt(0, nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX - 1), 2));
+	path = as.FindPath(start, end);
+	
+	var id = (path.length - 1) - moveAmount;
+	
+	// if not true then we can't even move 1 tile!
+	if (path.length > 1) {
+		if (id < 0) {
+			id = path.length - 1;
+		}
+		
+		id = path[id];
+		
+		{ // move this
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mFree = true;
+			var oldID = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mEntityID;
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mEntityID = -1;
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = oldID;
+			this.mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+			
+			this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+			this.mSprite.mDepth = -500 - id;
+			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+		}
+	}
+	
+	if (this.mPos.mY == 2) {
+		this.mCurrentAction = "FindUnit";
+	}
+	else {
+		this.mCurrentAction = "ReturnToBase";
+	}
+}
+
+GFEUnitScout.prototype.FollowUnit = function() {
+	
+}
+
+//
+GFEUnitScout.prototype.DestroyUnit = function() {
+	this.SetActive(false);
+	this.mSelected = false;
+	
+	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+	var entID = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID;
+	
+	nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = true;
+	nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = -1;
+	nmgrs.sceneMan.mCurrScene.mGameEntities.splice(entID, 1);
+	
+	for (var i = entID; i < nmgrs.sceneMan.mCurrScene.mGameEntities.length; ++i) {
+		var nid = nmgrs.sceneMan.mCurrScene.mMap.PosToID(nmgrs.sceneMan.mCurrScene.mGameEntities[i].mPos);
+		nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nid].mEntityID = i;
+		
+		if (nmgrs.sceneMan.mCurrScene.mGameEntities[i].Type() == "GFBuildingWP" ||
+				nmgrs.sceneMan.mCurrScene.mGameEntities[i].Type() == "GFEBuildingSP" ||
+				nmgrs.sceneMan.mCurrScene.mGameEntities[i].Type() == "GFEBuildingIC") {
+			
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nid + 1].mEntityID = i;
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nid + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mEntityID = i;
+			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nid + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX + 1].mEntityID = i;
+		}
+	}
+	
+	nmgrs.sceneMan.mCurrScene.mScoutCount--;
+	
+	if (nmgrs.sceneMan.mCurrScene.mSelectID == entID) {
+		nmgrs.sceneMan.mCurrScene.mSelectID = -1;
+	}
 }
 // ...End
 
