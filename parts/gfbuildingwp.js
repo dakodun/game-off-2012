@@ -330,8 +330,8 @@ GFBuildingWP.prototype.AdjustFog = function(mode) {
 	var arr = new Array();
 	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
 	
-	for (var y = -3; y <= 3; ++y) {
-		for (var x = -3; x <= 3; ++x) {
+	for (var y = -3; y <= 4; ++y) {
+		for (var x = -3; x <= 4; ++x) {
 			if ((id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x >= 0 &&
 					(id % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) {
 				
