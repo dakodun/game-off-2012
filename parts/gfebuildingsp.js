@@ -14,6 +14,7 @@ function GFEBuildingSP() {
 	
 	this.mCurrentAction = "";
 	this.mTurnsUntilSpawn = 0;
+	this.mScoutLimit = 6;
 }
 
 GFEBuildingSP.prototype.Type = function() {
@@ -42,6 +43,13 @@ GFEBuildingSP.prototype.SetUp = function(pos) {
 	this.mBound.AddPoint(new IVec2(0, 64));
 	
 	this.mTurnsUntilSpawn = nmgrs.sceneMan.mCurrScene.mMap.mRand.GetRandInt(1, 3);
+	
+	if (nmgrs.sceneMan.mCurrScene.mMenuMapSize == "m") {
+		this.mScoutLimit = 10;
+	}
+	else if (nmgrs.sceneMan.mCurrScene.mMenuMapSize == "b") {
+		this.mScoutLimit = 14;
+	}
 }
 
 GFEBuildingSP.prototype.Process = function() {
@@ -75,7 +83,7 @@ GFEBuildingSP.prototype.GetRender = function() {
 
 GFEBuildingSP.prototype.PerformAIAction = function() {
 	if (this.mTurnsUntilSpawn == 0) {
-		if (nmgrs.sceneMan.mCurrScene.mScoutCount < 6) {
+		if (nmgrs.sceneMan.mCurrScene.mScoutCount < this.mScoutLimit) {
 			var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos) + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * 2);
 			
 			if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree == false) {
@@ -169,6 +177,11 @@ GFEBuildingSP.prototype.DestroyUnit = function() {
 	if (nmgrs.sceneMan.mCurrScene.mSelectID == entID) {
 		nmgrs.sceneMan.mCurrScene.mSelectID = -1;
 	}
+	
+	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(this.mPos);
+	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX + 1, this.mPos.mY));
+	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX, this.mPos.mY + 1));
+	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX + 1, this.mPos.mY + 1));
 }
 // ...End
 
