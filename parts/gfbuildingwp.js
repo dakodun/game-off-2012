@@ -38,8 +38,8 @@ GFBuildingWP.prototype.SetUp = function(camera, pos) {
 	{
 		var tex = nmgrs.resMan.mTexStore.GetResource("gui_moves");
 		this.mMovesLeftSprite.SetAnimatedTexture(tex, 3, 1, -1, -1);
-		this.mMovesLeftSprite.mOrigin.Set(20, 34);
-		this.mMovesLeftSprite.mPos.Set((pos.mX * 32) + 16, pos.mY * 32);
+		this.mMovesLeftSprite.mOrigin.Set((this.mMovesLeftSprite.GetWidth() / 2) - (this.mSprite.GetWidth() / 4) - 6, 6);
+		this.mMovesLeftSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
 		this.mMovesLeftSprite.SetCurrentFrame(1);
 		this.mMovesLeftSprite.mDepth = -2000;
 	}
