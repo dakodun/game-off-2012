@@ -11,12 +11,14 @@ function MenuScene() {
 	this.mButtonText[2] = new Text();
 	this.mButtonText[3] = new Text();
 	this.mButtonText[4] = new Text();
+	this.mButtonText[5] = new Text();
 	
 	this.mButtons = new Array();
 	this.mButtons[0] = new Sprite;
 	this.mButtons[1] = new Sprite;
 	this.mButtons[2] = new Sprite;
 	this.mButtons[3] = new Sprite;
+	this.mButtons[4] = new Sprite;
 	
 	this.mRand = new RNG(0);
 	
@@ -126,6 +128,23 @@ MenuScene.prototype.SetUp = function() {
 		this.mButtonText[4].mPos.Set(this.mButtons[2].mPos.mX + (this.mButtons[2].GetWidth() / 2) - (this.mButtonText[4].GetWidth() / 2), this.mButtons[2].mPos.mY + this.mButtons[2].GetHeight() - 7);
 	}
 	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("help_icon");
+		
+		this.mButtonText[5].SetFontName("sans-serif");
+		this.mButtonText[5].SetFontSize(12);
+		this.mButtonText[5].mString = "Learn a little about how the game works ->";
+		this.mButtonText[5].mDepth = -2000;
+		this.mButtonText[5].mShadow = true;
+		
+		this.mButtons[4].SetTexture(tex);
+		this.mButtons[4].SetCurrentFrame(0);
+		this.mButtons[4].mDepth = -2000;
+		
+		this.mButtons[4].mPos.Set(nmain.game.mCanvasSize.mX - this.mButtons[4].GetWidth() - 12, nmain.game.mCanvasSize.mY - this.mButtons[4].GetHeight() - 12);
+		this.mButtonText[5].mPos.Set(nmain.game.mCanvasSize.mX - this.mButtons[4].GetWidth() - this.mButtonText[5].GetWidth(), nmain.game.mCanvasSize.mY - (this.mButtons[4].GetHeight() / 2) - 12);
+	}
+	
 	this.SetUpBatch();
 }
 
@@ -179,6 +198,10 @@ MenuScene.prototype.Input = function() {
 					nmgrs.sceneMan.mReadyScene.mMenuSeed = this.mSeed;
 					
 					nmgrs.sceneMan.SwitchScene();
+				}
+				else if (i == 4) {
+					this.mPersist = true;
+					nmgrs.sceneMan.ChangeScene(new HelpScene());
 				}
 			}
 		}
