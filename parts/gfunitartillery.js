@@ -185,7 +185,7 @@ GFUnitArtillery.prototype.ProcessUI = function(camera) {
 								spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 								spr.mOrigin.Set(8, 8);
 								spr.mPos.Set(pos.mX * 32, pos.mY * 32);
-								spr.mDepth = -2001 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id;
+								spr.mDepth = -2001 - id;
 								
 								hiliteArr.push(spr);
 							}
