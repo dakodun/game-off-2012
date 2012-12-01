@@ -219,6 +219,7 @@ GameScene.prototype.Process = function() {
 			this.mGameEndText.mColour = "#000000";
 		}
 		
+		this.mMap.Process();
 		this.mDebug.Process();
 		this.HandleTurns();
 		this.mGameUI.Process();
