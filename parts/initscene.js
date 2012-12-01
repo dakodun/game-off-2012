@@ -20,6 +20,8 @@ InitScene.prototype.SetUp = function() {
 		// load the textures we need
 		nmgrs.resLoad.QueueTexture("smb_select", "./res/vis/smb_select.png");
 		nmgrs.resLoad.QueueTexture("menu_button", "./res/vis/menu_button.png");
+		nmgrs.resLoad.QueueTexture("help_icon", "./res/vis/help_icon.png");
+		nmgrs.resLoad.QueueTexture("help_cheat", "./res/vis/help_cheat.png");
 		
 		nmgrs.resLoad.QueueTexture("tile_set_default", "./res/vis/tile_set_default.png");
 		nmgrs.resLoad.QueueTexture("tile_hilite", "./res/vis/tile_hilite.png");
