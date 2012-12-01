@@ -25,6 +25,8 @@ function GameScene() {
 	this.mPlayerLife = 0;
 	this.mGameEnd = false;
 	this.mGameEndSprite = new Sprite();
+	this.mGameEndText = new Text();
+	this.mGameEndTimer = 200;
 	
 	this.mPlacementMode = false;
 	this.mPlacementBounds = new Array();
@@ -33,6 +35,10 @@ function GameScene() {
 	this.mTimerAction = 0;
 	
 	this.mDebug = new GFDebug();
+	
+	this.mMenuMapSize = 0;
+	this.mMenuBaseSize = 0;
+	this.mMenuSeed = 0;
 }
 
 // returns the type of this object for validity checking
@@ -49,10 +55,8 @@ GameScene.prototype.Persistent = function() {
 GameScene.prototype.SetUp = function() {
 	nmain.game.mClearColour = "#604039";
 	
-	var d = new Date();
-	
 	var mapGen = new GFMapGen();
-	this.mMap = mapGen.GenerateMap(d.getTime(), "s", "s");
+	this.mMap = mapGen.GenerateMap(this.mMenuSeed, this.mMenuMapSize, this.mMenuBaseSize);
 	
 	this.mCam.mTranslate.Set(0 - ((nmain.game.mCanvasSize.mX - (this.mMap.mMapSize.mX * 32)) / 2),
 			0 - ((nmain.game.mCanvasSize.mY - (this.mMap.mMapSize.mY * 32)) / 2));
@@ -183,18 +187,36 @@ GameScene.prototype.Process = function() {
 			
 			var tex = nmgrs.resMan.mTexStore.GetResource("lose");
 			this.mGameEndSprite.SetTexture(tex);
-			this.mGameEndSprite.mPos.Set(this.mCam.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mGameEndSprite.GetWidth() / 2),
-					this.mCam.mTranslate.mY + (nmain.game.mCanvasSize.mY / 2) - (this.mGameEndSprite.GetHeight() / 2));
+			this.mGameEndSprite.mPos.Set((nmain.game.mCanvasSize.mX / 2) - (this.mGameEndSprite.GetWidth() / 2),
+					(nmain.game.mCanvasSize.mY / 2) - (this.mGameEndSprite.GetHeight() / 2));
 			this.mGameEndSprite.mDepth = -500;
+			
+			this.mGameEndText.SetFontName("sans-serif");
+			this.mGameEndText.SetFontSize(16);
+			this.mGameEndText.mString = this.mGameEndTimer.toString();
+			this.mGameEndText.mDepth = -500;
+			this.mGameEndText.mPos.Set(this.mGameEndSprite.mPos.mX + (this.mGameEndSprite.GetWidth() / 2) - (this.mGameEndText.GetWidth() / 2),
+					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight() + 20);
+			
+			this.mGameEndText.mColour = "#000000";
 		}
 		else if (this.mEnemyLife == 0) {
 			this.mGameEnd = true;
 			
 			var tex = nmgrs.resMan.mTexStore.GetResource("won");
 			this.mGameEndSprite.SetTexture(tex);
-			this.mGameEndSprite.mPos.Set(this.mCam.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mGameEndSprite.GetWidth() / 2),
-					this.mCam.mTranslate.mY + (nmain.game.mCanvasSize.mY / 2) - (this.mGameEndSprite.GetHeight() / 2));
+			this.mGameEndSprite.mPos.Set((nmain.game.mCanvasSize.mX / 2) - (this.mGameEndSprite.GetWidth() / 2),
+					(nmain.game.mCanvasSize.mY / 2) - (this.mGameEndSprite.GetHeight() / 2));
 			this.mGameEndSprite.mDepth = -500;
+			
+			this.mGameEndText.SetFontName("sans-serif");
+			this.mGameEndText.SetFontSize(16);
+			this.mGameEndText.mString = this.mGameEndTimer.toString();
+			this.mGameEndText.mDepth = -500;
+			this.mGameEndText.mPos.Set(this.mGameEndSprite.mPos.mX + (this.mGameEndSprite.GetWidth() / 2) - (this.mGameEndText.GetWidth() / 2),
+					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight() + 20);
+			
+			this.mGameEndText.mColour = "#000000";
 		}
 		
 		this.mDebug.Process();
@@ -213,14 +235,24 @@ GameScene.prototype.Process = function() {
 			this.mPlacementHighlight[i].Process();
 		}
 	}
+	else {
+		this.mGameEndTimer--;
+		this.mGameEndText.mString = this.mGameEndTimer.toString();
+		this.mGameEndText.mPos.Set(this.mGameEndSprite.mPos.mX + (this.mGameEndSprite.GetWidth() / 2) - (this.mGameEndText.GetWidth() / 2),
+					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight() + 20);
+		
+		if (this.mGameEndTimer == 0) {
+			nmgrs.sceneMan.ChangeScene(new MenuScene());
+		}
+	}
 }
 
 // handles all drawing tasks
 GameScene.prototype.Render = function() {
 	nmain.game.SetIdentity();
-	this.mCam.Apply();
 	
 	if (this.mGameEnd == false) {
+		this.mCam.Apply();
 		this.mMap.mMapBatch.Render(this.mCam);
 		
 		{
@@ -257,7 +289,8 @@ GameScene.prototype.Render = function() {
 	else {
 		this.mUnitBatch.Clear();
 		this.mUnitBatch.AddSprite(this.mGameEndSprite);
-		this.mUnitBatch.Render(this.mCam);
+		this.mUnitBatch.AddText(this.mGameEndText);
+		this.mUnitBatch.Render();
 	}
 }
 
