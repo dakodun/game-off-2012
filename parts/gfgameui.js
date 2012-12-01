@@ -61,14 +61,14 @@ GFGameUI.prototype.SetUp = function(camera) {
 		this.mEndTurnTapTextA.mString = "Press Again To";
 		this.mEndTurnTapTextA.mDepth = -2000;
 		this.mEndTurnTapTextA.mShadow = true;
-		this.mEndTurnTapTextA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 12);
+		this.mEndTurnTapTextA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2), camera.mTranslate.mY + 12);
 		
 		this.mEndTurnTapTextB.SetFontName("sans-serif");
 		this.mEndTurnTapTextB.SetFontSize(32);
 		this.mEndTurnTapTextB.mString = "CONFIRM END TURN";
 		this.mEndTurnTapTextB.mDepth = -2000;
 		this.mEndTurnTapTextB.mShadow = true;
-		this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 12);
+		this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 12);
 	}
 	
 	{
@@ -84,7 +84,7 @@ GFGameUI.prototype.SetUp = function(camera) {
 				"Map Seed: " + nmgrs.sceneMan.mCurrScene.mMap.mRand.GetSeed();
 		this.mDebugInfo.mDepth = -10000;
 		this.mDebugInfo.mShadow = true;
-		this.mDebugInfo.mPos.Set(camera.mTranslate.mX + 72, camera.mTranslate.mY + this.mDebugInfo.GetHeight());
+		this.mDebugInfo.mPos.Set(camera.mTranslate.mX + 72, camera.mTranslate.mY);
 	}
 }
 
@@ -236,10 +236,10 @@ GFGameUI.prototype.UpdateUI = function(camera) {
 	
 	this.mControlsText.mPos.Set(camera.mTranslate.mX + 4, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.GetHeight() - 5);
 	
-	this.mEndTurnTapTextA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 12);
-	this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 12);
+	this.mEndTurnTapTextA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2), camera.mTranslate.mY + 12);
+	this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 12);
 	
-	this.mDebugInfo.mPos.Set(camera.mTranslate.mX + 72, camera.mTranslate.mY + this.mDebugInfo.GetHeight());
+	this.mDebugInfo.mPos.Set(camera.mTranslate.mX + 72, camera.mTranslate.mY);
 }
 
 GFGameUI.prototype.SwitchTurn = function(player) {

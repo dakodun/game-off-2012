@@ -196,7 +196,7 @@ GameScene.prototype.Process = function() {
 			this.mGameEndText.mString = this.mGameEndTimer.toString();
 			this.mGameEndText.mDepth = -500;
 			this.mGameEndText.mPos.Set(this.mGameEndSprite.mPos.mX + (this.mGameEndSprite.GetWidth() / 2) - (this.mGameEndText.GetWidth() / 2),
-					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight() + 20);
+					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight());
 			
 			this.mGameEndText.mColour = "#000000";
 		}
@@ -214,7 +214,7 @@ GameScene.prototype.Process = function() {
 			this.mGameEndText.mString = this.mGameEndTimer.toString();
 			this.mGameEndText.mDepth = -500;
 			this.mGameEndText.mPos.Set(this.mGameEndSprite.mPos.mX + (this.mGameEndSprite.GetWidth() / 2) - (this.mGameEndText.GetWidth() / 2),
-					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight() + 20);
+					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight());
 			
 			this.mGameEndText.mColour = "#000000";
 		}
@@ -239,7 +239,7 @@ GameScene.prototype.Process = function() {
 		this.mGameEndTimer--;
 		this.mGameEndText.mString = this.mGameEndTimer.toString();
 		this.mGameEndText.mPos.Set(this.mGameEndSprite.mPos.mX + (this.mGameEndSprite.GetWidth() / 2) - (this.mGameEndText.GetWidth() / 2),
-					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight() + 20);
+					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight());
 		
 		if (this.mGameEndTimer == 0) {
 			nmgrs.sceneMan.ChangeScene(new MenuScene());
