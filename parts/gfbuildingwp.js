@@ -386,6 +386,11 @@ GFBuildingWP.prototype.DestroyUnit = function() {
 	if (nmgrs.sceneMan.mCurrScene.mSelectID == entID) {
 		nmgrs.sceneMan.mCurrScene.mSelectID = -1;
 	}
+	
+	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(this.mPos);
+	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX + 1, this.mPos.mY));
+	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX, this.mPos.mY + 1));
+	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX + 1, this.mPos.mY + 1));
 }
 // ...End
 

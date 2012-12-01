@@ -798,6 +798,11 @@ GFUnitPuller.prototype.DestroyUnit = function() {
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nid + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mEntityID = i;
 			nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nid + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX + 1].mEntityID = i;
 		}
+		else if (nmgrs.sceneMan.mCurrScene.mGameEntities[i].Type() == "GFEUnitScout") {
+			if (nmgrs.sceneMan.mCurrScene.mGameEntities[i].mEntityFollowing == entID) {
+				nmgrs.sceneMan.mCurrScene.mGameEntities[i].mEntityFollowing = -1;
+			}
+		}
 	}
 	
 	nmgrs.sceneMan.mCurrScene.mPullerCount--;
@@ -806,6 +811,8 @@ GFUnitPuller.prototype.DestroyUnit = function() {
 	if (nmgrs.sceneMan.mCurrScene.mSelectID == entID) {
 		nmgrs.sceneMan.mCurrScene.mSelectID = -1;
 	}
+	
+	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(this.mPos);
 }
 // ...End
 
