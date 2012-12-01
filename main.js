@@ -1495,7 +1495,9 @@ Sprite.prototype.GetHeight = function() {
 // DepthSort function
 // sorts renderable resources based on depth
 function DepthSort(first, second) {
-	return first.mDepth < second.mDepth;
+	var result = second.mDepth - first.mDepth;
+	
+	return result;
 };
 // ...End
 
@@ -1561,7 +1563,7 @@ RenderBatch.prototype.Render = function(camera) {
 		cam.Copy(camera);
 	}
 	
-	if	(this.mNeedSort == true) {
+	if (this.mNeedSort == true) {
 		this.mRenderData.sort(DepthSort); // sort the queue
 		this.mNeedSort = false;
 	}
@@ -1571,29 +1573,42 @@ RenderBatch.prototype.Render = function(camera) {
 		
 		if (this.mRenderData[i].Type() == "Sprite") {
 			var spr = this.mRenderData[i];
-			var w = spr.mTex.mImg.width;
-			var h = spr.mTex.mImg.height;
-			
-			if (spr.mIsAnimated == true) {
-				w = spr.mClipSize.mX;
-				h = spr.mClipSize.mY;
-			}
 			
 			var scrTL = new IVec2(0 + cam.mTranslate.mX, 0 + cam.mTranslate.mY);
 			var scrBR = new IVec2(nmain.game.mCanvasSize.mX + cam.mTranslate.mX,
 					nmain.game.mCanvasSize.mY + cam.mTranslate.mY);
 			
+			var sprTL = new IVec2(spr.GetPosition().mX, spr.GetPosition().mY);
+			var sprBR = new IVec2(spr.GetPosition().mX + spr.GetWidth(), spr.GetPosition().mY + spr.GetHeight());
 			
-			if ((spr.mPos.mX < scrBR.mX && (spr.mPos.mX + w) > scrTL.mX) &&
-					(spr.mPos.mY < scrBR.mY && (spr.mPos.mY + h) > scrTL.mY)) {
+			var intersect = false;
+			var left = sprTL.mX;
+			var right = scrBR.mX;
+			if (scrTL.mX < sprTL.mX) {
+				left = scrTL.mX;
+				right = sprBR.mX;
+			}
+			
+			if (right - left < spr.GetWidth() + nmain.game.mCanvasSize.mX) {
+				var top = sprTL.mY;
+				var bottom = scrBR.mY;
+				if (scrTL.mY < sprTL.mY) {
+					top = scrTL.mY;
+					bottom = sprBR.mY;
+				}
 				
-				
+				if (bottom - top < spr.GetHeight() + nmain.game.mCanvasSize.mY) {
+					intersect = true;
+				}
+			}
+			
+			if (intersect == true) {
 				nmain.game.mCurrContext.translate(spr.GetPosition().mX, spr.GetPosition().mY);
 				nmain.game.mCurrContext.rotate(spr.mRotation * (Math.PI / 180));
 				
 				nmain.game.mCurrContext.drawImage(spr.mTex.mImg, spr.mClipPos.mX, spr.mClipPos.mY,
 						spr.mClipSize.mX, spr.mClipSize.mY, 0, 0,
-						w * spr.mScale.mX, h * spr.mScale.mY);
+						spr.GetWidth() * spr.mScale.mX, spr.GetHeight() * spr.mScale.mY);
 			}
 		}
 		else if (this.mRenderData[i].Type() == "Text") {
@@ -1603,18 +1618,36 @@ RenderBatch.prototype.Render = function(camera) {
 			nmain.game.mCurrContext.font = txt.mFont;
 			nmain.game.mCurrContext.strokeStyle = txt.mColour;
 			
-			var w = txt.GetWidth();
-			var h = txt.GetHeight();
-			
 			var scrTL = new IVec2(0 + cam.mTranslate.mX, 0 + cam.mTranslate.mY);
 			var scrBR = new IVec2(nmain.game.mCanvasSize.mX + cam.mTranslate.mX,
 					nmain.game.mCanvasSize.mY + cam.mTranslate.mY);
 			
+			var txtTL = new IVec2(txt.mPos.mX, txt.mPos.mY);
+			var txtBR = new IVec2(txt.mPos.mX + txt.GetWidth(), txt.mPos.mY + txt.GetHeight());
 			
-			if ((txt.mPos.mX < scrBR.mX && (txt.mPos.mX + w) > scrTL.mX) &&
-					(txt.mPos.mY < scrBR.mY && (txt.mPos.mY + h) > scrTL.mY)) {
+			var intersect = false;
+			var left = txtTL.mX;
+			var right = scrBR.mX;
+			if (scrTL.mX < txtTL.mX) {
+				left = scrTL.mX;
+				right = txtBR.mX;
+			}
+			
+			if (right - left < txt.GetWidth() + nmain.game.mCanvasSize.mX) {
+				var top = txtTL.mY;
+				var bottom = scrBR.mY;
+				if (scrTL.mY < txtTL.mY) {
+					top = scrTL.mY;
+					bottom = txtBR.mY;
+				}
 				
-				nmain.game.mCurrContext.translate(txt.mPos.mX, txt.mPos.mY);
+				if (bottom - top < txt.GetHeight() + nmain.game.mCanvasSize.mY) {
+					intersect = true;
+				}
+			}
+			
+			if (intersect == true) {
+				nmain.game.mCurrContext.translate(txt.mPos.mX, txt.mPos.mY + txt.mHeight);
 				nmain.game.mCurrContext.rotate(txt.mRotation * (Math.PI / 180));
 				
 				if (txt.mOutline == true) {
@@ -1900,7 +1933,7 @@ MenuScene.prototype.SetUp = function() {
 			this.mButtons[0].SetCurrentFrame(0);
 			this.mButtons[0].mDepth = -2000;
 			
-			this.mButtonText[0].mPos.Set((nmain.game.mCanvasSize.mX / 2) - this.mButtonText[0].GetWidth() - 8, 30 + this.mButtonText[0].GetHeight() + this.mButtons[0].GetHeight() / 16);
+			this.mButtonText[0].mPos.Set((nmain.game.mCanvasSize.mX / 2) - this.mButtonText[0].GetWidth() - 8, 30 + this.mButtons[0].GetHeight() / 16);
 			this.mButtons[0].mPos.Set((nmain.game.mCanvasSize.mX / 2) + 8, 30);
 		}
 		
@@ -1915,7 +1948,7 @@ MenuScene.prototype.SetUp = function() {
 			this.mButtons[1].SetCurrentFrame(0);
 			this.mButtons[1].mDepth = -2000;
 			
-			this.mButtonText[1].mPos.Set((nmain.game.mCanvasSize.mX / 2) - this.mButtonText[1].GetWidth() - 8, 70 + this.mButtonText[1].GetHeight() + this.mButtons[1].GetHeight() / 16);
+			this.mButtonText[1].mPos.Set((nmain.game.mCanvasSize.mX / 2) - this.mButtonText[1].GetWidth() - 8, 70 + this.mButtons[1].GetHeight() / 16);
 			this.mButtons[1].mPos.Set((nmain.game.mCanvasSize.mX / 2) + 8, 70);
 		}
 	}
@@ -1934,7 +1967,7 @@ MenuScene.prototype.SetUp = function() {
 			this.mButtons[2].mDepth = -2000;
 			
 			this.mButtons[2].mPos.Set((nmain.game.mCanvasSize.mX / 2) - ((3 * this.mButtons[2].GetWidth()) / 2) + 24, 150);
-			this.mButtonText[2].mPos.Set(this.mButtons[2].mPos.mX - (this.mButtonText[2].GetWidth() / 2) + (this.mButtons[2].GetWidth() / 2), 120 + this.mButtonText[2].GetHeight() + this.mButtons[2].GetHeight() / 16);
+			this.mButtonText[2].mPos.Set(this.mButtons[2].mPos.mX - (this.mButtonText[2].GetWidth() / 2) + (this.mButtons[2].GetWidth() / 2), 120 + this.mButtons[2].GetHeight() / 16);
 		}
 		
 		{
@@ -1948,7 +1981,7 @@ MenuScene.prototype.SetUp = function() {
 			this.mButtons[3].mDepth = -2000;
 			
 			this.mButtons[3].mPos.Set((nmain.game.mCanvasSize.mX / 2) + (this.mButtons[3].GetWidth() / 2) - 24, 150);
-			this.mButtonText[3].mPos.Set(this.mButtons[3].mPos.mX - (this.mButtonText[3].GetWidth() / 2) + (this.mButtons[3].GetWidth() / 2), 120 + this.mButtonText[3].GetHeight() + this.mButtons[3].GetHeight() / 16);
+			this.mButtonText[3].mPos.Set(this.mButtons[3].mPos.mX - (this.mButtonText[3].GetWidth() / 2) + (this.mButtons[3].GetWidth() / 2), 120 + this.mButtons[3].GetHeight() / 16);
 		}
 	}
 	
@@ -1965,7 +1998,7 @@ MenuScene.prototype.SetUp = function() {
 		this.mButtonText[4].mDepth = -2010;
 		this.mButtonText[4].mShadow = true;
 		
-		this.mButtonText[4].mPos.Set(this.mButtons[2].mPos.mX + (this.mButtons[2].GetWidth() / 2) - (this.mButtonText[4].GetWidth() / 2), this.mButtons[2].mPos.mY + this.mButtons[2].GetHeight() + 5);
+		this.mButtonText[4].mPos.Set(this.mButtons[2].mPos.mX + (this.mButtons[2].GetWidth() / 2) - (this.mButtonText[4].GetWidth() / 2), this.mButtons[2].mPos.mY + this.mButtons[2].GetHeight() - 7);
 	}
 	
 	this.SetUpBatch();
@@ -2009,7 +2042,7 @@ MenuScene.prototype.Input = function() {
 					this.mRand.SetSeed(seed);
 					this.mSeed = seed;
 					this.mButtonText[4].mString = (this.mRand.GetSeed()).toString();
-					this.mButtonText[4].mPos.Set(this.mButtons[2].mPos.mX + (this.mButtons[2].GetWidth() / 2) - (this.mButtonText[4].GetWidth() / 2), this.mButtons[2].mPos.mY + this.mButtons[2].GetHeight() + 5);
+					this.mButtonText[4].mPos.Set(this.mButtons[2].mPos.mX + (this.mButtons[2].GetWidth() / 2) - (this.mButtonText[4].GetWidth() / 2), this.mButtons[2].mPos.mY + this.mButtons[2].GetHeight() - 7);
 					this.SetUpBatch();
 				}
 				else if (i == 3) {
@@ -2295,7 +2328,7 @@ GameScene.prototype.Process = function() {
 			this.mGameEndText.mString = this.mGameEndTimer.toString();
 			this.mGameEndText.mDepth = -500;
 			this.mGameEndText.mPos.Set(this.mGameEndSprite.mPos.mX + (this.mGameEndSprite.GetWidth() / 2) - (this.mGameEndText.GetWidth() / 2),
-					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight() + 20);
+					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight());
 			
 			this.mGameEndText.mColour = "#000000";
 		}
@@ -2313,7 +2346,7 @@ GameScene.prototype.Process = function() {
 			this.mGameEndText.mString = this.mGameEndTimer.toString();
 			this.mGameEndText.mDepth = -500;
 			this.mGameEndText.mPos.Set(this.mGameEndSprite.mPos.mX + (this.mGameEndSprite.GetWidth() / 2) - (this.mGameEndText.GetWidth() / 2),
-					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight() + 20);
+					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight());
 			
 			this.mGameEndText.mColour = "#000000";
 		}
@@ -2338,7 +2371,7 @@ GameScene.prototype.Process = function() {
 		this.mGameEndTimer--;
 		this.mGameEndText.mString = this.mGameEndTimer.toString();
 		this.mGameEndText.mPos.Set(this.mGameEndSprite.mPos.mX + (this.mGameEndSprite.GetWidth() / 2) - (this.mGameEndText.GetWidth() / 2),
-					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight() + 20);
+					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight());
 		
 		if (this.mGameEndTimer == 0) {
 			nmgrs.sceneMan.ChangeScene(new MenuScene());
@@ -2707,6 +2740,7 @@ function Game() {
 	this.mTimer = new Timer(); // the timer that handles our main loop timing
 	this.mClearColour = "#000000"; // the clear colour i.e., background colour of the canvas
 	
+	this.mDoubleBuffered = false;
 	this.mCanvas = new Array(); // an array of our canvases 
 	this.mContext = new Array(); // an array of contexts (buffers)
 	this.mBufferIter = 0; // our current buffer (context)
@@ -2746,6 +2780,7 @@ Game.prototype.SetUp = function() {
 	
 	this.mCanvasSize.Set(this.mCanvas[0].width, this.mCanvas[0].height); // set dimensions of the canvas
 	this.mCurrContext = this.mContext[this.mBufferIter]; // set reference to current buffer
+	this.mCanvas[this.mBufferIter].style.visibility = 'visible'; // set current buffer to visible (display)
 	
 	nmgrs.sceneMan.ChangeScene(new InitScene()); // change to our initial scene
 };
@@ -2834,11 +2869,13 @@ Game.prototype.Clear = function(colour) {
 
 // swap the buffers (contexts)
 Game.prototype.SwapBuffers = function() {
-	this.mCanvas[this.mBufferIter].style.visibility = 'visible'; // set current buffer to visible (display)
-	
-	this.mBufferIter = (this.mBufferIter + 1) % 2; // increment the buffer iterator
-	this.mCurrContext = this.mContext[this.mBufferIter]; // set the current buffer
-	this.mCanvas[this.mBufferIter].style.visibility = 'hidden'; // hide the current buffer (we are now drawing to it)
+	if (this.mDoubleBuffered == true) {
+		this.mCanvas[this.mBufferIter].style.visibility = 'visible'; // set current buffer to visible (display)
+		
+		this.mBufferIter = (this.mBufferIter + 1) % 2; // increment the buffer iterator
+		this.mCurrContext = this.mContext[this.mBufferIter]; // set the current buffer
+		this.mCanvas[this.mBufferIter].style.visibility = 'hidden'; // hide the current buffer (we are now drawing to it)
+	}
 }
 
 // set the current transform to the identity matrix
@@ -3429,14 +3466,14 @@ GFUnitPusher.prototype.SetUp = function(camera, pos) {
 		this.mKillConfirmA.mString = "Press Again To";
 		this.mKillConfirmA.mDepth = -9999;
 		this.mKillConfirmA.mShadow = true;
-		this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
+		this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + 12);
 		
 		this.mKillConfirmB.SetFontName("sans-serif");
 		this.mKillConfirmB.SetFontSize(32);
 		this.mKillConfirmB.mString = "CONFIRM KILL UNIT";
 		this.mKillConfirmB.mDepth = -9999;
 		this.mKillConfirmB.mShadow = true;
-		this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + this.mKillConfirmB.GetHeight() + 12);
+		this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
 	}
 }
 
@@ -3465,8 +3502,8 @@ GFUnitPusher.prototype.UpdateUI = function(camera) {
 	wOffset = (this.mUI.mSlotSprites[2].GetWidth() / 2) - (this.mUI.mSlotText[2].GetWidth() / 2);
 	this.mUI.mSlotText[2].mPos.Set(this.mUI.mSlotSprites[2].mPos.mX + wOffset, this.mUI.mSlotSprites[2].mPos.mY);
 	
-	this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
-	this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + this.mKillConfirmB.GetHeight() + 12);
+	this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + 12);
+	this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
 }
 
 GFUnitPusher.prototype.ProcessUI = function(camera) {
@@ -4241,14 +4278,14 @@ GFUnitPuller.prototype.SetUp = function(camera, pos) {
 		this.mKillConfirmA.mString = "Press Again To";
 		this.mKillConfirmA.mDepth = -9999;
 		this.mKillConfirmA.mShadow = true;
-		this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
+		this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + 12);
 		
 		this.mKillConfirmB.SetFontName("sans-serif");
 		this.mKillConfirmB.SetFontSize(32);
 		this.mKillConfirmB.mString = "CONFIRM KILL UNIT";
 		this.mKillConfirmB.mDepth = -9999;
 		this.mKillConfirmB.mShadow = true;
-		this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + this.mKillConfirmB.GetHeight() + 12);
+		this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
 	}
 }
 
@@ -4277,8 +4314,8 @@ GFUnitPuller.prototype.UpdateUI = function(camera) {
 	wOffset = (this.mUI.mSlotSprites[2].GetWidth() / 2) - (this.mUI.mSlotText[2].GetWidth() / 2);
 	this.mUI.mSlotText[2].mPos.Set(this.mUI.mSlotSprites[2].mPos.mX + wOffset, this.mUI.mSlotSprites[2].mPos.mY);
 	
-	this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
-	this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + this.mKillConfirmB.GetHeight() + 12);
+	this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + 12);
+	this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
 }
 
 GFUnitPuller.prototype.ProcessUI = function(camera) {
@@ -5055,14 +5092,14 @@ GFUnitArtillery.prototype.SetUp = function(camera, pos) {
 		this.mKillConfirmA.mString = "Press Again To";
 		this.mKillConfirmA.mDepth = -9999;
 		this.mKillConfirmA.mShadow = true;
-		this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
+		this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + 12);
 		
 		this.mKillConfirmB.SetFontName("sans-serif");
 		this.mKillConfirmB.SetFontSize(32);
 		this.mKillConfirmB.mString = "CONFIRM KILL UNIT";
 		this.mKillConfirmB.mDepth = -9999;
 		this.mKillConfirmB.mShadow = true;
-		this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + this.mKillConfirmB.GetHeight() + 12);
+		this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
 	}
 }
 
@@ -5089,8 +5126,8 @@ GFUnitArtillery.prototype.UpdateUI = function(camera) {
 	var wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
 	this.mUI.mSlotText[1].mPos.Set(this.mUI.mSlotSprites[1].mPos.mX + wOffset, this.mUI.mSlotSprites[1].mPos.mY);
 	
-	this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
-	this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + this.mKillConfirmB.GetHeight() + 12);
+	this.mKillConfirmA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmA.GetWidth() / 2), camera.mTranslate.mY + 12);
+	this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
 }
 
 //
@@ -5436,7 +5473,7 @@ GFBuildingWP.prototype.SetUp = function(camera, pos) {
 		this.mUI.mSlotText[0].mShadow = true;
 		
 		var wOffset = (this.mUI.mSlotSprites[0].GetWidth() / 2) - (this.mUI.mSlotText[0].GetWidth() / 2);
-		this.mUI.mSlotText[0].mPos.Set(this.mUI.mSlotSprites[0].mPos.mX + wOffset, this.mUI.mSlotSprites[0].mPos.mY);
+		this.mUI.mSlotText[0].mPos.Set(this.mUI.mSlotSprites[0].mPos.mX + wOffset, this.mUI.mSlotSprites[0].mPos.mY - this.mUI.mSlotText[1].GetHeight());
 		
 		this.mUI.mSlotSprites[1].SetAnimatedTexture(tex, 2, 2, -1, -1);
 		this.mUI.mSlotSprites[1].SetCurrentFrame(1);
@@ -5447,7 +5484,7 @@ GFBuildingWP.prototype.SetUp = function(camera, pos) {
 		this.mUI.mSlotText[1].mShadow = true;
 		
 		wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
-		this.mUI.mSlotText[1].mPos.Set(this.mUI.mSlotSprites[1].mPos.mX + wOffset, this.mUI.mSlotSprites[1].mPos.mY);
+		this.mUI.mSlotText[1].mPos.Set(this.mUI.mSlotSprites[1].mPos.mX + wOffset, this.mUI.mSlotSprites[1].mPos.mY - this.mUI.mSlotText[1].GetHeight());
 	}
 }
 
@@ -5458,11 +5495,11 @@ GFBuildingWP.prototype.Process = function() {
 GFBuildingWP.prototype.UpdateUI = function(camera) {
 	this.mUI.mSlotSprites[0].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 220, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
 	var wOffset = (this.mUI.mSlotSprites[0].GetWidth() / 2) - (this.mUI.mSlotText[0].GetWidth() / 2);
-	this.mUI.mSlotText[0].mPos.Set(this.mUI.mSlotSprites[0].mPos.mX + wOffset, this.mUI.mSlotSprites[0].mPos.mY);
+	this.mUI.mSlotText[0].mPos.Set(this.mUI.mSlotSprites[0].mPos.mX + wOffset, this.mUI.mSlotSprites[0].mPos.mY - this.mUI.mSlotText[0].GetHeight());
 	
 	this.mUI.mSlotSprites[1].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 148, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
 	wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
-	this.mUI.mSlotText[1].mPos.Set(this.mUI.mSlotSprites[1].mPos.mX + wOffset, this.mUI.mSlotSprites[1].mPos.mY);
+	this.mUI.mSlotText[1].mPos.Set(this.mUI.mSlotSprites[1].mPos.mX + wOffset, this.mUI.mSlotSprites[1].mPos.mY - this.mUI.mSlotText[1].GetHeight());
 }
 
 GFBuildingWP.prototype.ProcessUI = function(camera) {
@@ -6453,14 +6490,14 @@ GFGameUI.prototype.SetUp = function(camera) {
 		this.mEndTurnTapTextA.mString = "Press Again To";
 		this.mEndTurnTapTextA.mDepth = -2000;
 		this.mEndTurnTapTextA.mShadow = true;
-		this.mEndTurnTapTextA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 12);
+		this.mEndTurnTapTextA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2), camera.mTranslate.mY + 12);
 		
 		this.mEndTurnTapTextB.SetFontName("sans-serif");
 		this.mEndTurnTapTextB.SetFontSize(32);
 		this.mEndTurnTapTextB.mString = "CONFIRM END TURN";
 		this.mEndTurnTapTextB.mDepth = -2000;
 		this.mEndTurnTapTextB.mShadow = true;
-		this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 12);
+		this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 12);
 	}
 	
 	{
@@ -6476,7 +6513,7 @@ GFGameUI.prototype.SetUp = function(camera) {
 				"Map Seed: " + nmgrs.sceneMan.mCurrScene.mMap.mRand.GetSeed();
 		this.mDebugInfo.mDepth = -10000;
 		this.mDebugInfo.mShadow = true;
-		this.mDebugInfo.mPos.Set(camera.mTranslate.mX + 72, camera.mTranslate.mY + this.mDebugInfo.GetHeight());
+		this.mDebugInfo.mPos.Set(camera.mTranslate.mX + 72, camera.mTranslate.mY);
 	}
 }
 
@@ -6628,10 +6665,10 @@ GFGameUI.prototype.UpdateUI = function(camera) {
 	
 	this.mControlsText.mPos.Set(camera.mTranslate.mX + 4, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - this.mControlsText.GetHeight() - 5);
 	
-	this.mEndTurnTapTextA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 12);
-	this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + this.mEndTurnTapTextB.GetHeight() + 12);
+	this.mEndTurnTapTextA.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextA.GetWidth() / 2), camera.mTranslate.mY + 12);
+	this.mEndTurnTapTextB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mEndTurnTapTextB.GetWidth() / 2), camera.mTranslate.mY + this.mEndTurnTapTextA.GetHeight() + 12);
 	
-	this.mDebugInfo.mPos.Set(camera.mTranslate.mX + 72, camera.mTranslate.mY + this.mDebugInfo.GetHeight());
+	this.mDebugInfo.mPos.Set(camera.mTranslate.mX + 72, camera.mTranslate.mY);
 }
 
 GFGameUI.prototype.SwitchTurn = function(player) {
