@@ -7,6 +7,7 @@ function Game() {
 	this.mTimer = new Timer(); // the timer that handles our main loop timing
 	this.mClearColour = "#000000"; // the clear colour i.e., background colour of the canvas
 	
+	this.mDoubleBuffered = false;
 	this.mCanvas = new Array(); // an array of our canvases 
 	this.mContext = new Array(); // an array of contexts (buffers)
 	this.mBufferIter = 0; // our current buffer (context)
@@ -46,6 +47,7 @@ Game.prototype.SetUp = function() {
 	
 	this.mCanvasSize.Set(this.mCanvas[0].width, this.mCanvas[0].height); // set dimensions of the canvas
 	this.mCurrContext = this.mContext[this.mBufferIter]; // set reference to current buffer
+	this.mCanvas[this.mBufferIter].style.visibility = 'visible'; // set current buffer to visible (display)
 	
 	nmgrs.sceneMan.ChangeScene(new InitScene()); // change to our initial scene
 };
@@ -134,11 +136,13 @@ Game.prototype.Clear = function(colour) {
 
 // swap the buffers (contexts)
 Game.prototype.SwapBuffers = function() {
-	this.mCanvas[this.mBufferIter].style.visibility = 'visible'; // set current buffer to visible (display)
-	
-	this.mBufferIter = (this.mBufferIter + 1) % 2; // increment the buffer iterator
-	this.mCurrContext = this.mContext[this.mBufferIter]; // set the current buffer
-	this.mCanvas[this.mBufferIter].style.visibility = 'hidden'; // hide the current buffer (we are now drawing to it)
+	if (this.mDoubleBuffered == true) {
+		this.mCanvas[this.mBufferIter].style.visibility = 'visible'; // set current buffer to visible (display)
+		
+		this.mBufferIter = (this.mBufferIter + 1) % 2; // increment the buffer iterator
+		this.mCurrContext = this.mContext[this.mBufferIter]; // set the current buffer
+		this.mCanvas[this.mBufferIter].style.visibility = 'hidden'; // hide the current buffer (we are now drawing to it)
+	}
 }
 
 // set the current transform to the identity matrix
