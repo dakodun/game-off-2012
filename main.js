@@ -1195,6 +1195,10 @@ Shape.prototype.Copy = function(other) {
 // 
 Shape.prototype.Reset = function() {
 	this.mPoints.splice(0, this.mPoints.length);
+	this.mSize.Set(0, 0);
+	for (var i = 0; i < this.mBounds.length; ++i) {
+		this.mBounds[i] = 0;
+	}
 }
 
 // 
@@ -1808,6 +1812,8 @@ InitScene.prototype.SetUp = function() {
 		// load the textures we need
 		nmgrs.resLoad.QueueTexture("smb_select", "./res/vis/smb_select.png");
 		nmgrs.resLoad.QueueTexture("menu_button", "./res/vis/menu_button.png");
+		nmgrs.resLoad.QueueTexture("help_icon", "./res/vis/help_icon.png");
+		nmgrs.resLoad.QueueTexture("help_cheat", "./res/vis/help_cheat.png");
 		
 		nmgrs.resLoad.QueueTexture("tile_set_default", "./res/vis/tile_set_default.png");
 		nmgrs.resLoad.QueueTexture("tile_hilite", "./res/vis/tile_hilite.png");
@@ -1888,12 +1894,14 @@ function MenuScene() {
 	this.mButtonText[2] = new Text();
 	this.mButtonText[3] = new Text();
 	this.mButtonText[4] = new Text();
+	this.mButtonText[5] = new Text();
 	
 	this.mButtons = new Array();
 	this.mButtons[0] = new Sprite;
 	this.mButtons[1] = new Sprite;
 	this.mButtons[2] = new Sprite;
 	this.mButtons[3] = new Sprite;
+	this.mButtons[4] = new Sprite;
 	
 	this.mRand = new RNG(0);
 	
@@ -2003,6 +2011,23 @@ MenuScene.prototype.SetUp = function() {
 		this.mButtonText[4].mPos.Set(this.mButtons[2].mPos.mX + (this.mButtons[2].GetWidth() / 2) - (this.mButtonText[4].GetWidth() / 2), this.mButtons[2].mPos.mY + this.mButtons[2].GetHeight() - 7);
 	}
 	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("help_icon");
+		
+		this.mButtonText[5].SetFontName("sans-serif");
+		this.mButtonText[5].SetFontSize(12);
+		this.mButtonText[5].mString = "Learn a little about how the game works ->";
+		this.mButtonText[5].mDepth = -2000;
+		this.mButtonText[5].mShadow = true;
+		
+		this.mButtons[4].SetTexture(tex);
+		this.mButtons[4].SetCurrentFrame(0);
+		this.mButtons[4].mDepth = -2000;
+		
+		this.mButtons[4].mPos.Set(nmain.game.mCanvasSize.mX - this.mButtons[4].GetWidth() - 12, nmain.game.mCanvasSize.mY - this.mButtons[4].GetHeight() - 12);
+		this.mButtonText[5].mPos.Set(nmain.game.mCanvasSize.mX - this.mButtons[4].GetWidth() - this.mButtonText[5].GetWidth(), nmain.game.mCanvasSize.mY - (this.mButtons[4].GetHeight() / 2) - 12);
+	}
+	
 	this.SetUpBatch();
 }
 
@@ -2057,6 +2082,10 @@ MenuScene.prototype.Input = function() {
 					
 					nmgrs.sceneMan.SwitchScene();
 				}
+				else if (i == 4) {
+					this.mPersist = true;
+					nmgrs.sceneMan.ChangeScene(new HelpScene());
+				}
 			}
 		}
 	}
@@ -2091,6 +2120,25 @@ MenuScene.prototype.SetUpBatch = function() {
 // self contained parts of the game such as different screens, levels or game modes
 function HelpScene() {
 	this.mPersist = false;
+	
+	this.mBatch = new RenderBatch();
+	
+	this.mText = new Array();
+	this.mText[0] = new Text();
+	
+	this.mText[1] = new Text();
+	this.mText[2] = new Text();
+	
+	this.mText[3] = new Text();
+	this.mText[4] = new Text();
+	this.mText[5] = new Text();
+	
+	this.mText[6] = new Text();
+	this.mText[7] = new Text();
+	this.mText[8] = new Text();
+	this.mText[9] = new Text();
+	
+	this.mSprite = new Sprite();
 }
 
 // returns the type of this object for validity checking
@@ -2106,6 +2154,106 @@ HelpScene.prototype.Persistent = function() {
 // initialises the scene object
 HelpScene.prototype.SetUp = function() {
 	nmain.game.mClearColour = "#604039";
+	
+	{
+		this.mText[0].SetFontName("sans-serif");
+		this.mText[0].SetFontSize(12);
+		this.mText[0].mString = "Click anywhere to return to menu";
+		this.mText[0].mDepth = -2000;
+		this.mText[0].mShadow = true;
+		
+		this.mText[0].mPos.Set((nmain.game.mCanvasSize.mX / 2) - (this.mText[0].GetWidth() / 2), 12);
+	}
+	
+	{
+		this.mText[1].SetFontName("sans-serif");
+		this.mText[1].SetFontSize(16);
+		this.mText[1].mString = "Our Units";
+		this.mText[1].mDepth = -2000;
+		this.mText[1].mShadow = true;
+		
+		this.mText[1].mPos.Set(56, 80);
+		
+		this.mText[2].SetFontName("sans-serif");
+		this.mText[2].SetFontSize(16);
+		this.mText[2].mString = "Enemy Units";
+		this.mText[2].mDepth = -2000;
+		this.mText[2].mShadow = true;
+		
+		this.mText[2].mPos.Set(328, 80);
+	}
+	
+	{
+		this.mText[3].SetFontName("sans-serif");
+		this.mText[3].SetFontSize(12);
+		this.mText[3].mString = "Worker Creation Building\nbuild your extra worker\nunits here";
+		this.mText[3].mDepth = -2000;
+		this.mText[3].mShadow = true;
+		
+		this.mText[3].mPos.Set(160, 130);
+		
+		this.mText[4].SetFontName("sans-serif");
+		this.mText[4].SetFontSize(12);
+		this.mText[4].mString = "Pusher and Puller\nuse the worker units to move\nyour artillery and scout";
+		this.mText[4].mDepth = -2000;
+		this.mText[4].mShadow = true;
+		
+		this.mText[4].mPos.Set(160, 190);
+		
+		this.mText[5].SetFontName("sans-serif");
+		this.mText[5].SetFontSize(12);
+		this.mText[5].mString = "Artillery\nyour only offensive units which\nare immobile by themselves;\nlose these and lose the game;\nattack range is visible when unit\nis selected";
+		this.mText[5].mDepth = -2000;
+		this.mText[5].mShadow = true;
+		
+		this.mText[5].mPos.Set(160, 250);
+	}
+	
+	{
+		this.mText[6].SetFontName("sans-serif");
+		this.mText[6].SetFontSize(12);
+		this.mText[6].mString = "Ion Cannon\nlong range enemy building;\nthis is a primary target";
+		this.mText[6].mDepth = -2000;
+		this.mText[6].mShadow = true;
+		
+		this.mText[6].mPos.Set(420, 130);
+		
+		this.mText[7].SetFontName("sans-serif");
+		this.mText[7].SetFontSize(12);
+		this.mText[7].mString = "Scout Creation Building\nthe enemy produces scouts from here\nthis is a primary target";
+		this.mText[7].mDepth = -2000;
+		this.mText[7].mShadow = true;
+		
+		this.mText[7].mPos.Set(420, 190);
+		
+		this.mText[8].SetFontName("sans-serif");
+		this.mText[8].SetFontSize(12);
+		this.mText[8].mString = "Scout\npassive unit which seeks out player\nunits and stalks them, obstructing\ntheir movement and providing vision";
+		this.mText[8].mDepth = -2000;
+		this.mText[8].mShadow = true;
+		
+		this.mText[8].mPos.Set(420, 250);
+		
+		this.mText[9].SetFontName("sans-serif");
+		this.mText[9].SetFontSize(12);
+		this.mText[9].mString = "Targeting Indication\nif you see this then an enemy unit can\nattack any units on that tile; only visible\nwhen the player has vision of the\nattacking unit";
+		this.mText[9].mDepth = -2000;
+		this.mText[9].mShadow = true;
+		
+		this.mText[9].mPos.Set(420, 330);
+	}
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("help_cheat");
+		this.mSprite.SetTexture(tex);
+		this.mSprite.mDepth = 500;
+	}
+	
+	for (var i = 0; i < this.mText.length; ++i) {
+		this.mBatch.AddText(this.mText[i]);
+	}
+	
+	this.mBatch.AddSprite(this.mSprite);
 }
 
 // cleans up the scene object
@@ -2128,6 +2276,7 @@ HelpScene.prototype.Process = function() {
 // handles all drawing tasks
 HelpScene.prototype.Render = function() {
 	nmain.game.SetIdentity();
+	this.mBatch.Render();
 }
 // ...End
 
@@ -3424,6 +3573,10 @@ function GFUnitPusher() {
 	this.mKillConfirmB = new Text();
 	
 	this.mSuperMode = false;
+	
+	this.mHealth = 2;
+	this.mHealthText = new Text();
+	this.mHealthBack = new Shape();
 }
 
 GFUnitPusher.prototype.Type = function() {
@@ -3444,7 +3597,7 @@ GFUnitPusher.prototype.SetUp = function(camera, pos) {
 	{
 		var tex = nmgrs.resMan.mTexStore.GetResource("gui_moves");
 		this.mMovesLeftSprite.SetAnimatedTexture(tex, 3, 1, -1, -1);
-		this.mMovesLeftSprite.mOrigin.Set(20, 34);
+		this.mMovesLeftSprite.mOrigin.Set((this.mMovesLeftSprite.GetWidth() / 2) - (this.mSprite.GetWidth() / 2), 6);
 		this.mMovesLeftSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
 		this.mMovesLeftSprite.SetCurrentFrame(0);
 		this.mMovesLeftSprite.mDepth = -2000;
@@ -3503,6 +3656,24 @@ GFUnitPusher.prototype.SetUp = function(camera, pos) {
 		this.mKillConfirmB.mDepth = -9999;
 		this.mKillConfirmB.mShadow = true;
 		this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
+	}
+	
+	{
+		this.mHealthText.SetFontName("sans-serif");
+		this.mHealthText.mColour = "#77AAFF";
+		this.mHealthText.SetFontSize(12);
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthText.mDepth = -9994;
+		this.mHealthText.mShadow = true;
+		this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.mColour = "#000000";
+		this.mHealthBack.mAlpha = 0.85;
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
 	}
 }
 
@@ -3709,6 +3880,9 @@ GFUnitPusher.prototype.GetRender = function() {
 		}
 	}
 	
+	arr.push(this.mHealthBack);
+	arr.push(this.mHealthText);
+	
 	return arr;
 }
 
@@ -3728,6 +3902,9 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 			this.mMovesLeftSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.AdjustFog(1); // adjust fog in new position
+			
+			this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+			this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
 		}
 		
 		if (this.mSuperMode == false) {
@@ -3789,6 +3966,9 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mBound.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mFireZone.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].AdjustFog(1); // adjust fog in current position
+			
+			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mHealthText.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mPos.mX, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mPos.mY);
+			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mHealthBack.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mPos.mX - 2, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mPos.mY);
 		}
 		
 		{ // move this
@@ -3805,6 +3985,9 @@ GFUnitPusher.prototype.PlacementCallback = function(info, id) {
 			this.mMovesLeftSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.AdjustFog(1); // adjust fog in new position
+			
+			this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+			this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
 		}
 		
 		if (this.mSuperMode == false) {
@@ -4216,6 +4399,23 @@ GFUnitPusher.prototype.DestroyUnit = function() {
 	
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(this.mPos);
 }
+
+//
+GFUnitPusher.prototype.DecreaseHealth = function(amount) {
+	this.mHealth -= amount;
+	if (this.mHealth <= 0) {
+		this.DestroyUnit();
+	}
+	else {
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.Reset();
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
+}
 // ...End
 
 
@@ -4243,6 +4443,10 @@ function GFUnitPuller() {
 	this.mKillConfirmB = new Text();
 	
 	this.mSuperMode = false;
+	
+	this.mHealth = 2;
+	this.mHealthText = new Text();
+	this.mHealthBack = new Shape();
 }
 
 GFUnitPuller.prototype.Type = function() {
@@ -4263,7 +4467,7 @@ GFUnitPuller.prototype.SetUp = function(camera, pos) {
 	{
 		var tex = nmgrs.resMan.mTexStore.GetResource("gui_moves");
 		this.mMovesLeftSprite.SetAnimatedTexture(tex, 3, 1, -1, -1);
-		this.mMovesLeftSprite.mOrigin.Set(20, 34);
+		this.mMovesLeftSprite.mOrigin.Set((this.mMovesLeftSprite.GetWidth() / 2) - (this.mSprite.GetWidth() / 2), 6);
 		this.mMovesLeftSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
 		this.mMovesLeftSprite.SetCurrentFrame(0);
 		this.mMovesLeftSprite.mDepth = -2000;
@@ -4322,6 +4526,24 @@ GFUnitPuller.prototype.SetUp = function(camera, pos) {
 		this.mKillConfirmB.mDepth = -9999;
 		this.mKillConfirmB.mShadow = true;
 		this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
+	}
+	
+	{
+		this.mHealthText.SetFontName("sans-serif");
+		this.mHealthText.mColour = "#77AAFF";
+		this.mHealthText.SetFontSize(12);
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthText.mDepth = -9994;
+		this.mHealthText.mShadow = true;
+		this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.mColour = "#000000";
+		this.mHealthBack.mAlpha = 0.85;
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
 	}
 }
 
@@ -4528,6 +4750,9 @@ GFUnitPuller.prototype.GetRender = function() {
 		}
 	}
 	
+	arr.push(this.mHealthBack);
+	arr.push(this.mHealthText);
+	
 	return arr;
 }
 
@@ -4547,6 +4772,9 @@ GFUnitPuller.prototype.PlacementCallback = function(info, id) {
 			this.mMovesLeftSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.AdjustFog(1); // adjust fog in new position
+			
+			this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+			this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
 		}
 		
 		if (this.mSuperMode == false) {
@@ -4607,6 +4835,9 @@ GFUnitPuller.prototype.PlacementCallback = function(info, id) {
 			this.mMovesLeftSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.AdjustFog(1); // adjust fog in new position
+			
+			this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+			this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
 		}
 		
 		{ // move other
@@ -4624,6 +4855,9 @@ GFUnitPuller.prototype.PlacementCallback = function(info, id) {
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mBound.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mFireZone.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mX * 32, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mPos.mY * 32);
 			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].AdjustFog(1); // adjust fog in current position
+			
+			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mHealthText.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mPos.mX, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mPos.mY);
+			nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mHealthBack.mPos.Set(nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mPos.mX - 2, nmgrs.sceneMan.mCurrScene.mGameEntities[oldID].mSprite.mPos.mY);
 		}
 		
 		if (this.mSuperMode == false) {
@@ -5035,6 +5269,23 @@ GFUnitPuller.prototype.DestroyUnit = function() {
 	
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(this.mPos);
 }
+
+//
+GFUnitPuller.prototype.DecreaseHealth = function(amount) {
+	this.mHealth -= amount;
+	if (this.mHealth <= 0) {
+		this.DestroyUnit();
+	}
+	else {
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.Reset();
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
+}
 // ...End
 
 
@@ -5065,6 +5316,10 @@ function GFUnitArtillery() {
 	this.mShowFireZone = true;
 	
 	this.mSuperMode = false;
+	
+	this.mHealth = 6;
+	this.mHealthText = new Text();
+	this.mHealthBack = new Shape();
 }
 
 GFUnitArtillery.prototype.Type = function() {
@@ -5085,7 +5340,7 @@ GFUnitArtillery.prototype.SetUp = function(camera, pos) {
 	{
 		var tex = nmgrs.resMan.mTexStore.GetResource("gui_moves");
 		this.mMovesLeftSprite.SetAnimatedTexture(tex, 3, 1, -1, -1);
-		this.mMovesLeftSprite.mOrigin.Set(20, 34);
+		this.mMovesLeftSprite.mOrigin.Set((this.mMovesLeftSprite.GetWidth() / 2) - (this.mSprite.GetWidth() / 2), 6);
 		this.mMovesLeftSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
 		this.mMovesLeftSprite.SetCurrentFrame(0);
 		this.mMovesLeftSprite.mDepth = -2000;
@@ -5143,6 +5398,24 @@ GFUnitArtillery.prototype.SetUp = function(camera, pos) {
 		this.mKillConfirmB.mDepth = -9999;
 		this.mKillConfirmB.mShadow = true;
 		this.mKillConfirmB.mPos.Set(camera.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mKillConfirmB.GetWidth() / 2), camera.mTranslate.mY + this.mKillConfirmA.GetHeight() + 12);
+	}
+	
+	{
+		this.mHealthText.SetFontName("sans-serif");
+		this.mHealthText.mColour = "#77AAFF";
+		this.mHealthText.SetFontSize(12);
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthText.mDepth = -9994;
+		this.mHealthText.mShadow = true;
+		this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.mColour = "#000000";
+		this.mHealthBack.mAlpha = 0.85;
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
 	}
 }
 
@@ -5308,6 +5581,9 @@ GFUnitArtillery.prototype.GetRender = function() {
 		}
 	}
 	
+	arr.push(this.mHealthBack);
+	arr.push(this.mHealthText);
+	
 	return arr;
 }
 
@@ -5315,7 +5591,8 @@ GFUnitArtillery.prototype.GetRender = function() {
 GFUnitArtillery.prototype.PlacementCallback = function(info, id) {
 	if (info == "fire") {
 		var entID = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID;
-		nmgrs.sceneMan.mCurrScene.mGameEntities[entID].DestroyUnit();
+		var amount = nmgrs.sceneMan.mCurrScene.mMap.mRand.GetRandInt(3, 6);
+		nmgrs.sceneMan.mCurrScene.mGameEntities[entID].DecreaseHealth(amount);
 		
 		if (this.mSuperMode == false) {
 			this.mMovesLeft--;
@@ -5454,6 +5731,23 @@ GFUnitArtillery.prototype.DestroyUnit = function() {
 	
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(this.mPos);
 }
+
+//
+GFUnitArtillery.prototype.DecreaseHealth = function(amount) {
+	this.mHealth -= amount;
+	if (this.mHealth <= 0) {
+		this.DestroyUnit();
+	}
+	else {
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.Reset();
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
+}
 // ...End
 
 
@@ -5497,8 +5791,8 @@ GFBuildingWP.prototype.SetUp = function(camera, pos) {
 	{
 		var tex = nmgrs.resMan.mTexStore.GetResource("gui_moves");
 		this.mMovesLeftSprite.SetAnimatedTexture(tex, 3, 1, -1, -1);
-		this.mMovesLeftSprite.mOrigin.Set(20, 34);
-		this.mMovesLeftSprite.mPos.Set((pos.mX * 32) + 16, pos.mY * 32);
+		this.mMovesLeftSprite.mOrigin.Set((this.mMovesLeftSprite.GetWidth() / 2) - (this.mSprite.GetWidth() / 4) - 6, 6);
+		this.mMovesLeftSprite.mPos.Set(pos.mX * 32, pos.mY * 32);
 		this.mMovesLeftSprite.SetCurrentFrame(1);
 		this.mMovesLeftSprite.mDepth = -2000;
 	}
@@ -5870,6 +6164,10 @@ function GFEUnitScout() {
 	
 	this.mCurrentAction = "";
 	this.mEntityFollowing = -1;
+	
+	this.mHealth = 1;
+	this.mHealthText = new Text();
+	this.mHealthBack = new Shape();
 }
 
 GFEUnitScout.prototype.Type = function() {
@@ -5896,6 +6194,24 @@ GFEUnitScout.prototype.SetUp = function(pos) {
 	this.mBound.AddPoint(new IVec2(32, 0));
 	this.mBound.AddPoint(new IVec2(32, 32));
 	this.mBound.AddPoint(new IVec2(0, 32));
+	
+	{
+		this.mHealthText.SetFontName("sans-serif");
+		this.mHealthText.mColour = "#FFAA77";
+		this.mHealthText.SetFontSize(12);
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthText.mDepth = -9994;
+		this.mHealthText.mShadow = true;
+		this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.mColour = "#000000";
+		this.mHealthBack.mAlpha = 0.85;
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
 }
 
 GFEUnitScout.prototype.Process = function() {
@@ -5922,6 +6238,14 @@ GFEUnitScout.prototype.GetRender = function() {
 	arr.push(this.mSprite);
 	if (this.mShowBound == true) {
 		arr.push(this.mBound);
+	}
+	
+	{
+	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+		if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFog > 0) {
+			arr.push(this.mHealthBack);
+			arr.push(this.mHealthText);
+		}
 	}
 	
 	return arr;
@@ -5986,6 +6310,9 @@ GFEUnitScout.prototype.FindUnit = function() {
 			this.mSprite.mDepth = -500 - id;
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.AdjustFog(1);
+			
+			this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+			this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
 		}
 	}
 	
@@ -6078,6 +6405,9 @@ GFEUnitScout.prototype.ReturnToBase = function() {
 			this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mSprite.mDepth = -500 - id;
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+			
+			this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+			this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
 		}
 	}
 	
@@ -6135,6 +6465,9 @@ GFEUnitScout.prototype.FollowUnit = function() {
 					this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 					this.mSprite.mDepth = -500 - id;
 					this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+					
+					this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+					this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
 				}
 			}
 		}
@@ -6200,6 +6533,23 @@ GFEUnitScout.prototype.DestroyUnit = function() {
 	
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(this.mPos);
 }
+
+//
+GFEUnitScout.prototype.DecreaseHealth = function(amount) {
+	this.mHealth -= amount;
+	if (this.mHealth <= 0) {
+		this.DestroyUnit();
+	}
+	else {
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.Reset();
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
+}
 // ...End
 
 
@@ -6220,6 +6570,10 @@ function GFEBuildingSP() {
 	this.mCurrentAction = "";
 	this.mTurnsUntilSpawn = 0;
 	this.mScoutLimit = 6;
+	
+	this.mHealth = 10;
+	this.mHealthText = new Text();
+	this.mHealthBack = new Shape();
 }
 
 GFEBuildingSP.prototype.Type = function() {
@@ -6255,6 +6609,24 @@ GFEBuildingSP.prototype.SetUp = function(pos) {
 	else if (nmgrs.sceneMan.mCurrScene.mMenuMapSize == "b") {
 		this.mScoutLimit = 14;
 	}
+	
+	{
+		this.mHealthText.SetFontName("sans-serif");
+		this.mHealthText.mColour = "#FFAA77";
+		this.mHealthText.SetFontSize(12);
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthText.mDepth = -9994;
+		this.mHealthText.mShadow = true;
+		this.mHealthText.mPos.Set(this.mSprite.mPos.mX + 14, this.mSprite.mPos.mY + 8);
+		
+		this.mHealthBack.mColour = "#000000";
+		this.mHealthBack.mAlpha = 0.85;
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2  + 14, this.mSprite.mPos.mY + 8);
+		
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
 }
 
 GFEBuildingSP.prototype.Process = function() {
@@ -6281,6 +6653,18 @@ GFEBuildingSP.prototype.GetRender = function() {
 	arr.push(this.mSprite);
 	if (this.mShowBound == true) {
 		arr.push(this.mBound);
+	}
+	
+	{
+		var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+		if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFog > 0 ||
+				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1].mFog > 0 ||
+				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mFog > 0 ||
+				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1 + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mFog > 0) {
+			
+			arr.push(this.mHealthBack);
+			arr.push(this.mHealthText);
+		}
 	}
 	
 	return arr;
@@ -6388,6 +6772,23 @@ GFEBuildingSP.prototype.DestroyUnit = function() {
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX, this.mPos.mY + 1));
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX + 1, this.mPos.mY + 1));
 }
+
+//
+GFEBuildingSP.prototype.DecreaseHealth = function(amount) {
+	this.mHealth -= amount;
+	if (this.mHealth <= 0) {
+		this.DestroyUnit();
+	}
+	else {
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2  + 14, this.mSprite.mPos.mY + 8);
+		
+		this.mHealthBack.Reset();
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
+}
 // ...End
 
 
@@ -6407,6 +6808,10 @@ function GFEBuildingIC() {
 	
 	this.mCurrentAction = "";
 	this.mFireZoneSprites = new Array();
+	
+	this.mHealth = 8;
+	this.mHealthText = new Text();
+	this.mHealthBack = new Shape();
 }
 
 GFEBuildingIC.prototype.Type = function() {
@@ -6470,6 +6875,24 @@ GFEBuildingIC.prototype.SetUp = function(pos) {
 			this.mFireZoneSprites.push(spr);
 		}
 	}
+	
+	{
+		this.mHealthText.SetFontName("sans-serif");
+		this.mHealthText.mColour = "#FFAA77";
+		this.mHealthText.SetFontSize(12);
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthText.mDepth = -9994;
+		this.mHealthText.mShadow = true;
+		this.mHealthText.mPos.Set(this.mSprite.mPos.mX + 14, this.mSprite.mPos.mY + 8);
+		
+		this.mHealthBack.mColour = "#000000";
+		this.mHealthBack.mAlpha = 0.85;
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2  + 14, this.mSprite.mPos.mY + 8);
+		
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
 }
 
 GFEBuildingIC.prototype.Process = function() {
@@ -6505,6 +6928,9 @@ GFEBuildingIC.prototype.GetRender = function() {
 				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mFog > 0 ||
 				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1 + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mFog > 0) {
 			
+			arr.push(this.mHealthBack);
+			arr.push(this.mHealthText);
+			
 			for (var i = 0; i < this.mFireZoneSprites.length; ++i) {
 				var pos = new IVec2(this.mFireZoneSprites[i].mPos.mX / 32, this.mFireZoneSprites[i].mPos.mY / 32);
 				var idFire = nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
@@ -6539,7 +6965,8 @@ GFEBuildingIC.prototype.PerformAIAction = function() {
 	}
 	
 	if (target >= 0) {
-		nmgrs.sceneMan.mCurrScene.mGameEntities[target].DestroyUnit();
+		var amount = nmgrs.sceneMan.mCurrScene.mMap.mRand.GetRandInt(4, 10);
+		nmgrs.sceneMan.mCurrScene.mGameEntities[target].DecreaseHealth(amount);
 	}
 	
 	this.mMovesLeft--;
@@ -6642,6 +7069,23 @@ GFEBuildingIC.prototype.DestroyUnit = function() {
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX + 1, this.mPos.mY));
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX, this.mPos.mY + 1));
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX + 1, this.mPos.mY + 1));
+}
+
+//
+GFEBuildingIC.prototype.DecreaseHealth = function(amount) {
+	this.mHealth -= amount;
+	if (this.mHealth <= 0) {
+		this.DestroyUnit();
+	}
+	else {
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2  + 14, this.mSprite.mPos.mY + 8);
+		
+		this.mHealthBack.Reset();
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
 }
 // ...End
 
