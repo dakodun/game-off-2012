@@ -58,10 +58,11 @@ GFBuildingWP.prototype.SetUp = function(camera, pos) {
 		var tex = nmgrs.resMan.mTexStore.GetResource("gui_workerprod");
 		this.mUI.mSlotSprites[0].SetAnimatedTexture(tex, 2, 2, -1, -1);
 		this.mUI.mSlotSprites[0].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 220, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mUI.mSlotSprites[0].mDepth = -9999;
+		this.mUI.mSlotSprites[0].mDepth = -9998;
 		this.mUI.mSlotStatus[0] = true;
 		this.mUI.mSlotText[0].mString = "0 / 2";
 		this.mUI.mSlotText[0].mShadow = true;
+		this.mUI.mSlotText[0].mDepth = -9999;
 		
 		var wOffset = (this.mUI.mSlotSprites[0].GetWidth() / 2) - (this.mUI.mSlotText[0].GetWidth() / 2);
 		this.mUI.mSlotText[0].mPos.Set(this.mUI.mSlotSprites[0].mPos.mX + wOffset, this.mUI.mSlotSprites[0].mPos.mY - this.mUI.mSlotText[1].GetHeight());
@@ -69,10 +70,11 @@ GFBuildingWP.prototype.SetUp = function(camera, pos) {
 		this.mUI.mSlotSprites[1].SetAnimatedTexture(tex, 2, 2, -1, -1);
 		this.mUI.mSlotSprites[1].SetCurrentFrame(1);
 		this.mUI.mSlotSprites[1].mPos.Set(camera.mTranslate.mX + nmain.game.mCanvasSize.mX - 148, camera.mTranslate.mY + nmain.game.mCanvasSize.mY - 64);
-		this.mUI.mSlotSprites[1].mDepth = -9999;
+		this.mUI.mSlotSprites[1].mDepth = -9998;
 		this.mUI.mSlotStatus[1] = true;
 		this.mUI.mSlotText[1].mString = "0 / 2";
 		this.mUI.mSlotText[1].mShadow = true;
+		this.mUI.mSlotText[1].mDepth = -9999;
 		
 		wOffset = (this.mUI.mSlotSprites[1].GetWidth() / 2) - (this.mUI.mSlotText[1].GetWidth() / 2);
 		this.mUI.mSlotText[1].mPos.Set(this.mUI.mSlotSprites[1].mPos.mX + wOffset, this.mUI.mSlotSprites[1].mPos.mY - this.mUI.mSlotText[1].GetHeight());
