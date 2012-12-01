@@ -15,6 +15,10 @@ function GFEBuildingSP() {
 	this.mCurrentAction = "";
 	this.mTurnsUntilSpawn = 0;
 	this.mScoutLimit = 6;
+	
+	this.mHealth = 10;
+	this.mHealthText = new Text();
+	this.mHealthBack = new Shape();
 }
 
 GFEBuildingSP.prototype.Type = function() {
@@ -50,6 +54,24 @@ GFEBuildingSP.prototype.SetUp = function(pos) {
 	else if (nmgrs.sceneMan.mCurrScene.mMenuMapSize == "b") {
 		this.mScoutLimit = 14;
 	}
+	
+	{
+		this.mHealthText.SetFontName("sans-serif");
+		this.mHealthText.mColour = "#FFAA77";
+		this.mHealthText.SetFontSize(12);
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthText.mDepth = -9994;
+		this.mHealthText.mShadow = true;
+		this.mHealthText.mPos.Set(this.mSprite.mPos.mX + 14, this.mSprite.mPos.mY + 8);
+		
+		this.mHealthBack.mColour = "#000000";
+		this.mHealthBack.mAlpha = 0.85;
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2  + 14, this.mSprite.mPos.mY + 8);
+		
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
 }
 
 GFEBuildingSP.prototype.Process = function() {
@@ -76,6 +98,18 @@ GFEBuildingSP.prototype.GetRender = function() {
 	arr.push(this.mSprite);
 	if (this.mShowBound == true) {
 		arr.push(this.mBound);
+	}
+	
+	{
+		var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+		if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFog > 0 ||
+				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1].mFog > 0 ||
+				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mFog > 0 ||
+				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1 + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mFog > 0) {
+			
+			arr.push(this.mHealthBack);
+			arr.push(this.mHealthText);
+		}
 	}
 	
 	return arr;
@@ -182,6 +216,23 @@ GFEBuildingSP.prototype.DestroyUnit = function() {
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX + 1, this.mPos.mY));
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX, this.mPos.mY + 1));
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX + 1, this.mPos.mY + 1));
+}
+
+//
+GFEBuildingSP.prototype.DecreaseHealth = function(amount) {
+	this.mHealth -= amount;
+	if (this.mHealth <= 0) {
+		this.DestroyUnit();
+	}
+	else {
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2  + 14, this.mSprite.mPos.mY + 8);
+		
+		this.mHealthBack.Reset();
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
 }
 // ...End
 

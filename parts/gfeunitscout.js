@@ -14,6 +14,10 @@ function GFEUnitScout() {
 	
 	this.mCurrentAction = "";
 	this.mEntityFollowing = -1;
+	
+	this.mHealth = 1;
+	this.mHealthText = new Text();
+	this.mHealthBack = new Shape();
 }
 
 GFEUnitScout.prototype.Type = function() {
@@ -40,6 +44,24 @@ GFEUnitScout.prototype.SetUp = function(pos) {
 	this.mBound.AddPoint(new IVec2(32, 0));
 	this.mBound.AddPoint(new IVec2(32, 32));
 	this.mBound.AddPoint(new IVec2(0, 32));
+	
+	{
+		this.mHealthText.SetFontName("sans-serif");
+		this.mHealthText.mColour = "#FFAA77";
+		this.mHealthText.SetFontSize(12);
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthText.mDepth = -9994;
+		this.mHealthText.mShadow = true;
+		this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.mColour = "#000000";
+		this.mHealthBack.mAlpha = 0.85;
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
 }
 
 GFEUnitScout.prototype.Process = function() {
@@ -66,6 +88,14 @@ GFEUnitScout.prototype.GetRender = function() {
 	arr.push(this.mSprite);
 	if (this.mShowBound == true) {
 		arr.push(this.mBound);
+	}
+	
+	{
+	var id = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+		if (nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFog > 0) {
+			arr.push(this.mHealthBack);
+			arr.push(this.mHealthText);
+		}
 	}
 	
 	return arr;
@@ -130,6 +160,9 @@ GFEUnitScout.prototype.FindUnit = function() {
 			this.mSprite.mDepth = -500 - id;
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.AdjustFog(1);
+			
+			this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+			this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
 		}
 	}
 	
@@ -222,6 +255,9 @@ GFEUnitScout.prototype.ReturnToBase = function() {
 			this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 			this.mSprite.mDepth = -500 - id;
 			this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+			
+			this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+			this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
 		}
 	}
 	
@@ -279,6 +315,9 @@ GFEUnitScout.prototype.FollowUnit = function() {
 					this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
 					this.mSprite.mDepth = -500 - id;
 					this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+					
+					this.mHealthText.mPos.Set(this.mSprite.mPos.mX, this.mSprite.mPos.mY);
+					this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
 				}
 			}
 		}
@@ -343,6 +382,23 @@ GFEUnitScout.prototype.DestroyUnit = function() {
 	}
 	
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(this.mPos);
+}
+
+//
+GFEUnitScout.prototype.DecreaseHealth = function(amount) {
+	this.mHealth -= amount;
+	if (this.mHealth <= 0) {
+		this.DestroyUnit();
+	}
+	else {
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2, this.mSprite.mPos.mY);
+		
+		this.mHealthBack.Reset();
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
 }
 // ...End
 

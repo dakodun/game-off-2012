@@ -14,6 +14,10 @@ function GFEBuildingIC() {
 	
 	this.mCurrentAction = "";
 	this.mFireZoneSprites = new Array();
+	
+	this.mHealth = 8;
+	this.mHealthText = new Text();
+	this.mHealthBack = new Shape();
 }
 
 GFEBuildingIC.prototype.Type = function() {
@@ -77,6 +81,24 @@ GFEBuildingIC.prototype.SetUp = function(pos) {
 			this.mFireZoneSprites.push(spr);
 		}
 	}
+	
+	{
+		this.mHealthText.SetFontName("sans-serif");
+		this.mHealthText.mColour = "#FFAA77";
+		this.mHealthText.SetFontSize(12);
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthText.mDepth = -9994;
+		this.mHealthText.mShadow = true;
+		this.mHealthText.mPos.Set(this.mSprite.mPos.mX + 14, this.mSprite.mPos.mY + 8);
+		
+		this.mHealthBack.mColour = "#000000";
+		this.mHealthBack.mAlpha = 0.85;
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2  + 14, this.mSprite.mPos.mY + 8);
+		
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
 }
 
 GFEBuildingIC.prototype.Process = function() {
@@ -112,6 +134,9 @@ GFEBuildingIC.prototype.GetRender = function() {
 				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mFog > 0 ||
 				nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id + 1 + nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX].mFog > 0) {
 			
+			arr.push(this.mHealthBack);
+			arr.push(this.mHealthText);
+			
 			for (var i = 0; i < this.mFireZoneSprites.length; ++i) {
 				var pos = new IVec2(this.mFireZoneSprites[i].mPos.mX / 32, this.mFireZoneSprites[i].mPos.mY / 32);
 				var idFire = nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
@@ -146,7 +171,8 @@ GFEBuildingIC.prototype.PerformAIAction = function() {
 	}
 	
 	if (target >= 0) {
-		nmgrs.sceneMan.mCurrScene.mGameEntities[target].DestroyUnit();
+		var amount = nmgrs.sceneMan.mCurrScene.mMap.mRand.GetRandInt(4, 10);
+		nmgrs.sceneMan.mCurrScene.mGameEntities[target].DecreaseHealth(amount);
 	}
 	
 	this.mMovesLeft--;
@@ -249,6 +275,23 @@ GFEBuildingIC.prototype.DestroyUnit = function() {
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX + 1, this.mPos.mY));
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX, this.mPos.mY + 1));
 	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(new IVec2(this.mPos.mX + 1, this.mPos.mY + 1));
+}
+
+//
+GFEBuildingIC.prototype.DecreaseHealth = function(amount) {
+	this.mHealth -= amount;
+	if (this.mHealth <= 0) {
+		this.DestroyUnit();
+	}
+	else {
+		this.mHealthText.mString = this.mHealth.toString();
+		this.mHealthBack.mPos.Set(this.mSprite.mPos.mX - 2  + 14, this.mSprite.mPos.mY + 8);
+		
+		this.mHealthBack.Reset();
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, 0));
+		this.mHealthBack.AddPoint(new IVec2(this.mHealthText.GetWidth() + 4, this.mHealthText.GetHeight() + 4));
+		this.mHealthBack.AddPoint(new IVec2(0, this.mHealthText.GetHeight() + 4));
+	}
 }
 // ...End
 
