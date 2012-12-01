@@ -192,7 +192,7 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 									spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 									spr.mOrigin.Set(8, 8);
 									spr.mPos.Set(pos.mX * 32, pos.mY * 32);
-									spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id - fogDepth;
+									spr.mDepth = 999 - id - fogDepth;
 									
 									hiliteArr.push(spr);
 								}
@@ -235,7 +235,7 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 								spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 								spr.mOrigin.Set(8, 8);
 								spr.mPos.Set(pos.mX * 32, pos.mY * 32);
-								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id - fogDepth;
+								spr.mDepth = 999 - id - fogDepth;
 								
 								hiliteArr.push(spr);
 							}
