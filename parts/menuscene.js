@@ -58,7 +58,7 @@ MenuScene.prototype.SetUp = function() {
 			this.mButtons[0].SetCurrentFrame(0);
 			this.mButtons[0].mDepth = -2000;
 			
-			this.mButtonText[0].mPos.Set((nmain.game.mCanvasSize.mX / 2) - this.mButtonText[0].GetWidth() - 8, 30 + this.mButtonText[0].GetHeight() + this.mButtons[0].GetHeight() / 16);
+			this.mButtonText[0].mPos.Set((nmain.game.mCanvasSize.mX / 2) - this.mButtonText[0].GetWidth() - 8, 30 + this.mButtons[0].GetHeight() / 16);
 			this.mButtons[0].mPos.Set((nmain.game.mCanvasSize.mX / 2) + 8, 30);
 		}
 		
@@ -73,7 +73,7 @@ MenuScene.prototype.SetUp = function() {
 			this.mButtons[1].SetCurrentFrame(0);
 			this.mButtons[1].mDepth = -2000;
 			
-			this.mButtonText[1].mPos.Set((nmain.game.mCanvasSize.mX / 2) - this.mButtonText[1].GetWidth() - 8, 70 + this.mButtonText[1].GetHeight() + this.mButtons[1].GetHeight() / 16);
+			this.mButtonText[1].mPos.Set((nmain.game.mCanvasSize.mX / 2) - this.mButtonText[1].GetWidth() - 8, 70 + this.mButtons[1].GetHeight() / 16);
 			this.mButtons[1].mPos.Set((nmain.game.mCanvasSize.mX / 2) + 8, 70);
 		}
 	}
@@ -92,7 +92,7 @@ MenuScene.prototype.SetUp = function() {
 			this.mButtons[2].mDepth = -2000;
 			
 			this.mButtons[2].mPos.Set((nmain.game.mCanvasSize.mX / 2) - ((3 * this.mButtons[2].GetWidth()) / 2) + 24, 150);
-			this.mButtonText[2].mPos.Set(this.mButtons[2].mPos.mX - (this.mButtonText[2].GetWidth() / 2) + (this.mButtons[2].GetWidth() / 2), 120 + this.mButtonText[2].GetHeight() + this.mButtons[2].GetHeight() / 16);
+			this.mButtonText[2].mPos.Set(this.mButtons[2].mPos.mX - (this.mButtonText[2].GetWidth() / 2) + (this.mButtons[2].GetWidth() / 2), 120 + this.mButtons[2].GetHeight() / 16);
 		}
 		
 		{
@@ -106,7 +106,7 @@ MenuScene.prototype.SetUp = function() {
 			this.mButtons[3].mDepth = -2000;
 			
 			this.mButtons[3].mPos.Set((nmain.game.mCanvasSize.mX / 2) + (this.mButtons[3].GetWidth() / 2) - 24, 150);
-			this.mButtonText[3].mPos.Set(this.mButtons[3].mPos.mX - (this.mButtonText[3].GetWidth() / 2) + (this.mButtons[3].GetWidth() / 2), 120 + this.mButtonText[3].GetHeight() + this.mButtons[3].GetHeight() / 16);
+			this.mButtonText[3].mPos.Set(this.mButtons[3].mPos.mX - (this.mButtonText[3].GetWidth() / 2) + (this.mButtons[3].GetWidth() / 2), 120 + this.mButtons[3].GetHeight() / 16);
 		}
 	}
 	
@@ -123,7 +123,7 @@ MenuScene.prototype.SetUp = function() {
 		this.mButtonText[4].mDepth = -2010;
 		this.mButtonText[4].mShadow = true;
 		
-		this.mButtonText[4].mPos.Set(this.mButtons[2].mPos.mX + (this.mButtons[2].GetWidth() / 2) - (this.mButtonText[4].GetWidth() / 2), this.mButtons[2].mPos.mY + this.mButtons[2].GetHeight() + 5);
+		this.mButtonText[4].mPos.Set(this.mButtons[2].mPos.mX + (this.mButtons[2].GetWidth() / 2) - (this.mButtonText[4].GetWidth() / 2), this.mButtons[2].mPos.mY + this.mButtons[2].GetHeight() - 7);
 	}
 	
 	this.SetUpBatch();
@@ -167,7 +167,7 @@ MenuScene.prototype.Input = function() {
 					this.mRand.SetSeed(seed);
 					this.mSeed = seed;
 					this.mButtonText[4].mString = (this.mRand.GetSeed()).toString();
-					this.mButtonText[4].mPos.Set(this.mButtons[2].mPos.mX + (this.mButtons[2].GetWidth() / 2) - (this.mButtonText[4].GetWidth() / 2), this.mButtons[2].mPos.mY + this.mButtons[2].GetHeight() + 5);
+					this.mButtonText[4].mPos.Set(this.mButtons[2].mPos.mX + (this.mButtons[2].GetWidth() / 2) - (this.mButtonText[4].GetWidth() / 2), this.mButtons[2].mPos.mY + this.mButtons[2].GetHeight() - 7);
 					this.SetUpBatch();
 				}
 				else if (i == 3) {
