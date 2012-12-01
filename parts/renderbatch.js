@@ -1,7 +1,9 @@
 // DepthSort function
 // sorts renderable resources based on depth
 function DepthSort(first, second) {
-	return first.mDepth < second.mDepth;
+	var result = second.mDepth - first.mDepth;
+	
+	return result;
 };
 // ...End
 
@@ -67,7 +69,7 @@ RenderBatch.prototype.Render = function(camera) {
 		cam.Copy(camera);
 	}
 	
-	if	(this.mNeedSort == true) {
+	if (this.mNeedSort == true) {
 		this.mRenderData.sort(DepthSort); // sort the queue
 		this.mNeedSort = false;
 	}
@@ -77,29 +79,42 @@ RenderBatch.prototype.Render = function(camera) {
 		
 		if (this.mRenderData[i].Type() == "Sprite") {
 			var spr = this.mRenderData[i];
-			var w = spr.mTex.mImg.width;
-			var h = spr.mTex.mImg.height;
-			
-			if (spr.mIsAnimated == true) {
-				w = spr.mClipSize.mX;
-				h = spr.mClipSize.mY;
-			}
 			
 			var scrTL = new IVec2(0 + cam.mTranslate.mX, 0 + cam.mTranslate.mY);
 			var scrBR = new IVec2(nmain.game.mCanvasSize.mX + cam.mTranslate.mX,
 					nmain.game.mCanvasSize.mY + cam.mTranslate.mY);
 			
+			var sprTL = new IVec2(spr.GetPosition().mX, spr.GetPosition().mY);
+			var sprBR = new IVec2(spr.GetPosition().mX + spr.GetWidth(), spr.GetPosition().mY + spr.GetHeight());
 			
-			if ((spr.mPos.mX < scrBR.mX && (spr.mPos.mX + w) > scrTL.mX) &&
-					(spr.mPos.mY < scrBR.mY && (spr.mPos.mY + h) > scrTL.mY)) {
+			var intersect = false;
+			var left = sprTL.mX;
+			var right = scrBR.mX;
+			if (scrTL.mX < sprTL.mX) {
+				left = scrTL.mX;
+				right = sprBR.mX;
+			}
+			
+			if (right - left < spr.GetWidth() + nmain.game.mCanvasSize.mX) {
+				var top = sprTL.mY;
+				var bottom = scrBR.mY;
+				if (scrTL.mY < sprTL.mY) {
+					top = scrTL.mY;
+					bottom = sprBR.mY;
+				}
 				
-				
+				if (bottom - top < spr.GetHeight() + nmain.game.mCanvasSize.mY) {
+					intersect = true;
+				}
+			}
+			
+			if (intersect == true) {
 				nmain.game.mCurrContext.translate(spr.GetPosition().mX, spr.GetPosition().mY);
 				nmain.game.mCurrContext.rotate(spr.mRotation * (Math.PI / 180));
 				
 				nmain.game.mCurrContext.drawImage(spr.mTex.mImg, spr.mClipPos.mX, spr.mClipPos.mY,
 						spr.mClipSize.mX, spr.mClipSize.mY, 0, 0,
-						w * spr.mScale.mX, h * spr.mScale.mY);
+						spr.GetWidth() * spr.mScale.mX, spr.GetHeight() * spr.mScale.mY);
 			}
 		}
 		else if (this.mRenderData[i].Type() == "Text") {
@@ -109,18 +124,36 @@ RenderBatch.prototype.Render = function(camera) {
 			nmain.game.mCurrContext.font = txt.mFont;
 			nmain.game.mCurrContext.strokeStyle = txt.mColour;
 			
-			var w = txt.GetWidth();
-			var h = txt.GetHeight();
-			
 			var scrTL = new IVec2(0 + cam.mTranslate.mX, 0 + cam.mTranslate.mY);
 			var scrBR = new IVec2(nmain.game.mCanvasSize.mX + cam.mTranslate.mX,
 					nmain.game.mCanvasSize.mY + cam.mTranslate.mY);
 			
+			var txtTL = new IVec2(txt.mPos.mX, txt.mPos.mY);
+			var txtBR = new IVec2(txt.mPos.mX + txt.GetWidth(), txt.mPos.mY + txt.GetHeight());
 			
-			if ((txt.mPos.mX < scrBR.mX && (txt.mPos.mX + w) > scrTL.mX) &&
-					(txt.mPos.mY < scrBR.mY && (txt.mPos.mY + h) > scrTL.mY)) {
+			var intersect = false;
+			var left = txtTL.mX;
+			var right = scrBR.mX;
+			if (scrTL.mX < txtTL.mX) {
+				left = scrTL.mX;
+				right = txtBR.mX;
+			}
+			
+			if (right - left < txt.GetWidth() + nmain.game.mCanvasSize.mX) {
+				var top = txtTL.mY;
+				var bottom = scrBR.mY;
+				if (scrTL.mY < txtTL.mY) {
+					top = scrTL.mY;
+					bottom = txtBR.mY;
+				}
 				
-				nmain.game.mCurrContext.translate(txt.mPos.mX, txt.mPos.mY);
+				if (bottom - top < txt.GetHeight() + nmain.game.mCanvasSize.mY) {
+					intersect = true;
+				}
+			}
+			
+			if (intersect == true) {
+				nmain.game.mCurrContext.translate(txt.mPos.mX, txt.mPos.mY + txt.mHeight);
 				nmain.game.mCurrContext.rotate(txt.mRotation * (Math.PI / 180));
 				
 				if (txt.mOutline == true) {
