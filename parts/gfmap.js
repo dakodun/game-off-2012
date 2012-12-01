@@ -10,6 +10,8 @@ function GFMap() {
 	
 	this.mMapBatch = new RenderBatch();
 	this.mShowFog = true;
+	
+	this.mTileExplosions = new Array();
 };
 
 GFMap.prototype.SetUp = function(size) {
@@ -34,6 +36,16 @@ GFMap.prototype.SetUp = function(size) {
 			this.mMapTiles[ind].mFogSprite.mOrigin.Set(8, 8);
 			this.mMapTiles[ind].mFogSprite.mPos.Set(32 * x, 32 * y);
 			this.mMapTiles[ind].mFogSprite.mDepth = -1600 - ind;
+		}
+	}
+}
+
+GFMap.prototype.Process = function() {
+	for (var i = 0; i < this.mTileExplosions.length; ++i) {
+		this.mTileExplosions[i].Process();
+		
+		if (this.mTileExplosions[i].mNumLoops == 0) {
+			this.mTileExplosions.splice(i, 1);
 		}
 	}
 }
@@ -66,7 +78,21 @@ GFMap.prototype.GetRender = function() {
 		}
 	}
 	
+	for (var i = 0; i < this.mTileExplosions.length; ++i) {
+		arr.push(this.mTileExplosions[i]);
+	}
+	
 	return arr;
+}
+
+GFMap.prototype.AddExplosion = function(pos) {
+	var spr = new Sprite();
+	var tex = nmgrs.resMan.mTexStore.GetResource("explode");
+	spr.SetAnimatedTexture(tex, 8, 4, 2 / nmain.game.mFrameLimit, 1);
+	spr.mPos.Set(pos.mX * 32, pos.mY * 32);
+	spr.mDepth = -550 - nmgrs.sceneMan.mCurrScene.mMap.PosToID(pos);
+	
+	this.mTileExplosions.push(spr);
 }
 // ...End
 
