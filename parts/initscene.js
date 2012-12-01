@@ -18,6 +18,9 @@ InitScene.prototype.Persistent = function() {
 InitScene.prototype.SetUp = function() {
 	try {
 		// load the textures we need
+		nmgrs.resLoad.QueueTexture("smb_select", "./res/vis/smb_select.png");
+		nmgrs.resLoad.QueueTexture("menu_button", "./res/vis/menu_button.png");
+		
 		nmgrs.resLoad.QueueTexture("tile_set_default", "./res/vis/tile_set_default.png");
 		nmgrs.resLoad.QueueTexture("tile_hilite", "./res/vis/tile_hilite.png");
 		nmgrs.resLoad.QueueTexture("tile_hilite_fire", "./res/vis/tile_hilite_fire.png");
@@ -70,7 +73,8 @@ InitScene.prototype.Input = function() {
 // handles game logic
 InitScene.prototype.Process = function() {
 	if (nmgrs.resLoad.mWorking == false) {
-		nmgrs.sceneMan.ChangeScene(new GameScene());
+		nmgrs.sceneMan.ChangeScene(new MenuScene());
+		// nmgrs.sceneMan.ChangeScene(new GameScene());
 	}
 }
 
