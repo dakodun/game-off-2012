@@ -24,6 +24,7 @@ InitScene.prototype.SetUp = function() {
 		nmgrs.resLoad.QueueTexture("tile_set_default", "./res/vis/tile_set_default.png");
 		nmgrs.resLoad.QueueTexture("tile_hilite", "./res/vis/tile_hilite.png");
 		nmgrs.resLoad.QueueTexture("tile_hilite_fire", "./res/vis/tile_hilite_fire.png");
+		nmgrs.resLoad.QueueTexture("explode", "./res/vis/explode.png");
 		
 		nmgrs.resLoad.QueueTexture("turn_1", "./res/vis/turn_1.png");
 		nmgrs.resLoad.QueueTexture("turn_2", "./res/vis/turn_2.png");
@@ -47,6 +48,7 @@ InitScene.prototype.SetUp = function() {
 		nmgrs.resLoad.QueueTexture("unit_b_enemyion", "./res/vis/unit_b_enemyion.png");
 		nmgrs.resLoad.QueueTexture("unit_b_enemyscoutprod", "./res/vis/unit_b_enemyscoutprod.png");
 		nmgrs.resLoad.QueueTexture("unit_u_enemyscout", "./res/vis/unit_u_enemyscout.png");
+		nmgrs.resLoad.QueueTexture("ic_firezone", "./res/vis/ic_firezone.png");
 		
 		nmgrs.resLoad.QueueTexture("fog", "./res/vis/fog.png");
 		
