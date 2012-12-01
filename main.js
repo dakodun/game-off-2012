@@ -760,6 +760,9 @@ InputManager.prototype.GetMouseReleased = function(button) {
 function SceneManager() {
 	this.mCurrScene = null; // our current scene
 	this.mSceneStore = new Array(); // all of our stored (persistent) scenes
+	
+	this.mReadyScene = null; // the scene we will switch to set in ReadyScene()
+	this.mIsSetUp = false;
 }
 
 // initialises the scene manager
@@ -814,6 +817,54 @@ SceneManager.prototype.ChangeScene = function(newScene) {
 // returns the current scene
 SceneManager.prototype.GetCurrentScene = function() {
 	return this.mCurrScene;
+}
+
+// adds a new scene to the scene manager but doesn't yet switch which allows interaction betweens scenes
+SceneManager.prototype.ReadyScene = function(newScene) {
+	// this.mReadyScene = newScene;
+	var found = false; // indicates if we have found a previously stored scene
+	
+	// for all currently stored (persistent) scenes
+	for (var i = 0; i < this.mSceneStore.length; ++i) {
+		// if we find a match
+		if (this.mSceneStore[i].Type() == newScene.Type()) {
+			this.mReadyScene = this.mSceneStore[i]; // restore the stored scene as our ready (next) scene
+			this.mSceneStore.splice(i, i + 1); // remove it from the store
+			this.mIsSetUp = true;
+			found = true; // indicate we have found a persistent scene to restore
+			break;
+		}
+	}
+	
+	// if we didn't find a scene to restore
+	if (found == false) {
+		this.mReadyScene = newScene; // create a new scene
+		this.mIsSetUp = false;
+	}
+}
+
+// 
+SceneManager.prototype.SwitchScene = function() {
+	if (this.mReadyScene != null) {
+		// if we have a current scene (i.e., this is not our initial scene change on game start up)
+		if (this.mCurrScene != null) {
+			// if this scene is to be persistent
+			if (this.mCurrScene.Persistent() == true) {
+				this.mSceneStore.push(this.mCurrScene); // store this scene
+			}
+			else {
+				this.mCurrScene.TearDown(); // otherwise clean up and destroy this scene
+			}
+		}
+		
+		this.mCurrScene = this.mReadyScene;
+		
+		if (this.mIsSetUp == false) {
+			this.mCurrScene.SetUp();
+		}
+		
+		this.mReadyScene = null;
+	}
 }
 // ...End
 
@@ -1722,6 +1773,9 @@ InitScene.prototype.Persistent = function() {
 InitScene.prototype.SetUp = function() {
 	try {
 		// load the textures we need
+		nmgrs.resLoad.QueueTexture("smb_select", "./res/vis/smb_select.png");
+		nmgrs.resLoad.QueueTexture("menu_button", "./res/vis/menu_button.png");
+		
 		nmgrs.resLoad.QueueTexture("tile_set_default", "./res/vis/tile_set_default.png");
 		nmgrs.resLoad.QueueTexture("tile_hilite", "./res/vis/tile_hilite.png");
 		nmgrs.resLoad.QueueTexture("tile_hilite_fire", "./res/vis/tile_hilite_fire.png");
@@ -1774,13 +1828,271 @@ InitScene.prototype.Input = function() {
 // handles game logic
 InitScene.prototype.Process = function() {
 	if (nmgrs.resLoad.mWorking == false) {
-		nmgrs.sceneMan.ChangeScene(new GameScene());
+		nmgrs.sceneMan.ChangeScene(new MenuScene());
+		// nmgrs.sceneMan.ChangeScene(new GameScene());
 	}
 }
 
 // handles all drawing tasks
 InitScene.prototype.Render = function() {
 	
+}
+// ...End
+
+
+// MenuScene Class...
+// self contained parts of the game such as different screens, levels or game modes
+function MenuScene() {
+	this.mPersist = false;
+	
+	this.mBatch = new RenderBatch();
+	
+	this.mButtonText = new Array();
+	this.mButtonText[0] = new Text();
+	this.mButtonText[1] = new Text();
+	this.mButtonText[2] = new Text();
+	this.mButtonText[3] = new Text();
+	this.mButtonText[4] = new Text();
+	
+	this.mButtons = new Array();
+	this.mButtons[0] = new Sprite;
+	this.mButtons[1] = new Sprite;
+	this.mButtons[2] = new Sprite;
+	this.mButtons[3] = new Sprite;
+	
+	this.mRand = new RNG(0);
+	
+	this.mSizeArray = new Array();
+	this.mSizeArray[0] = "s";
+	this.mSizeArray[1] = "m";
+	this.mSizeArray[2] = "b";
+	
+	this.mMapSize = "s";
+	this.mBaseSize = "s";
+	this.mSeed = 0;
+}
+
+// returns the type of this object for validity checking
+MenuScene.prototype.Type = function() {
+	return "MenuScene";
+};
+
+// returns whether this scene is to persist or not (when changing to a new scene -- preserves state)
+MenuScene.prototype.Persistent = function() {
+	return this.mPersist;
+};
+
+// initialises the scene object
+MenuScene.prototype.SetUp = function() {
+	nmain.game.mClearColour = "#604039";
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("smb_select");
+		
+		{
+			this.mButtonText[0].SetFontName("sans-serif");
+			this.mButtonText[0].SetFontSize(18);
+			this.mButtonText[0].mString = "Map Size";
+			this.mButtonText[0].mDepth = -2000;
+			this.mButtonText[0].mShadow = true;
+			
+			this.mButtons[0].SetAnimatedTexture(tex, 3, 1, -1, -1);
+			this.mButtons[0].SetCurrentFrame(0);
+			this.mButtons[0].mDepth = -2000;
+			
+			this.mButtonText[0].mPos.Set((nmain.game.mCanvasSize.mX / 2) - this.mButtonText[0].GetWidth() - 8, 30 + this.mButtonText[0].GetHeight() + this.mButtons[0].GetHeight() / 16);
+			this.mButtons[0].mPos.Set((nmain.game.mCanvasSize.mX / 2) + 8, 30);
+		}
+		
+		{
+			this.mButtonText[1].SetFontName("sans-serif");
+			this.mButtonText[1].SetFontSize(18);
+			this.mButtonText[1].mString = "Base Size";
+			this.mButtonText[1].mDepth = -2000;
+			this.mButtonText[1].mShadow = true;
+			
+			this.mButtons[1].SetAnimatedTexture(tex, 3, 1, -1, -1);
+			this.mButtons[1].SetCurrentFrame(0);
+			this.mButtons[1].mDepth = -2000;
+			
+			this.mButtonText[1].mPos.Set((nmain.game.mCanvasSize.mX / 2) - this.mButtonText[1].GetWidth() - 8, 70 + this.mButtonText[1].GetHeight() + this.mButtons[1].GetHeight() / 16);
+			this.mButtons[1].mPos.Set((nmain.game.mCanvasSize.mX / 2) + 8, 70);
+		}
+	}
+	
+	{
+		var tex = nmgrs.resMan.mTexStore.GetResource("menu_button");
+		
+		{
+			this.mButtonText[2].SetFontName("sans-serif");
+			this.mButtonText[2].SetFontSize(18);
+			this.mButtonText[2].mString = "Randomise Seed";
+			this.mButtonText[2].mDepth = -2000;
+			this.mButtonText[2].mShadow = true;
+			
+			this.mButtons[2].SetTexture(tex);
+			this.mButtons[2].mDepth = -2000;
+			
+			this.mButtons[2].mPos.Set((nmain.game.mCanvasSize.mX / 2) - ((3 * this.mButtons[2].GetWidth()) / 2) + 24, 150);
+			this.mButtonText[2].mPos.Set(this.mButtons[2].mPos.mX - (this.mButtonText[2].GetWidth() / 2) + (this.mButtons[2].GetWidth() / 2), 120 + this.mButtonText[2].GetHeight() + this.mButtons[2].GetHeight() / 16);
+		}
+		
+		{
+			this.mButtonText[3].SetFontName("sans-serif");
+			this.mButtonText[3].SetFontSize(18);
+			this.mButtonText[3].mString = "Start Game";
+			this.mButtonText[3].mDepth = -2000;
+			this.mButtonText[3].mShadow = true;
+			
+			this.mButtons[3].SetTexture(tex);
+			this.mButtons[3].mDepth = -2000;
+			
+			this.mButtons[3].mPos.Set((nmain.game.mCanvasSize.mX / 2) + (this.mButtons[3].GetWidth() / 2) - 24, 150);
+			this.mButtonText[3].mPos.Set(this.mButtons[3].mPos.mX - (this.mButtonText[3].GetWidth() / 2) + (this.mButtons[3].GetWidth() / 2), 120 + this.mButtonText[3].GetHeight() + this.mButtons[3].GetHeight() / 16);
+		}
+	}
+	
+	{
+		var d = new Date();
+		this.mRand.SetSeed(d.getTime());
+		var seed = this.mRand.GetRandInt(0, 99999999);
+		this.mRand.SetSeed(seed);
+		this.mSeed = seed;
+		
+		this.mButtonText[4].SetFontName("sans-serif");
+		this.mButtonText[4].SetFontSize(12);
+		this.mButtonText[4].mString = (this.mRand.GetSeed()).toString();
+		this.mButtonText[4].mDepth = -2010;
+		this.mButtonText[4].mShadow = true;
+		
+		this.mButtonText[4].mPos.Set(this.mButtons[2].mPos.mX + (this.mButtons[2].GetWidth() / 2) - (this.mButtonText[4].GetWidth() / 2), this.mButtons[2].mPos.mY + this.mButtons[2].GetHeight() + 5);
+	}
+	
+	this.SetUpBatch();
+}
+
+// cleans up the scene object
+MenuScene.prototype.TearDown = function() {
+	
+}
+
+// handles user input
+MenuScene.prototype.Input = function() {
+	if (nmgrs.inputMan.GetMousePressed(nmouse.button.code.left)) {
+		// the mouse cursor position offset by the current camera (view)
+		var pt = new IVec2(0, 0);
+		pt.Copy(nmgrs.inputMan.GetLocalMouseCoords());
+		
+		for (var i = 0; i < this.mButtons.length; ++i) {
+			// top left of the buttons boundbox
+			var tl = new IVec2(this.mButtons[i].mPos.mX, this.mButtons[i].mPos.mY);
+			
+			// bottom right of the buttons boundbox
+			var br = new IVec2(this.mButtons[i].mPos.mX + this.mButtons[i].GetWidth(),
+					this.mButtons[i].mPos.mY + this.mButtons[i].GetHeight());
+			
+			if (util.PointInRectangle(pt, tl, br) == true) {
+				if (i == 0 || i == 1) {
+					var frame = (this.mButtons[i].mCurrFrame + 1) % this.mButtons[i].mNumFrames;
+					this.mButtons[i].SetCurrentFrame(frame);
+					this.SetUpBatch();
+					
+					if (i == 0) {
+						this.mMapSize = this.mSizeArray[frame];
+					}
+					else {
+						this.mBaseSize = this.mSizeArray[frame];
+					}
+				}
+				else if (i == 2) {
+					var seed = this.mRand.GetRandInt(0, 99999999);
+					this.mRand.SetSeed(seed);
+					this.mSeed = seed;
+					this.mButtonText[4].mString = (this.mRand.GetSeed()).toString();
+					this.mButtonText[4].mPos.Set(this.mButtons[2].mPos.mX + (this.mButtons[2].GetWidth() / 2) - (this.mButtonText[4].GetWidth() / 2), this.mButtons[2].mPos.mY + this.mButtons[2].GetHeight() + 5);
+					this.SetUpBatch();
+				}
+				else if (i == 3) {
+					this.mPersist = true;
+					nmgrs.sceneMan.ReadyScene(new GameScene());
+					
+					nmgrs.sceneMan.mReadyScene.mMenuMapSize = this.mMapSize;
+					nmgrs.sceneMan.mReadyScene.mMenuBaseSize = this.mBaseSize;
+					nmgrs.sceneMan.mReadyScene.mMenuSeed = this.mSeed;
+					
+					nmgrs.sceneMan.SwitchScene();
+				}
+			}
+		}
+	}
+}
+
+// handles game logic
+MenuScene.prototype.Process = function() {
+	
+}
+
+// handles all drawing tasks
+MenuScene.prototype.Render = function() {
+	nmain.game.SetIdentity();
+	this.mBatch.Render();
+}
+
+MenuScene.prototype.SetUpBatch = function() {
+	this.mBatch.Clear();
+	
+	for (var i = 0; i < this.mButtonText.length; ++i) {
+		this.mBatch.AddText(this.mButtonText[i]);
+	}
+	
+	for (var i = 0; i < this.mButtons.length; ++i) {
+		this.mBatch.AddSprite(this.mButtons[i]);
+	}
+}
+// ...End
+
+
+// HelpScene Class...
+// self contained parts of the game such as different screens, levels or game modes
+function HelpScene() {
+	this.mPersist = false;
+}
+
+// returns the type of this object for validity checking
+HelpScene.prototype.Type = function() {
+	return "HelpScene";
+};
+
+// returns whether this scene is to persist or not (when changing to a new scene -- preserves state)
+HelpScene.prototype.Persistent = function() {
+	return this.mPersist;
+};
+
+// initialises the scene object
+HelpScene.prototype.SetUp = function() {
+	nmain.game.mClearColour = "#604039";
+}
+
+// cleans up the scene object
+HelpScene.prototype.TearDown = function() {
+	
+}
+
+// handles user input
+HelpScene.prototype.Input = function() {
+	if (nmgrs.inputMan.GetMousePressed(nmouse.button.code.left)) {
+		nmgrs.sceneMan.ChangeScene(new MenuScene());
+	}
+}
+
+// handles game logic
+HelpScene.prototype.Process = function() {
+	
+}
+
+// handles all drawing tasks
+HelpScene.prototype.Render = function() {
+	nmain.game.SetIdentity();
 }
 // ...End
 
@@ -1812,6 +2124,8 @@ function GameScene() {
 	this.mPlayerLife = 0;
 	this.mGameEnd = false;
 	this.mGameEndSprite = new Sprite();
+	this.mGameEndText = new Text();
+	this.mGameEndTimer = 200;
 	
 	this.mPlacementMode = false;
 	this.mPlacementBounds = new Array();
@@ -1820,6 +2134,10 @@ function GameScene() {
 	this.mTimerAction = 0;
 	
 	this.mDebug = new GFDebug();
+	
+	this.mMenuMapSize = 0;
+	this.mMenuBaseSize = 0;
+	this.mMenuSeed = 0;
 }
 
 // returns the type of this object for validity checking
@@ -1836,10 +2154,8 @@ GameScene.prototype.Persistent = function() {
 GameScene.prototype.SetUp = function() {
 	nmain.game.mClearColour = "#604039";
 	
-	var d = new Date();
-	
 	var mapGen = new GFMapGen();
-	this.mMap = mapGen.GenerateMap(d.getTime(), "s", "s");
+	this.mMap = mapGen.GenerateMap(this.mMenuSeed, this.mMenuMapSize, this.mMenuBaseSize);
 	
 	this.mCam.mTranslate.Set(0 - ((nmain.game.mCanvasSize.mX - (this.mMap.mMapSize.mX * 32)) / 2),
 			0 - ((nmain.game.mCanvasSize.mY - (this.mMap.mMapSize.mY * 32)) / 2));
@@ -1970,18 +2286,36 @@ GameScene.prototype.Process = function() {
 			
 			var tex = nmgrs.resMan.mTexStore.GetResource("lose");
 			this.mGameEndSprite.SetTexture(tex);
-			this.mGameEndSprite.mPos.Set(this.mCam.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mGameEndSprite.GetWidth() / 2),
-					this.mCam.mTranslate.mY + (nmain.game.mCanvasSize.mY / 2) - (this.mGameEndSprite.GetHeight() / 2));
+			this.mGameEndSprite.mPos.Set((nmain.game.mCanvasSize.mX / 2) - (this.mGameEndSprite.GetWidth() / 2),
+					(nmain.game.mCanvasSize.mY / 2) - (this.mGameEndSprite.GetHeight() / 2));
 			this.mGameEndSprite.mDepth = -500;
+			
+			this.mGameEndText.SetFontName("sans-serif");
+			this.mGameEndText.SetFontSize(16);
+			this.mGameEndText.mString = this.mGameEndTimer.toString();
+			this.mGameEndText.mDepth = -500;
+			this.mGameEndText.mPos.Set(this.mGameEndSprite.mPos.mX + (this.mGameEndSprite.GetWidth() / 2) - (this.mGameEndText.GetWidth() / 2),
+					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight() + 20);
+			
+			this.mGameEndText.mColour = "#000000";
 		}
 		else if (this.mEnemyLife == 0) {
 			this.mGameEnd = true;
 			
 			var tex = nmgrs.resMan.mTexStore.GetResource("won");
 			this.mGameEndSprite.SetTexture(tex);
-			this.mGameEndSprite.mPos.Set(this.mCam.mTranslate.mX + (nmain.game.mCanvasSize.mX / 2) - (this.mGameEndSprite.GetWidth() / 2),
-					this.mCam.mTranslate.mY + (nmain.game.mCanvasSize.mY / 2) - (this.mGameEndSprite.GetHeight() / 2));
+			this.mGameEndSprite.mPos.Set((nmain.game.mCanvasSize.mX / 2) - (this.mGameEndSprite.GetWidth() / 2),
+					(nmain.game.mCanvasSize.mY / 2) - (this.mGameEndSprite.GetHeight() / 2));
 			this.mGameEndSprite.mDepth = -500;
+			
+			this.mGameEndText.SetFontName("sans-serif");
+			this.mGameEndText.SetFontSize(16);
+			this.mGameEndText.mString = this.mGameEndTimer.toString();
+			this.mGameEndText.mDepth = -500;
+			this.mGameEndText.mPos.Set(this.mGameEndSprite.mPos.mX + (this.mGameEndSprite.GetWidth() / 2) - (this.mGameEndText.GetWidth() / 2),
+					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight() + 20);
+			
+			this.mGameEndText.mColour = "#000000";
 		}
 		
 		this.mDebug.Process();
@@ -2000,14 +2334,24 @@ GameScene.prototype.Process = function() {
 			this.mPlacementHighlight[i].Process();
 		}
 	}
+	else {
+		this.mGameEndTimer--;
+		this.mGameEndText.mString = this.mGameEndTimer.toString();
+		this.mGameEndText.mPos.Set(this.mGameEndSprite.mPos.mX + (this.mGameEndSprite.GetWidth() / 2) - (this.mGameEndText.GetWidth() / 2),
+					this.mGameEndSprite.mPos.mY + this.mGameEndSprite.GetHeight() + 20);
+		
+		if (this.mGameEndTimer == 0) {
+			nmgrs.sceneMan.ChangeScene(new MenuScene());
+		}
+	}
 }
 
 // handles all drawing tasks
 GameScene.prototype.Render = function() {
 	nmain.game.SetIdentity();
-	this.mCam.Apply();
 	
 	if (this.mGameEnd == false) {
+		this.mCam.Apply();
 		this.mMap.mMapBatch.Render(this.mCam);
 		
 		{
@@ -2044,7 +2388,8 @@ GameScene.prototype.Render = function() {
 	else {
 		this.mUnitBatch.Clear();
 		this.mUnitBatch.AddSprite(this.mGameEndSprite);
-		this.mUnitBatch.Render(this.mCam);
+		this.mUnitBatch.AddText(this.mGameEndText);
+		this.mUnitBatch.Render();
 	}
 }
 
@@ -3183,7 +3528,7 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 									spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 									spr.mOrigin.Set(8, 8);
 									spr.mPos.Set(pos.mX * 32, pos.mY * 32);
-									spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id - fogDepth;
+									spr.mDepth = 999 - id - fogDepth;
 									
 									hiliteArr.push(spr);
 								}
@@ -3226,7 +3571,7 @@ GFUnitPusher.prototype.ProcessUI = function(camera) {
 								spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 								spr.mOrigin.Set(8, 8);
 								spr.mPos.Set(pos.mX * 32, pos.mY * 32);
-								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id - fogDepth;
+								spr.mDepth = 999 - id - fogDepth;
 								
 								hiliteArr.push(spr);
 							}
@@ -3995,7 +4340,7 @@ GFUnitPuller.prototype.ProcessUI = function(camera) {
 									spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 									spr.mOrigin.Set(8, 8);
 									spr.mPos.Set(pos.mX * 32, pos.mY * 32);
-									spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id - fogDepth;
+									spr.mDepth = 999 - id - fogDepth;
 									
 									hiliteArr.push(spr);
 								}
@@ -4038,7 +4383,7 @@ GFUnitPuller.prototype.ProcessUI = function(camera) {
 								spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 								spr.mOrigin.Set(8, 8);
 								spr.mPos.Set(pos.mX * 32, pos.mY * 32);
-								spr.mDepth = 999 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id - fogDepth;
+								spr.mDepth = 999 - id - fogDepth;
 								
 								hiliteArr.push(spr);
 							}
@@ -4800,7 +5145,7 @@ GFUnitArtillery.prototype.ProcessUI = function(camera) {
 								spr.SetAnimatedTexture(tex, 8, 4, 3 / nmain.game.mFrameLimit, -1);
 								spr.mOrigin.Set(8, 8);
 								spr.mPos.Set(pos.mX * 32, pos.mY * 32);
-								spr.mDepth = -2001 + (nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) - id;
+								spr.mDepth = -2001 - id;
 								
 								hiliteArr.push(spr);
 							}
