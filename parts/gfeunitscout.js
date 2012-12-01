@@ -13,6 +13,7 @@ function GFEUnitScout() {
 	this.mMovesLeft = 2;
 	
 	this.mCurrentAction = "";
+	this.mEntityFollowing = -1;
 }
 
 GFEUnitScout.prototype.Type = function() {
@@ -77,6 +78,9 @@ GFEUnitScout.prototype.PerformAIAction = function() {
 	else if (this.mCurrentAction == "ReturnToBase") {
 		this.ReturnToBase();
 	}
+	else if (this.mCurrentAction == "FollowUnit") {
+		this.FollowUnit();
+	}
 	
 	this.mMovesLeft--;
 }
@@ -129,7 +133,46 @@ GFEUnitScout.prototype.FindUnit = function() {
 		}
 	}
 	
-	if (this.mPos.mY == nmgrs.sceneMan.mCurrScene.mMap.IDToPos(end).mY) {
+	
+	var idFollow = -1;
+	{
+		var breakLoop = false;
+		var idThis = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+		
+		for (var y = -1; y <= 1; ++y) {
+			for (var x = -1; x <= 1; ++x) {
+				if ((idThis % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x >= 0 &&
+						(idThis % nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + x < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) {
+					
+					if (Math.floor(idThis / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y >= 0 &&
+							Math.floor(idThis / nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX) + y < nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mY) {
+						
+						var idCheck = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[(idThis + x) + (y * nmgrs.sceneMan.mCurrScene.mMap.mMapSize.mX)].mEntityID;
+						if (idCheck >= 0) {
+							if (nmgrs.sceneMan.mCurrScene.mGameEntities[idCheck].Type() == "GFUnitPusher" ||
+									nmgrs.sceneMan.mCurrScene.mGameEntities[idCheck].Type() == "GFUnitPuller" ||
+									nmgrs.sceneMan.mCurrScene.mGameEntities[idCheck].Type() == "GFUnitArtillery") {
+								
+								idFollow = idCheck;
+								breakLoop = true;
+								break;
+							}
+						}
+					}
+				}
+			}
+			
+			if (breakLoop == true) {
+				break;
+			}
+		}
+	}
+	
+	if (idFollow > 0) {
+		this.mEntityFollowing = idFollow;
+		this.mCurrentAction = "FollowUnit";
+	}
+	else if (this.mPos.mY == nmgrs.sceneMan.mCurrScene.mMap.IDToPos(end).mY) {
 		this.mCurrentAction = "ReturnToBase";
 	}
 	else {
@@ -191,7 +234,55 @@ GFEUnitScout.prototype.ReturnToBase = function() {
 }
 
 GFEUnitScout.prototype.FollowUnit = function() {
-	
+	if (this.mEntityFollowing < 0) {
+		this.mCurrentAction = "ReturnToBase";
+		this.ReturnToBase();
+	}
+	else {
+		var moveAmount = 3;
+		
+		var as = new AStar();
+		as.SetUp(nmgrs.sceneMan.mCurrScene.mMap.mMapSize);
+		for (var i = 0; i < nmgrs.sceneMan.mCurrScene.mMap.mMapTiles.length; ++i) {
+			as.mMap[i].mValid = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[i].mFree;
+		}
+		
+		var path = new Array();
+		var start = nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos);
+		var end = nmgrs.sceneMan.mCurrScene.mMap.PosToID(nmgrs.sceneMan.mCurrScene.mGameEntities[this.mEntityFollowing].mPos);
+		path = as.FindPath(start, end);
+		
+		if (path.length > 12) { // break off the chase
+			this.mEntityFollowing = -1;
+			this.mCurrentAction = "ReturnToBase";
+			this.ReturnToBase();
+		}
+		else {
+			var id = (path.length - 1) - moveAmount;
+			
+			// if not true then we can't even move 1 tile!
+			if (path.length > 1) {
+				if (id < 0) {
+					id = path.length - 1;
+				}
+				
+				id = path[id];
+				
+				{ // move this
+					nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mFree = true;
+					var oldID = nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mEntityID;
+					nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[nmgrs.sceneMan.mCurrScene.mMap.PosToID(this.mPos)].mEntityID = -1;
+					nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mFree = false;
+					nmgrs.sceneMan.mCurrScene.mMap.mMapTiles[id].mEntityID = oldID;
+					this.mPos.Copy(nmgrs.sceneMan.mCurrScene.mMap.IDToPos(id));
+					
+					this.mSprite.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+					this.mSprite.mDepth = -500 - id;
+					this.mBound.mPos.Set(this.mPos.mX * 32, this.mPos.mY * 32);
+				}
+			}
+		}
+	}
 }
 
 //
@@ -250,6 +341,8 @@ GFEUnitScout.prototype.DestroyUnit = function() {
 	if (nmgrs.sceneMan.mCurrScene.mSelectID == entID) {
 		nmgrs.sceneMan.mCurrScene.mSelectID = -1;
 	}
+	
+	nmgrs.sceneMan.mCurrScene.mMap.AddExplosion(this.mPos);
 }
 // ...End
 
